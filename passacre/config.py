@@ -17,9 +17,11 @@ def multibase_of_schema(schema):
     ret = []
     for item in schema:
         count = 1
-        if isinstance(item, list):
+        if isinstance(item, list) and isinstance(item[0], int):
             count, item = item
-        item = default_digits.get(item, item)
+        if not isinstance(item, list):
+            item = [item]
+        item = ''.join(default_digits.get(i, i) for i in item)
         ret.extend([item] * count)
     return MultiBase(ret)
 
