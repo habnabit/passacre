@@ -1,4 +1,8 @@
 schemata:
+  - &8-alphanumeric
+    - [8, alphanumeric]
+  - &12-alphanumeric
+    - [12, alphanumeric]
   - &32-alphanumeric
     - [32, alphanumeric]
   - &32-printable
@@ -15,3 +19,10 @@ sites:
 
   fhcrc.org:
     increment: 5
+
+  schwab.com:
+    schema: *8-alphanumeric
+
+  fidelity.com:
+    schema:
+      - [16, [alphanumeric, '"%''()+,-/:;<=>?\ ^_|']]
