@@ -1,0 +1,17 @@
+schemata:
+  - &32-alphanumeric
+    - [32, alphanumeric]
+  - &32-printable
+    - [32, printable]
+
+sites:
+  default:
+    schema: *32-printable
+    iterations: 10000
+    pbkdf2-keylen: 32
+
+  becu.org:
+    schema: *32-alphanumeric
+
+  fhcrc.org:
+    increment: 5
