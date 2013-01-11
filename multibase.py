@@ -1,8 +1,28 @@
 class MultiBase(object):
+    """Represents a base where not every digit has the same possible values.
+
+    The ``bases`` parameter must be a sequence of strings, where each item in
+    the sequence represents one digit, in order from most significant digit to
+    least significant digit. Each character in each string represents one
+    possible value for the corresponding digit, in order from the lowest to
+    highest value for that digit.
+
+    The ``max_encodable_value`` attribute is the largest integer that can be
+    encoded with this base.
+    """
+
     def __init__(self, bases):
         self.bases = bases
 
     def encode(self, n):
+        """Encode an integer to a string, using this base.
+
+        The ``n`` parameter must be an integer. Returns a tuple of
+        ``encoded_string, remainder`` where ``remainder`` is the value left
+        over after encoding. ``remainder`` will only be nonzero if the ``n``
+        provided was greater than the maximum encodable value.
+        """
+
         ret = []
         for base in reversed(self.bases):
             n, d = divmod(n, len(base))
@@ -11,6 +31,14 @@ class MultiBase(object):
         return ''.join(ret), n
 
     def decode(self, x):
+        """Decode a string to an integer, using this base.
+
+        The ``x`` parameter must be a string as long as the ``bases`` sequence.
+        Returns the decoded integer or raises ``ValueError`` if the length of
+        ``x`` is not equal to the length of ``bases`` or any of the characters
+        in ``x`` aren't valid digits for their position.
+        """
+
         if len(x) != len(self.bases):
             raise ValueError(
                 "the length of %r (%d) doesn't match the number of bases (%d)" % (

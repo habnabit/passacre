@@ -6,7 +6,10 @@ digits = '0123456789'
 hexdigits = '0123456789abcdef'
 
 class MultiBaseTestCase(TestCase):
+    "Tests for the ``multibase.MultiBase`` class."
+
     def assertEncodingAndDecoding(self, mb, decoded, encoded):
+        "Assert that a ``MultiBase`` encodes and decodes values correspondingly."
         self.assertEqual(mb.encode(decoded), (encoded, 0))
         self.assertEqual(mb.decode(encoded), decoded)
 
@@ -55,3 +58,10 @@ class MultiBaseTestCase(TestCase):
         self.assertEqual(mb.encode(24), ('aaa', 1))
         self.assertEqual(mb.encode(48), ('aaa', 2))
         self.assertEqual(mb.encode(48 + 9), ('bbb', 2))
+
+    def test_decoding_exceptions(self):
+        mb = MultiBase([digits, digits])
+
+        self.assertRaises(ValueError, mb.decode, '999')
+        self.assertRaises(ValueError, mb.decode, '9')
+        self.assertRaises(ValueError, mb.decode, '9a')
