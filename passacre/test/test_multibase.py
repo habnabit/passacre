@@ -1,4 +1,4 @@
-from multibase import MultiBase
+from passacre.multibase import MultiBase
 
 from unittest import TestCase
 
@@ -6,7 +6,7 @@ digits = '0123456789'
 hexdigits = '0123456789abcdef'
 
 class MultiBaseTestCase(TestCase):
-    "Tests for the ``multibase.MultiBase`` class."
+    "Tests for the ``passacre.multibase.MultiBase`` class."
 
     def assertEncodingAndDecoding(self, mb, decoded, encoded):
         "Assert that a ``MultiBase`` encodes and decodes values correspondingly."
