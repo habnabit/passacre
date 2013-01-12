@@ -1,2 +1,2 @@
-from passacre.generator import main
+from passacre.application import main
 main()

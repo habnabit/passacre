@@ -15,14 +15,3 @@ def generate_from_config(password, site, config):
     if site_config is None:
         site_config = config['default']
     return generate(password, site, **site_config)
-
-def main():
-    from passacre.config import load
-    from getpass import getpass
-
-    config = load(open('config.yaml'))
-    password = getpass()
-    if password != getpass('Confirm password: '):
-        raise ValueError("passwords don't match")
-    site = raw_input('Site: ')
-    print generate_from_config(password, site, config)
