@@ -1,0 +1,19 @@
+passacre = password massacre (i.e. what happens when you use the same password
+on every site)
+
+hi!!
+
+I really love supergenpass, but the implementation leaves some things to be
+desired. feverish (and possibly delirious), I hacked up a little
+proof-of-concept thing.
+
+the gist of it is that passacre uses PBKDF2 to repeatably derive a value from
+your master password and a site name, and then encodes that value using a
+password schema (since different sites have different (and terrible) password
+requirements).
+
+also, it's BSD-licensed!
+
+every user-facing part of this sucks right now, but it's a work-in-progress.
+
+docs coming soon!!
