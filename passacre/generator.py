@@ -1,4 +1,7 @@
-import pbkdf2
+import keccak
+import math
+
+_some_nulls = '\x00' * 1024
 
 def int_of_bytes(s):
     "Convert a string of bytes to its integer representation."
@@ -7,16 +10,26 @@ def int_of_bytes(s):
         ret = (ret << 8) | ord(c)
     return ret
 
-def generate(password, site, multibase, iterations=1000, keylen=32):
+def generate(password, site, multibase, iterations=1000):
     """Generate a password with the passacre method.
 
-    This derives a value from running PBKDF2 on ``password`` with ``site`` as
-    the salt using the specified number of iterations and key length, then
-    encodes that value with the specified ``MultiBase``.
+    1. A Keccak sponge is initialized with rate 64 and capacity 1536.
+    2. The sponge absorbs ``password:site``.
+    3. The sponge absorbs 1024 null bytes for every iteration.
+    4. Enough bytes are squeezed out of the sponge to represent any value that
+       ``multibase`` can encode.
+    5. Those bytes are encoded with ``multibase`` and the encoded value is
+       returned.
     """
 
-    password_value = int_of_bytes(
-        pbkdf2.pbkdf2_bin(password, site, iterations=iterations, keylen=keylen))
+    sponge = keccak.Sponge(64, 1536)
+    sponge.absorb(password)
+    sponge.absorb(':')
+    sponge.absorb(site)
+    for x in xrange(iterations):
+        sponge.absorb(_some_nulls)
+    required_bytes = int(math.ceil(math.log(multibase.max_encodable_value + 1, 256)))
+    password_value = int_of_bytes(sponge.squeeze(required_bytes))
     return multibase.encode(password_value)[0]
 
 def generate_from_config(password, site, config):

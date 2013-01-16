@@ -36,7 +36,6 @@ def load(infile):
         sites[site] = {
             'multibase': multibase_of_schema(site_config['schema']),
             'iterations': site_config.get('iterations', 1000) + site_config.get('increment', 0),
-            'keylen': site_config.get('pbkdf2-keylen', 32),
         }
 
     return sites
