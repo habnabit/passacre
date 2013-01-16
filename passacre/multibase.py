@@ -17,18 +17,21 @@ class MultiBase(object):
     def encode(self, n):
         """Encode an integer to a string, using this base.
 
-        The ``n`` parameter must be an integer. Returns a tuple of
-        ``encoded_string, remainder`` where ``remainder`` is the value left
-        over after encoding. ``remainder`` will only be nonzero if the ``n``
-        provided was greater than the maximum encodable value.
+        The ``n`` parameter must be an integer. Returns the encoded string, or
+        raises ``ValueError`` if ``n`` is greater than the largest encodable
+        integer.
         """
 
+        if n > self.max_encodable_value:
+            raise ValueError(
+                '%d is greater than the largest encodable integer (%d)' % (
+                    n, self.max_encodable_value))
         ret = []
         for base in reversed(self.bases):
             n, d = divmod(n, len(base))
             ret.append(base[d])
         ret.reverse()
-        return ''.join(ret), n
+        return ''.join(ret)
 
     def decode(self, x):
         """Decode a string to an integer, using this base.

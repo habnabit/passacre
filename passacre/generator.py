@@ -29,8 +29,11 @@ def generate(password, site, multibase, iterations=1000):
     for x in xrange(iterations):
         sponge.absorb(_some_nulls)
     required_bytes = int(math.ceil(math.log(multibase.max_encodable_value + 1, 256)))
-    password_value = int_of_bytes(sponge.squeeze(required_bytes))
-    return multibase.encode(password_value)[0]
+    while True:
+        password_value = int_of_bytes(sponge.squeeze(required_bytes))
+        if password_value <= multibase.max_encodable_value:
+            break
+    return multibase.encode(password_value)
 
 def generate_from_config(password, site, config):
     """Generate a passacre password using a site's specific configuration.

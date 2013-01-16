@@ -10,7 +10,7 @@ class MultiBaseTestCase(TestCase):
 
     def assertEncodingAndDecoding(self, mb, decoded, encoded):
         "Assert that a ``MultiBase`` encodes and decodes values correspondingly."
-        self.assertEqual(mb.encode(decoded), (encoded, 0))
+        self.assertEqual(mb.encode(decoded), encoded)
         self.assertEqual(mb.decode(encoded), decoded)
 
     def test_simple_base10(self):
@@ -23,10 +23,8 @@ class MultiBaseTestCase(TestCase):
         self.assertEncodingAndDecoding(mb, 36, '36')
         self.assertEncodingAndDecoding(mb, 94, '94')
 
-        self.assertEqual(mb.encode(105), ('05', 1))
-        self.assertEqual(mb.encode(195), ('95', 1))
-        self.assertEqual(mb.encode(3305), ('05', 33))
-        self.assertEqual(mb.encode(3395), ('95', 33))
+        self.assertRaises(ValueError, mb.encode, 100)
+        self.assertRaises(ValueError, mb.encode, 105)
 
     def test_simple_base16(self):
         mb = MultiBase([hexdigits, hexdigits])
@@ -38,10 +36,8 @@ class MultiBaseTestCase(TestCase):
         self.assertEncodingAndDecoding(mb, 0x36, '36')
         self.assertEncodingAndDecoding(mb, 0xfe, 'fe')
 
-        self.assertEqual(mb.encode(0x105), ('05', 0x1))
-        self.assertEqual(mb.encode(0x1f5), ('f5', 0x1))
-        self.assertEqual(mb.encode(0x3305), ('05', 0x33))
-        self.assertEqual(mb.encode(0x33f5), ('f5', 0x33))
+        self.assertRaises(ValueError, mb.encode, 0x100)
+        self.assertRaises(ValueError, mb.encode, 0x105)
 
     def test_complex_base(self):
         mb = MultiBase(['abcd', 'abc', 'ab'])  # 4 * 3 * 2 == 24
@@ -55,9 +51,7 @@ class MultiBaseTestCase(TestCase):
         self.assertEncodingAndDecoding(mb, 17, 'ccb')
         self.assertEncodingAndDecoding(mb, 23, 'dcb')
 
-        self.assertEqual(mb.encode(24), ('aaa', 1))
-        self.assertEqual(mb.encode(48), ('aaa', 2))
-        self.assertEqual(mb.encode(48 + 9), ('bbb', 2))
+        self.assertRaises(ValueError, mb.encode, 24)
 
     def test_decoding_exceptions(self):
         mb = MultiBase([digits, digits])
