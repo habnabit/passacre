@@ -4,8 +4,17 @@ from passacre.generator import generate_from_config
 import argparse
 from getpass import getpass
 import math
+import os
 import pprint
 import sys
+
+def open_first(paths, mode='r'):
+    for path in paths:
+        try:
+            return open(path, mode)
+        except EnvironmentError:
+            pass
+    raise ValueError('no file in %r could be opened' % (paths,))
 
 class Passacre(object):
     _subcommands = {
@@ -15,7 +24,9 @@ class Passacre(object):
 
     def load_config(self):
         "Load the passacre configuration to ``self.config``."
-        self.config = load_config(open('config.yaml'))
+        config_fobj = open_first(['passacre.yaml', os.path.expanduser('~/.passacre.yaml')])
+        with config_fobj:
+            self.config = load_config(config_fobj)
 
     def generate_args(self, subparser):
         subparser.add_argument('site', nargs='?',
