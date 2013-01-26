@@ -1,3 +1,6 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 from passacre.multibase import MultiBase
 
 from unittest import TestCase

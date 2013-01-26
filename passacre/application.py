@@ -1,3 +1,6 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 from passacre.config import load as load_config
 from passacre.generator import generate_from_config
 
