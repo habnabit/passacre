@@ -2,6 +2,7 @@
 # See COPYING for details.
 
 import keccak
+import random
 import math
 
 _some_nulls = '\x00' * 1024
@@ -51,3 +52,21 @@ def generate_from_config(password, site, config):
     if site_config is None:
         site_config = config['default']
     return generate(password, site, **site_config)
+
+class SpongeRandom(random.SystemRandom):
+    "A ``random.Random`` subclass which derives its entropy from a sponge."
+
+    def __init__(self, sponge):
+        self.sponge = sponge
+
+    def random(self):
+        "Get the next sponge-derived number on the range [0.0, 1.0)."
+        return self.getrandbits(random.BPF) * random.RECIP_BPF
+
+    def getrandbits(self, n_bits):
+        "Generate an integer of ``n_bits`` sponge-squeezed bits."
+        if n_bits <= 0:
+            raise ValueError('number of bits must be greater than zero')
+        n_bytes = (n_bits + 7) // 8
+        val = int_of_bytes(self.sponge.squeeze(n_bytes))
+        return val >> (n_bytes * 8 - n_bits)
