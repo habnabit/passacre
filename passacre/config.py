@@ -7,12 +7,12 @@ import string
 import yaml
 
 default_digits = {
-    'printable': string.digits + string.letters + string.punctuation,
-    'alphanumeric': string.digits + string.letters,
+    'printable': string.digits + string.ascii_letters + string.punctuation,
+    'alphanumeric': string.digits + string.ascii_letters,
     'digit': string.digits,
-    'letter': string.letters,
-    'lowercase': string.lowercase,
-    'uppercase': string.uppercase,
+    'letter': string.ascii_letters,
+    'lowercase': string.ascii_lowercase,
+    'uppercase': string.ascii_uppercase,
 }
 
 def multibase_of_schema(schema):

@@ -1,6 +1,8 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+from __future__ import unicode_literals
+
 from passacre.config import load as load_config
 from passacre.generator import generate_from_config
 

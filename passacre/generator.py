@@ -1,17 +1,29 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+from __future__ import unicode_literals
+
 import keccak
 import random
 import math
+import sys
 
-_some_nulls = '\x00' * 1024
+_some_nulls = b'\x00' * 1024
+
+
+if sys.version_info > (3,):
+    iter_bytes = iter
+else:
+    def iter_bytes(s):
+        for c in s:
+            yield ord(c)
+
 
 def int_of_bytes(s):
     "Convert a string of bytes to its integer representation."
     ret = 0
-    for c in s:
-        ret = (ret << 8) | ord(c)
+    for c in iter_bytes(s):
+        ret = (ret << 8) | c
     return ret
 
 def generate(password, site, options):
@@ -82,7 +94,7 @@ def build_prng(password, site, options):
     if method == 'keccak':
         sponge = keccak.Sponge(64, 1536)
         sponge.absorb(password)
-        sponge.absorb(':')
+        sponge.absorb(b':')
         sponge.absorb(site)
         for x in xrange(iterations):
             sponge.absorb(_some_nulls)

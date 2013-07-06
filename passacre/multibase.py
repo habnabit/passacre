@@ -1,6 +1,8 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+from __future__ import unicode_literals
+
 class MultiBase(object):
     """Represents a base where not every digit has the same possible values.
 
