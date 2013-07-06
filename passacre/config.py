@@ -34,11 +34,10 @@ def load(infile):
     defaults = parsed['sites'].get('default', {})
     sites = {}
     for site, additional_config in parsed['sites'].iteritems():
-        site_config = defaults.copy()
+        site_config = sites[site] = defaults.copy()
         site_config.update(additional_config)
-        sites[site] = {
-            'multibase': multibase_of_schema(site_config['schema']),
-            'iterations': site_config.get('iterations', 1000) + site_config.get('increment', 0),
-        }
+        site_config['multibase'] = multibase_of_schema(site_config['schema'])
+        site_config['iterations'] = (
+            site_config.get('iterations', 1000) + site_config.get('increment', 0))
 
     return sites
