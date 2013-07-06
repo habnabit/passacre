@@ -1,18 +1,20 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+from __future__ import unicode_literals
+
 from passacre.multibase import MultiBase
 
 import string
 import yaml
 
 default_digits = {
-    'printable': string.digits + string.letters + string.punctuation,
-    'alphanumeric': string.digits + string.letters,
+    'printable': string.digits + string.ascii_letters + string.punctuation,
+    'alphanumeric': string.digits + string.ascii_letters,
     'digit': string.digits,
-    'letter': string.letters,
-    'lowercase': string.lowercase,
-    'uppercase': string.uppercase,
+    'letter': string.ascii_letters,
+    'lowercase': string.ascii_lowercase,
+    'uppercase': string.ascii_uppercase,
 }
 
 def multibase_of_schema(schema):
@@ -33,12 +35,11 @@ def load(infile):
     parsed = yaml.load(infile)
     defaults = parsed['sites'].get('default', {})
     sites = {}
-    for site, additional_config in parsed['sites'].iteritems():
-        site_config = defaults.copy()
+    for site, additional_config in parsed['sites'].items():
+        site_config = sites[site] = defaults.copy()
         site_config.update(additional_config)
-        sites[site] = {
-            'multibase': multibase_of_schema(site_config['schema']),
-            'iterations': site_config.get('iterations', 1000) + site_config.get('increment', 0),
-        }
+        site_config['multibase'] = multibase_of_schema(site_config['schema'])
+        site_config['iterations'] = (
+            site_config.get('iterations', 1000) + site_config.get('increment', 0))
 
     return sites

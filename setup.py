@@ -7,12 +7,11 @@ from setuptools import setup
 setup(
     name='passacre',
     packages=['passacre', 'passacre.test'],
-    install_requires=[
-        'cykeccak',
-    ],
     extras_require={
         'config': ['PyYAML'],
         'clipboard': ['xerox'],
+        'keccak-generation': ['cykeccak'],
+        'skein-generation': ['pyskein'],
     },
     entry_points={
         'console_scripts': ['passacre = passacre.application:main [config]'],

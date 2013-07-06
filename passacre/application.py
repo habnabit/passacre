@@ -1,6 +1,8 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+from __future__ import unicode_literals
+
 from passacre.config import load as load_config
 from passacre.generator import generate_from_config
 
@@ -17,6 +19,9 @@ try:
     import xerox
 except ImportError:
     xerox = None
+
+if sys.version_info < (3,):
+    input = raw_input
 
 def open_first(paths, mode='r'):
     for path in paths:
@@ -62,7 +67,7 @@ class Passacre(object):
             raise ValueError("passwords don't match")
         if args.site is None:
             sys.stderr.write('Site: ')
-            args.site = raw_input()
+            args.site = input()
         password = generate_from_config(password, args.site, self.config)
         if args.copy:
             xerox.copy(password)
@@ -83,7 +88,7 @@ class Passacre(object):
 
         entropy = [
             (site, math.log(site_config['multibase'].max_encodable_value + 1, 2))
-            for site, site_config in self.config.iteritems()
+            for site, site_config in self.config.items()
         ]
         pprint.pprint(entropy)
 
@@ -91,7 +96,7 @@ class Passacre(object):
         "Build an ``ArgumentParser`` from the defined subcommands."
         parser = argparse.ArgumentParser(prog='passacre')
         subparsers = parser.add_subparsers()
-        for subcommand, subcommand_help in self._subcommands.iteritems():
+        for subcommand, subcommand_help in self._subcommands.items():
             action_method = getattr(self, '%s_action' % (subcommand,))
             subparser = subparsers.add_parser(
                 subcommand, help=subcommand_help, description=action_method.__doc__)
