@@ -44,19 +44,15 @@ def generate(password, site, options):
     """
 
     multibase = options['multibase']
-    compatibility_mode = options.get('compatibility-mode', True)
     prng = build_prng(password, site, options)
 
-    if options.get('method', 'keccak') == 'keccak' and compatibility_mode:
-        required_bytes = int(math.ceil(
-            math.log(multibase.max_encodable_value + 1, 256)))
-        required_bits = required_bytes * 8
-        while True:
-            password_value = prng.getrandbits(required_bits)
-            if password_value <= multibase.max_encodable_value:
-                break
-    else:
-        password_value = prng.randrange(multibase.max_encodable_value)
+    required_bytes = int(math.ceil(
+        math.log(multibase.max_encodable_value + 1, 256)))
+    required_bits = required_bytes * 8
+    while True:
+        password_value = prng.getrandbits(required_bits)
+        if password_value <= multibase.max_encodable_value:
+            break
     return multibase.encode(password_value)
 
 def generate_from_config(password, site, config):
@@ -92,17 +88,24 @@ class SpongeRandom(random.SystemRandom):
         return val >> (n_bytes * 8 - n_bits)
 
 def build_prng(password, site, options):
+    password = perhaps_encode(password)
+    site = perhaps_encode(site)
     method = options.get('method', 'keccak')
     iterations = options.get('iterations', 1000)
 
     if method == 'keccak':
         sponge = keccak.Sponge(64, 1536)
-        sponge.absorb(perhaps_encode(password))
+        sponge.absorb(password)
         sponge.absorb(b':')
-        sponge.absorb(perhaps_encode(site))
+        sponge.absorb(site)
         for x in itertools.repeat(None, iterations):
             sponge.absorb(_some_nulls)
         return SpongeRandom(sponge)
+
+    elif method == 'skein':
+        import skein
+        seed = password + b':' + site + (_some_nulls * iterations)
+        return skein.Random(seed)
 
     else:
         raise ValueError('invalid method: %r' % (method,))
