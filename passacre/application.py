@@ -11,6 +11,11 @@ import os
 import pprint
 import sys
 
+try:
+    import xerox
+except ImportError:
+    xerox = None
+
 def open_first(paths, mode='r'):
     for path in paths:
         try:
@@ -42,6 +47,9 @@ class Passacre(object):
                                help="don't write a newline after the password")
         subparser.add_argument('-c', '--confirm', action='store_true',
                                help='confirm prompted password')
+        if xerox is not None:
+            subparser.add_argument('-C', '--copy', action='store_true',
+                                   help='put the generated password on the clipboard')
 
     def generate_action(self, args):
         "Generate a password."
@@ -51,9 +59,13 @@ class Passacre(object):
         if args.site is None:
             sys.stderr.write('Site: ')
             args.site = raw_input()
-        sys.stdout.write(generate_from_config(password, args.site, self.config))
-        if not args.no_newline:
-            sys.stdout.write('\n')
+        password = generate_from_config(password, args.site, self.config)
+        if args.copy:
+            xerox.copy(password)
+        else:
+            sys.stdout.write(password)
+            if not args.no_newline:
+                sys.stdout.write('\n')
 
     def entropy_action(self, args):
         """Display each site's potential password entropy in bits.

@@ -12,6 +12,7 @@ setup(
     ],
     extras_require={
         'config': ['PyYAML'],
+        'clipboard': ['xerox'],
     },
     entry_points={
         'console_scripts': ['passacre = passacre.application:main [config]'],
