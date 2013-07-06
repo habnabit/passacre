@@ -13,6 +13,9 @@ import os
 import pprint
 import sys
 
+if sys.version_info < (3,):
+    input = raw_input
+
 def open_first(paths, mode='r'):
     for path in paths:
         try:
@@ -48,7 +51,7 @@ class Passacre(object):
             raise ValueError("passwords don't match")
         if args.site is None:
             sys.stderr.write('Site: ')
-            args.site = raw_input()
+            args.site = input()
         sys.stdout.write(generate_from_config(password, args.site, self.config))
         if not args.no_newline:
             sys.stdout.write('\n')
