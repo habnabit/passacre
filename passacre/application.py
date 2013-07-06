@@ -62,7 +62,7 @@ class Passacre(object):
 
         entropy = [
             (site, math.log(site_config['multibase'].max_encodable_value + 1, 2))
-            for site, site_config in self.config.iteritems()
+            for site, site_config in self.config.items()
         ]
         pprint.pprint(entropy)
 
@@ -70,7 +70,7 @@ class Passacre(object):
         "Build an ``ArgumentParser`` from the defined subcommands."
         parser = argparse.ArgumentParser(prog='passacre')
         subparsers = parser.add_subparsers()
-        for subcommand, subcommand_help in self._subcommands.iteritems():
+        for subcommand, subcommand_help in self._subcommands.items():
             action_method = getattr(self, '%s_action' % (subcommand,))
             subparser = subparsers.add_parser(
                 subcommand, help=subcommand_help, description=action_method.__doc__)

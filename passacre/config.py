@@ -1,6 +1,8 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+from __future__ import unicode_literals
+
 from passacre.multibase import MultiBase
 
 import string
@@ -33,7 +35,7 @@ def load(infile):
     parsed = yaml.load(infile)
     defaults = parsed['sites'].get('default', {})
     sites = {}
-    for site, additional_config in parsed['sites'].iteritems():
+    for site, additional_config in parsed['sites'].items():
         site_config = sites[site] = defaults.copy()
         site_config.update(additional_config)
         site_config['multibase'] = multibase_of_schema(site_config['schema'])
