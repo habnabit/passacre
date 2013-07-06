@@ -3,8 +3,6 @@
 
 from __future__ import unicode_literals
 
-import itertools
-import keccak
 import random
 import math
 import sys
@@ -88,23 +86,21 @@ class SpongeRandom(random.SystemRandom):
         return val >> (n_bytes * 8 - n_bits)
 
 def build_prng(password, site, options):
-    password = perhaps_encode(password)
-    site = perhaps_encode(site)
     method = options.get('method', 'keccak')
     iterations = options.get('iterations', 1000)
+    seed = (
+        perhaps_encode(password) + b':'
+        + perhaps_encode(site)
+        + (_some_nulls * iterations))
 
     if method == 'keccak':
+        import keccak
         sponge = keccak.Sponge(64, 1536)
-        sponge.absorb(password)
-        sponge.absorb(b':')
-        sponge.absorb(site)
-        for x in itertools.repeat(None, iterations):
-            sponge.absorb(_some_nulls)
+        sponge.absorb(seed)
         return SpongeRandom(sponge)
 
     elif method == 'skein':
         import skein
-        seed = password + b':' + site + (_some_nulls * iterations)
         return skein.Random(seed)
 
     else:
