@@ -26,18 +26,14 @@ def generate(password, site, options):
        returned.
     """
 
-    iterations = options.get('iterations', 1000)
     multibase = options['multibase']
+    prng = build_prng(password, site, options)
 
-    sponge = keccak.Sponge(64, 1536)
-    sponge.absorb(password)
-    sponge.absorb(':')
-    sponge.absorb(site)
-    for x in xrange(iterations):
-        sponge.absorb(_some_nulls)
+    # this for backward compatibility or I'd calculate required_bits directly.
     required_bytes = int(math.ceil(math.log(multibase.max_encodable_value + 1, 256)))
+    required_bits = required_bytes * 8
     while True:
-        password_value = int_of_bytes(sponge.squeeze(required_bytes))
+        password_value = prng.getrandbits(required_bits)
         if password_value <= multibase.max_encodable_value:
             break
     return multibase.encode(password_value)
@@ -73,3 +69,19 @@ class SpongeRandom(random.SystemRandom):
         n_bytes = (n_bits + 7) // 8
         val = int_of_bytes(self.sponge.squeeze(n_bytes))
         return val >> (n_bytes * 8 - n_bits)
+
+def build_prng(password, site, options):
+    method = options.get('method', 'keccak')
+    iterations = options.get('iterations', 1000)
+
+    if method == 'keccak':
+        sponge = keccak.Sponge(64, 1536)
+        sponge.absorb(password)
+        sponge.absorb(':')
+        sponge.absorb(site)
+        for x in xrange(iterations):
+            sponge.absorb(_some_nulls)
+        return SpongeRandom(sponge)
+
+    else:
+        raise ValueError('invalid method: %r' % (method,))
