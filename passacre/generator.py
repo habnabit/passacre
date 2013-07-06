@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 
+import itertools
 import keccak
 import random
 import math
@@ -99,7 +100,7 @@ def build_prng(password, site, options):
         sponge.absorb(perhaps_encode(password))
         sponge.absorb(b':')
         sponge.absorb(perhaps_encode(site))
-        for x in xrange(iterations):
+        for x in itertools.repeat(None, iterations):
             sponge.absorb(_some_nulls)
         return SpongeRandom(sponge)
 
