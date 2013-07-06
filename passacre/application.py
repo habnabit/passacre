@@ -70,10 +70,14 @@ class Passacre(object):
             args.site = input()
         password = generate_from_config(password, args.site, self.config)
         if args.copy:
+            sys.stderr.write('password copied.\n')
             xerox.copy(password)
             if args.timeout:
                 atexit.register(xerox.copy, '')
-                time.sleep(args.timeout)
+                try:
+                    time.sleep(args.timeout)
+                except KeyboardInterrupt:
+                    pass
         else:
             sys.stdout.write(password)
             if not args.no_newline:
