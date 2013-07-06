@@ -14,7 +14,7 @@ def int_of_bytes(s):
         ret = (ret << 8) | ord(c)
     return ret
 
-def generate(password, site, multibase, iterations=1000):
+def generate(password, site, options):
     """Generate a password with the passacre method.
 
     1. A Keccak sponge is initialized with rate 64 and capacity 1536.
@@ -25,6 +25,9 @@ def generate(password, site, multibase, iterations=1000):
     5. Those bytes are encoded with ``multibase`` and the encoded value is
        returned.
     """
+
+    iterations = options.get('iterations', 1000)
+    multibase = options['multibase']
 
     sponge = keccak.Sponge(64, 1536)
     sponge.absorb(password)
@@ -51,7 +54,7 @@ def generate_from_config(password, site, config):
     site_config = config.get(site, None)
     if site_config is None:
         site_config = config['default']
-    return generate(password, site, **site_config)
+    return generate(password, site, site_config)
 
 class SpongeRandom(random.SystemRandom):
     "A ``random.Random`` subclass which derives its entropy from a sponge."
