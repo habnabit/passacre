@@ -17,25 +17,30 @@ def int_of_bytes(s):
 def generate(password, site, options):
     """Generate a password with the passacre method.
 
-    1. A Keccak sponge is initialized with rate 64 and capacity 1536.
-    2. The sponge absorbs ``password:site``.
-    3. The sponge absorbs 1024 null bytes for every iteration.
-    4. Enough bytes are squeezed out of the sponge to represent any value that
+    1. A string is generated from ``password:site`` concatentated with 1024
+       null bytes for every iteration.
+    2. A pseudo-random number generator is initialized using the string as a
+       seed.
+    3. The PRNG is asked for an integer below the maximum value that
        ``multibase`` can encode.
-    5. Those bytes are encoded with ``multibase`` and the encoded value is
-       returned.
+    4. That integer is encoded with
+       ``multibase`` and the encoded value is returned.
     """
 
     multibase = options['multibase']
+    compatibility_mode = options.get('compatibility-mode', True)
     prng = build_prng(password, site, options)
 
-    # this for backward compatibility or I'd calculate required_bits directly.
-    required_bytes = int(math.ceil(math.log(multibase.max_encodable_value + 1, 256)))
-    required_bits = required_bytes * 8
-    while True:
-        password_value = prng.getrandbits(required_bits)
-        if password_value <= multibase.max_encodable_value:
-            break
+    if options.get('method', 'keccak') == 'keccak' and compatibility_mode:
+        required_bytes = int(math.ceil(
+            math.log(multibase.max_encodable_value + 1, 256)))
+        required_bits = required_bytes * 8
+        while True:
+            password_value = prng.getrandbits(required_bits)
+            if password_value <= multibase.max_encodable_value:
+                break
+    else:
+        password_value = prng.randrange(multibase.max_encodable_value)
     return multibase.encode(password_value)
 
 def generate_from_config(password, site, config):
