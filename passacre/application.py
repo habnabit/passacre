@@ -5,11 +5,13 @@ from passacre.config import load as load_config
 from passacre.generator import generate_from_config
 
 import argparse
+import atexit
 from getpass import getpass
 import math
 import os
 import pprint
 import sys
+import time
 
 try:
     import xerox
@@ -50,6 +52,8 @@ class Passacre(object):
         if xerox is not None:
             subparser.add_argument('-C', '--copy', action='store_true',
                                    help='put the generated password on the clipboard')
+            subparser.add_argument('-w', '--timeout', type=int, metavar='N',
+                                   help='clear the clipboard after N seconds')
 
     def generate_action(self, args):
         "Generate a password."
@@ -62,6 +66,9 @@ class Passacre(object):
         password = generate_from_config(password, args.site, self.config)
         if args.copy:
             xerox.copy(password)
+            if args.timeout:
+                atexit.register(xerox.copy, '')
+                time.sleep(args.timeout)
         else:
             sys.stdout.write(password)
             if not args.no_newline:
