@@ -27,7 +27,11 @@ class Passacre(object):
 
     def load_config(self):
         "Load the passacre configuration to ``self.config``."
-        config_fobj = open_first(['passacre.yaml', os.path.expanduser('~/.passacre.yaml')])
+        config_fobj = open_first([
+            'passacre.yaml',
+            os.path.expanduser('~/.config/passacre/passacre.yaml'),
+            os.path.expanduser('~/.passacre.yaml'),
+        ])
         with config_fobj:
             self.config = load_config(config_fobj)
 
