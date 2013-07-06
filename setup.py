@@ -10,7 +10,7 @@ setup(
     extras_require={
         'config': ['PyYAML'],
         'clipboard': ['xerox'],
-        'keccak-generation': ['cykeccak'],
+        'keccak-generation': ['cykeccak>=0.13.2'],
         'skein-generation': ['pyskein'],
     },
     entry_points={
