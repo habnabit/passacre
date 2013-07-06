@@ -13,10 +13,13 @@ _some_nulls = b'\x00' * 1024
 
 if sys.version_info > (3,):
     iter_bytes = iter
+    def perhaps_encode(s):
+        return s.encode()
 else:
     def iter_bytes(s):
         for c in s:
             yield ord(c)
+    perhaps_encode = lambda x: x
 
 
 def int_of_bytes(s):
@@ -93,9 +96,9 @@ def build_prng(password, site, options):
 
     if method == 'keccak':
         sponge = keccak.Sponge(64, 1536)
-        sponge.absorb(password)
+        sponge.absorb(perhaps_encode(password))
         sponge.absorb(b':')
-        sponge.absorb(site)
+        sponge.absorb(perhaps_encode(site))
         for x in xrange(iterations):
             sponge.absorb(_some_nulls)
         return SpongeRandom(sponge)
