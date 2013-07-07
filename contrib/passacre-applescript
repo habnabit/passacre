@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+
+import applescript
+from passacre.application import Passacre, idna_encode
+from passacre.generator import generate_from_config
+import sys
+import urlparse
+
+p = Passacre()
+p.load_config()
+
+proc, current_win = applescript.AppleScript("""
+tell application "System Events" to set proc to the name of the first process whose frontmost is true
+tell application proc
+    get {proc, window 1}
+end tell
+""").run()
+
+req = applescript.AppleScript("""
+on run {prompt, defans}
+    activate
+    display dialog prompt default answer defans
+    return the text returned of the result
+end run
+""")
+
+req_pw = applescript.AppleScript("""
+on run {prompt}
+    activate
+    display dialog prompt default answer "" with hidden answer
+    return the text returned of the result
+end run
+""")
+
+if len(sys.argv) > 1:
+  maybe_url = sys.argv[1]
+  parsed = urlparse.urlparse(maybe_url)
+  if parsed.netloc:
+    from publicsuffix import PublicSuffixList
+    psl = PublicSuffixList()
+    site = psl.get_public_suffix(parsed.netloc)
+  else:
+    site = maybe_url
+else:
+  site = ''
+
+site = req.run('site', site)
+
+pw = req_pw.run('password')
+pwconf = req_pw.run('confirm password')
+if pw != pwconf:
+  sys.exit(1)
+generated = generate_from_config(
+    pw.encode('utf-8'), idna_encode(sys.argv[1]), p.config)
+
+applescript.AppleScript("""
+on run {proc, w, keys}
+    tell application proc to activate window w
+    tell application "System Events" to keystroke keys
+end run
+""").run(proc, current_win, generated)
