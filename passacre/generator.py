@@ -56,10 +56,9 @@ def generate_from_config(password, site, config):
 
     site_config = config.get(site, None)
     if site_config is None:
-        hashed_site = hash_384(site.encode(), config)
-        site_config = config.get(hashed_site, None)
-    if site_config is None:
-        site_config = config['default']
+        default_config = config['default']
+        hashed_site = hash_384(site.encode(), default_config)
+        site_config = config.get(hashed_site, default_config)
     return generate(password, site, site_config)
 
 # XXX: refactor into a class per method?
@@ -94,7 +93,7 @@ def hash_384(bytes, options):
 
     elif method == 'skein':
         import skein
-        return skein.skein1024(bytes, digest_bits=384)
+        return skein.skein1024(bytes, digest_bits=384).hexdigest()
 
     else:
         raise ValueError('invalid method: %r' % (method,))

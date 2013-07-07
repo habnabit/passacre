@@ -106,6 +106,8 @@ class Passacre(object):
         pprint.pprint(entropy)
 
     def sitehash_args(self, subparser):
+        subparser.add_argument('method', nargs='?',
+                               help='which hash method to use')
         subparser.add_argument('-n', '--no-newline', action='store_true',
                                help="don't write a newline after the hash")
 
@@ -118,7 +120,10 @@ class Passacre(object):
 
         sys.stderr.write('Site: ')
         site = input()
-        sys.stdout.write(hash_384(idna_encode(site), self.config))
+        config = self.config.get('default', {})
+        if args.method is not None:
+            config['method'] = args.method
+        sys.stdout.write(hash_384(idna_encode(site).encode(), config))
         if not args.no_newline:
             sys.stdout.write('\n')
 
