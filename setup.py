@@ -31,7 +31,9 @@ setup(
     ],
     license='ISC',
 
-    vcversioner={},
+    vcversioner={
+        'version_module_paths': ['passacre/_version.py'],
+    },
     packages=['passacre', 'passacre.test'],
     setup_requires=['vcversioner'],
     extras_require={
