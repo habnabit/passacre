@@ -5,8 +5,32 @@
 from setuptools import setup
 
 
+with open('README', 'rb') as infile:
+    long_description = infile.read()
+
 setup(
     name='passacre',
+    description='',
+    long_description=long_description,
+    author='Aaron Gallagher',
+    author_email='_@habnab.it',
+    url='https://github.com/habnabit/passacre',
+    classifiers=[
+        'Development Status :: 2 - Pre-Alpha',
+        'Environment :: Console',
+        'Intended Audience :: End Users/Desktop',
+        'License :: OSI Approved :: ISC License (ISCL)',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
+        'Topic :: Security',
+    ],
+    license='ISC',
+
     vcversioner={},
     packages=['passacre', 'passacre.test'],
     setup_requires=['vcversioner'],
