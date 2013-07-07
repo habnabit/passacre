@@ -50,10 +50,10 @@ end run
 if len(sys.argv) > 1:
   maybe_url = sys.argv[1]
   parsed = urlparse(maybe_url)
-  if parsed.netloc:
+  if parsed.hostname:
     from publicsuffix import PublicSuffixList
     psl = PublicSuffixList()
-    site = psl.get_public_suffix(parsed.netloc)
+    site = psl.get_public_suffix(parsed.hostname)
   else:
     site = maybe_url
 else:
