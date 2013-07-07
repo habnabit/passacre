@@ -22,6 +22,10 @@ except ImportError:
 
 if sys.version_info < (3,):
     input = raw_input
+    def perhaps_decode(s):
+        return s.decode('utf-8')
+else:
+    perhaps_decode = lambda x: x
 
 def open_first(paths, mode='r'):
     for path in paths:
@@ -30,6 +34,9 @@ def open_first(paths, mode='r'):
         except EnvironmentError:
             pass
     raise ValueError('no file in %r could be opened' % (paths,))
+
+def idna_encode(site):
+    return perhaps_decode(site).encode('idna').decode()
 
 class Passacre(object):
     _subcommands = {
@@ -68,7 +75,8 @@ class Passacre(object):
         if args.site is None:
             sys.stderr.write('Site: ')
             args.site = input()
-        password = generate_from_config(password, args.site, self.config)
+        password = generate_from_config(
+            password, idna_encode(args.site), self.config)
         if args.copy:
             sys.stderr.write('password copied.\n')
             xerox.copy(password)
