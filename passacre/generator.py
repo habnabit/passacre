@@ -63,8 +63,7 @@ def generate_from_config(username, password, site, config):
 
     site_config = config.get(site, None)
     if site_config is None:
-        hashed_site = hash_site(
-            password, site.encode(), config['--site-hashing'])
+        hashed_site = hash_site(password, site, config['--site-hashing'])
         site_config = config.get(hashed_site, None)
     if site_config is None:
         site_config = config['default']

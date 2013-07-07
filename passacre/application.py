@@ -130,8 +130,7 @@ class Passacre(object):
         config = self.config['--site-hashing']
         if args.method is not None:
             config['method'] = args.method
-        sys.stdout.write(
-            hash_site(password, idna_encode(site).encode(), config))
+        sys.stdout.write(hash_site(password, idna_encode(site), config))
         if not args.no_newline:
             sys.stdout.write('\n')
 
