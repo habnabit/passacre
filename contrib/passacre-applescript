@@ -10,6 +10,14 @@ try:
 except ImportError:
   from urlparse import urlparse
 
+def trap_cancel(f, *a, **kw):
+  try:
+    return f(*a, **kw)
+  except applescript.ScriptError as e:
+    if e.number != -128:
+      raise
+    sys.exit(0)
+
 
 p = Passacre()
 p.load_config()
@@ -51,11 +59,11 @@ if len(sys.argv) > 1:
 else:
   site = ''
 
-site = req.run(proc, 'site', site)
-username = req.run(proc, 'username', '')
+site = trap_cancel(req.run, proc, 'site', site)
+username = trap_cancel(req.run, proc, 'username', '')
 
-pw = req_pw.run(proc, 'password')
-pwconf = req_pw.run(proc, 'confirm password')
+pw = trap_cancel(req_pw.run, proc, 'password')
+pwconf = trap_cancel(req_pw.run, proc, 'confirm password')
 if pw != pwconf:
   sys.exit(1)
 generated = generate_from_config(username, pw, idna_encode(site), p.config)
