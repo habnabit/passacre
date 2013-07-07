@@ -3,7 +3,6 @@
 
 from __future__ import unicode_literals
 
-import random
 import math
 import sys
 
@@ -57,8 +56,13 @@ def generate_from_config(password, site, config):
 
     site_config = config.get(site, None)
     if site_config is None:
+        hashed_site = hash_384(site.encode(), config)
+        site_config = config.get(hashed_site, None)
+    if site_config is None:
         site_config = config['default']
     return generate(password, site, site_config)
+
+# XXX: refactor into a class per method?
 
 def build_prng(password, site, options):
     method = options.get('method', 'keccak')
@@ -77,6 +81,20 @@ def build_prng(password, site, options):
     elif method == 'skein':
         import skein
         return skein.Random(seed)
+
+    else:
+        raise ValueError('invalid method: %r' % (method,))
+
+def hash_384(bytes, options):
+    method = options.get('method', 'keccak')
+
+    if method == 'keccak':
+        import keccak
+        return keccak.sha3_384(bytes).hexdigest()
+
+    elif method == 'skein':
+        import skein
+        return skein.skein1024(bytes, digest_bits=384)
 
     else:
         raise ValueError('invalid method: %r' % (method,))

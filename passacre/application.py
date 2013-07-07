@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 
 from passacre.config import load as load_config
-from passacre.generator import generate_from_config
+from passacre.generator import generate_from_config, hash_384
 
 import argparse
 import atexit
@@ -42,6 +42,7 @@ class Passacre(object):
     _subcommands = {
         'generate': "generate a password",
         'entropy': "display each site's password entropy",
+        'sitehash': "hash a site's name",
     }
 
     def load_config(self):
@@ -103,6 +104,23 @@ class Passacre(object):
             for site, site_config in self.config.items()
         ]
         pprint.pprint(entropy)
+
+    def sitehash_args(self, subparser):
+        subparser.add_argument('-n', '--no-newline', action='store_true',
+                               help="don't write a newline after the hash")
+
+    def sitehash_action(self, args):
+        """Hash a site.
+
+        This is so that hostnames need not leak from a config file; the hashed
+        site name is tried if the unhashed name doesn't exist.
+        """
+
+        sys.stderr.write('Site: ')
+        site = input()
+        sys.stdout.write(hash_384(idna_encode(site), self.config))
+        if not args.no_newline:
+            sys.stdout.write('\n')
 
     def build_parser(self):
         "Build an ``ArgumentParser`` from the defined subcommands."
