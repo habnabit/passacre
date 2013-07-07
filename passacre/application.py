@@ -58,6 +58,8 @@ class Passacre(object):
     def generate_args(self, subparser):
         subparser.add_argument('site', nargs='?',
                                help='site for which to generate a password')
+        subparser.add_argument('-u', '--username',
+                               help='username for the site')
         subparser.add_argument('-n', '--no-newline', action='store_true',
                                help="don't write a newline after the password")
         subparser.add_argument('-c', '--confirm', action='store_true',
@@ -77,7 +79,7 @@ class Passacre(object):
             sys.stderr.write('Site: ')
             args.site = input()
         password = generate_from_config(
-            password, idna_encode(args.site), self.config)
+            args.username, password, idna_encode(args.site), self.config)
         if getattr(args, 'copy', False):  # since the argument might not exist
             sys.stderr.write('password copied.\n')
             xerox.copy(password)
