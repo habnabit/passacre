@@ -22,10 +22,16 @@ def trap_cancel(f, *a, **kw):
 p = Passacre()
 p.load_config()
 
-proc, current_win = applescript.AppleScript("""
+proc, current_win, current_url = applescript.AppleScript("""
 tell application "System Events" to set proc to the name of the first process whose frontmost is true
+set curl to ""
+if proc is "Safari" then
+    tell application "Safari" to set curl to get the URL of the current tab of the first window
+else if proc is "Google Chrome" then
+    tell application "Google Chrome" to set curl to get the URL of the active tab of the front window
+end if
 tell application proc
-    get {proc, window 1}
+    get {proc, window 1, curl}
 end tell
 """).run()
 
@@ -47,8 +53,10 @@ on run {proc, prompt}
 end run
 """)
 
+maybe_url = current_url
 if len(sys.argv) > 1:
   maybe_url = sys.argv[1]
+if maybe_url:
   parsed = urlparse(maybe_url)
   if parsed.hostname:
     from publicsuffix import PublicSuffixList
