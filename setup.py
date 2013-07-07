@@ -5,7 +5,7 @@
 from setuptools import setup
 
 
-with open('README', 'rb') as infile:
+with open('README', 'r') as infile:
     long_description = infile.read()
 
 setup(
