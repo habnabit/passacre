@@ -12,6 +12,7 @@ sites:
   default:
     schema: *32-printable
     iterations: 10000
+    method: keccak
 
   becu.org:
     schema: *32-alphanumeric
@@ -21,7 +22,13 @@ sites:
 
   schwab.com:
     schema: *8-alphanumeric
+    method: skein
 
   fidelity.com:
     schema:
       - [16, [alphanumeric, '"%''()+,-/:;<=>?\ ^_|']]
+
+site-hashing:
+  enabled: true
+  iterations: 100
+  method: keccak

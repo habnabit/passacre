@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 
 from passacre.config import load as load_config
-from passacre.generator import generate_from_config, hash_384
+from passacre.generator import generate_from_config, hash_site
 
 import argparse
 import atexit
@@ -112,6 +112,8 @@ class Passacre(object):
                                help='which hash method to use')
         subparser.add_argument('-n', '--no-newline', action='store_true',
                                help="don't write a newline after the hash")
+        subparser.add_argument('-c', '--confirm', action='store_true',
+                               help='confirm prompted password')
 
     def sitehash_action(self, args):
         """Hash a site.
@@ -120,12 +122,16 @@ class Passacre(object):
         site name is tried if the unhashed name doesn't exist.
         """
 
+        password = getpass()
+        if args.confirm and password != getpass('Confirm password: '):
+            raise ValueError("passwords don't match")
         sys.stderr.write('Site: ')
         site = input()
-        config = self.config.get('default', {})
+        config = self.config['--site-hashing']
         if args.method is not None:
             config['method'] = args.method
-        sys.stdout.write(hash_384(idna_encode(site).encode(), config))
+        sys.stdout.write(
+            hash_site(password, idna_encode(site).encode(), config))
         if not args.no_newline:
             sys.stdout.write('\n')
 

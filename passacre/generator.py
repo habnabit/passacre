@@ -3,10 +3,16 @@
 
 from __future__ import unicode_literals
 
+from binascii import hexlify
 import math
+import string
 import sys
 
+from passacre.multibase import MultiBase
+
 _some_nulls = b'\x00' * 1024
+_site_multibase = MultiBase([string.ascii_letters + string.digits + '-_'] * 48)
+_site_multibase_bits = 288
 
 
 if sys.version_info > (3,):
@@ -57,9 +63,11 @@ def generate_from_config(username, password, site, config):
 
     site_config = config.get(site, None)
     if site_config is None:
-        default_config = config['default']
-        hashed_site = hash_384(site.encode(), default_config)
-        site_config = config.get(hashed_site, default_config)
+        hashed_site = hash_site(
+            password, site.encode(), config['--site-hashing'])
+        site_config = config.get(hashed_site, None)
+    if site_config is None:
+        site_config = config['default']
     if not username:
         username = site_config.get('username')
     return generate(username, password, site, site_config)
@@ -67,8 +75,8 @@ def generate_from_config(username, password, site, config):
 # XXX: refactor into a class per method?
 
 def build_prng(username, password, site, options):
-    method = options.get('method', 'keccak')
-    iterations = options.get('iterations', 1000)
+    method = options['method']
+    iterations = options['iterations']
     seed = (
         (perhaps_encode(username) + b':' if username else b'')
         + perhaps_encode(password) + b':'
@@ -88,16 +96,6 @@ def build_prng(username, password, site, options):
     else:
         raise ValueError('invalid method: %r' % (method,))
 
-def hash_384(bytes, options):
-    method = options.get('method', 'keccak')
-
-    if method == 'keccak':
-        import keccak
-        return keccak.sha3_384(bytes).hexdigest()
-
-    elif method == 'skein':
-        import skein
-        return skein.skein1024(bytes, digest_bits=384).hexdigest()
-
-    else:
-        raise ValueError('invalid method: %r' % (method,))
+def hash_site(password, site, options):
+    prng = build_prng(None, password, site, options)
+    return _site_multibase.encode(prng.getrandbits(_site_multibase_bits))

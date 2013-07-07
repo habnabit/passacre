@@ -34,6 +34,9 @@ def load(infile):
     "Load site configuration from a YAML file object."
     parsed = yaml.load(infile)
     defaults = parsed['sites'].get('default', {})
+    defaults.setdefault('method', 'keccak')
+    defaults.setdefault('iterations', 1000)
+
     sites = {}
     for site, additional_config in parsed['sites'].items():
         site_config = sites[site] = defaults.copy()
@@ -41,5 +44,8 @@ def load(infile):
         site_config['multibase'] = multibase_of_schema(site_config['schema'])
         site_config['iterations'] = (
             site_config.get('iterations', 1000) + site_config.get('increment', 0))
+
+    site_hashing = sites['--site-hashing'] = defaults.copy()
+    site_hashing.update(parsed.get('site-hashing', {}))
 
     return sites
