@@ -22,18 +22,20 @@ end tell
 """).run()
 
 req = applescript.AppleScript("""
-on run {prompt, defans}
-    activate
-    display dialog prompt default answer defans
-    return the text returned of the result
+on run {proc, prompt, defans}
+    tell application proc
+        display dialog prompt default answer defans
+        return the text returned of the result
+    end tell
 end run
 """)
 
 req_pw = applescript.AppleScript("""
-on run {prompt}
-    activate
-    display dialog prompt default answer "" with hidden answer
-    return the text returned of the result
+on run {proc, prompt}
+    tell application proc
+        display dialog prompt default answer "" with hidden answer
+        return the text returned of the result
+    end tell
 end run
 """)
 
@@ -49,11 +51,11 @@ if len(sys.argv) > 1:
 else:
   site = ''
 
-site = req.run('site', site)
-username = req.run('username', '')
+site = req.run(proc, 'site', site)
+username = req.run(proc, 'username', '')
 
-pw = req_pw.run('password')
-pwconf = req_pw.run('confirm password')
+pw = req_pw.run(proc, 'password')
+pwconf = req_pw.run(proc, 'confirm password')
 if pw != pwconf:
   sys.exit(1)
 generated = generate_from_config(username, pw, idna_encode(site), p.config)
