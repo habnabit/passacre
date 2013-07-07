@@ -78,7 +78,7 @@ class Passacre(object):
             args.site = input()
         password = generate_from_config(
             password, idna_encode(args.site), self.config)
-        if args.copy:
+        if getattr(args, 'copy', False):  # since the argument might not exist
             sys.stderr.write('password copied.\n')
             xerox.copy(password)
             if args.timeout:
