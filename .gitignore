@@ -2,4 +2,5 @@
 /build
 /dist
 /version.txt
+/passacre/_version.py
 *.egg*
