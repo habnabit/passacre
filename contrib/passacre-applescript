@@ -51,8 +51,7 @@ pw = req_pw.run('password')
 pwconf = req_pw.run('confirm password')
 if pw != pwconf:
   sys.exit(1)
-generated = generate_from_config(
-  username, pw, idna_encode(sys.argv[1]), p.config)
+generated = generate_from_config(username, pw, idna_encode(site), p.config)
 
 applescript.AppleScript("""
 on run {proc, w, keys}
