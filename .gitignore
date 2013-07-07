@@ -1,4 +1,5 @@
 /passacre.yaml
 /build
 /dist
+/version.txt
 *.egg*
