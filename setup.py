@@ -37,12 +37,12 @@ setup(
     packages=['passacre', 'passacre.test'],
     setup_requires=['vcversioner'],
     extras_require={
-        'config': ['PyYAML'],
+        'cli': ['PyYAML'],
         'clipboard': ['xerox'],
-        'keccak-generation': ['cykeccak>=0.13.2'],
-        'skein-generation': ['pyskein>=0.7'],
+        'keccak_generation': ['cykeccak>=0.13.2'],
+        'skein_generation': ['pyskein>=0.7'],
     },
     entry_points={
-        'console_scripts': ['passacre = passacre.application:main [config]'],
+        'console_scripts': ['passacre = passacre.application:main [cli]'],
     },
 )
