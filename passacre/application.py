@@ -104,6 +104,7 @@ class Passacre(object):
         entropy = [
             (site, math.log(site_config['multibase'].max_encodable_value + 1, 2))
             for site, site_config in self.config.items()
+            if not site.startswith('--')
         ]
         pprint.pprint(entropy)
 
