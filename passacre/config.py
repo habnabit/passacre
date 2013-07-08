@@ -47,5 +47,6 @@ def load(infile):
 
     site_hashing = sites['--site-hashing'] = defaults.copy()
     site_hashing.update(parsed.get('site-hashing', {}))
+    site_hashing.setdefault('enabled', True)
 
     return sites
