@@ -10,7 +10,7 @@ with open('README', 'r') as infile:
 
 setup(
     name='passacre',
-    description='',
+    description='better repeatable password generation',
     long_description=long_description,
     author='Aaron Gallagher',
     author_email='_@habnab.it',
