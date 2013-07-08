@@ -32,3 +32,5 @@ site-hashing:
   enabled: true
   iterations: 100
   method: keccak
+
+words-file: /usr/share/dict/words
