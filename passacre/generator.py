@@ -71,6 +71,18 @@ def generate_from_config(username, password, site, config):
         username = site_config.get('username')
     return generate(username, password, site, site_config)
 
+# XXX: get this included in pyskein
+def _patch_skein_random(prng):
+    def getrandbits(n_bits):
+        "Patched in implementation of getrandbits for skein."
+        if n_bits <= 0:
+            raise ValueError('number of bits must be greater than zero')
+        n_bytes = (n_bits + 7) // 8
+        val = int.from_bytes(prng.read(n_bytes), 'little')
+        return val >> (n_bytes * 8 - n_bits)
+    prng.getrandbits = getrandbits
+    return prng
+
 # XXX: refactor into a class per method?
 
 def build_prng(username, password, site, options):
@@ -90,7 +102,7 @@ def build_prng(username, password, site, options):
 
     elif method == 'skein':
         import skein
-        return skein.Random(seed)
+        return _patch_skein_random(skein.Random(seed))
 
     else:
         raise ValueError('invalid method: %r' % (method,))
