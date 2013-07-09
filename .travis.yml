@@ -1,0 +1,12 @@
+language: python
+python:
+  - "2.6"
+  - "2.7"
+  - "3.2"
+  - "3.3"
+
+install:
+  # duplicated because pip can't do `install .` with variants
+  - "pip install pytest pyyaml cykeccak --use-mirrors"
+  - "bach .travis.install"
+script: "py.test"
