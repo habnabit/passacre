@@ -15,13 +15,9 @@ _site_multibase_bits = 288
 
 
 if sys.version_info > (3,):
-    iter_bytes = iter
     def perhaps_encode(s):
         return s.encode()
 else:
-    def iter_bytes(s):
-        for c in s:
-            yield ord(c)
     perhaps_encode = lambda x: x
 
 
