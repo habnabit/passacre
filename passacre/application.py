@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 
 from passacre.config import load as load_config
-from passacre.generator import generate_from_config, hash_site
+from passacre.generator import hash_site
 
 import argparse
 import atexit
@@ -30,7 +30,7 @@ else:
 def open_first(paths, mode='r'):
     for path in paths:
         try:
-            return open(path, mode)
+            return open(os.path.expanduser(path), mode)
         except EnvironmentError:
             pass
     raise ValueError('no file in %r could be opened' % (paths,))
@@ -48,9 +48,10 @@ class Passacre(object):
     def load_config(self):
         "Load the passacre configuration to ``self.config``."
         config_fobj = open_first([
-            'passacre.yaml',
-            os.path.expanduser('~/.config/passacre/passacre.yaml'),
-            os.path.expanduser('~/.passacre.yaml'),
+            '~/.config/passacre/passacre.sqlite',
+            '~/.config/passacre/passacre.yaml',
+            '~/.passacre.sqlite',
+            '~/.passacre.yaml',
         ])
         with config_fobj:
             self.config = load_config(config_fobj)
@@ -78,8 +79,8 @@ class Passacre(object):
         if args.site is None:
             sys.stderr.write('Site: ')
             args.site = input()
-        password = generate_from_config(
-            args.username, password, idna_encode(args.site), self.config)
+        password = self.config.generate_for_site(
+            args.username, password, idna_encode(args.site))
         if getattr(args, 'copy', False):  # since the argument might not exist
             sys.stderr.write('password copied.\n')
             xerox.copy(password)
@@ -103,8 +104,7 @@ class Passacre(object):
 
         entropy = [
             (site, math.log(site_config['multibase'].max_encodable_value + 1, 2))
-            for site, site_config in self.config.items()
-            if not site.startswith('--')
+            for site, site_config in self.config.get_all_sites().items()
         ]
         pprint.pprint(entropy)
 
@@ -128,7 +128,7 @@ class Passacre(object):
             raise ValueError("passwords don't match")
         sys.stderr.write('Site: ')
         site = input()
-        config = self.config['--site-hashing']
+        config = self.config.site_hashing
         if args.method is not None:
             config['method'] = args.method
         sys.stdout.write(hash_site(password, idna_encode(site), config))
