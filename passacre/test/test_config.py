@@ -10,8 +10,42 @@ datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 class ConfigTestCaseMixin(object):
     password = 'passacre'
     config_file = None
+    method = None
+
     expected_passwords = {}
     expected_username_passwords = {}
+
+    expected_sites = {
+        'default': {
+            'iterations': 10, 'schema': [[32, 'printable']],
+        },
+        'becu.org': {
+            'iterations': 10, 'schema': [[32, 'alphanumeric']],
+        },
+        'example.com': {
+            'iterations': 10, 'schema': [[4, 'word']],
+        },
+        'fhcrc.org': {
+            'increment': 5, 'iterations': 15, 'schema': [[32, 'printable']],
+        },
+        'fidelity.com': {
+            'iterations': 10,
+            'schema': [[16, ['alphanumeric', '"%\'()+,-/:;<=>?\\ ^_|']]],
+        },
+        'further.example.com': {
+            'iterations': 10, 'schema': [[4, 'word', ', ']],
+        },
+        'schwab.com': {
+            'iterations': 10, 'schema': [[8, 'alphanumeric']],
+        },
+        'still.further.example.com': {
+            'iterations': 10,
+            'schema': ['printable', [4, 'word', ', '], 'printable'],
+        }
+    }
+    extra_expected_sites = {}
+
+    maxDiff = None
 
     def setUp(self):
         os.chdir(datadir)
@@ -27,8 +61,19 @@ class ConfigTestCaseMixin(object):
             self.assertEqual(
                 expected, self.config.generate_for_site(username, self.password, site))
 
+    def test_get_all_sites(self):
+        sites = self.config.get_all_sites()
+        for site, config in list(sites.items()):
+            config.pop('multibase', None)
+            self.assertEqual(self.method, config.pop('method'))
+            if site in self.extra_expected_sites:
+                self.assertEqual(
+                    self.extra_expected_sites[site], sites.pop(site))
+        self.assertEqual(self.expected_sites, sites)
+
 
 class KeccakTestCaseMixin(ConfigTestCaseMixin):
+    method = 'keccak'
     expected_passwords = {
         'becu.org': 'qRnda94q1srpHWCjaQUTDobnxIgJkKlO',
         'fhcrc.org': 's"E;JE*?&md?19{2}<4Q.Rf):X?BUe^0',
@@ -46,6 +91,11 @@ class KeccakTestCaseMixin(ConfigTestCaseMixin):
         ('passacre', 'hashed.example.com'): 'Aaronic Abassin',
         ('passacre', 'default.example.com'): '''RN*6~h'Jc-A"Ro-OefetOVes~tR<~=[K''',
     }
+    extra_expected_sites = {
+        'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4': {
+            'iterations': 10, 'schema': [[2, 'word']]
+        },
+    }
 
 
 class KeccakYAMLTestCase(KeccakTestCaseMixin, unittest.TestCase):
@@ -57,6 +107,7 @@ class KeccakSqliteTestCase(KeccakTestCaseMixin, unittest.TestCase):
 
 @pytest.mark.skipif("sys.version_info < (3,)")
 class SkeinTestCaseMixin(ConfigTestCaseMixin):
+    method = 'skein'
     expected_passwords = {
         'becu.org': 'GEifpmhAzCtbTHBdj40B215CTXZATzzy',
         'fhcrc.org': 'C^#l04.LnhZ-m4}]6&RPMWYS#oW2_E)U',
@@ -74,6 +125,11 @@ class SkeinTestCaseMixin(ConfigTestCaseMixin):
         ('passacre', 'fhcrc.org'): '''~,HDW+W9@hg{'pU*P"qpckS8]gmaEe)D''',
         ('passacre', 'hashed.example.com'): 'abastardize abacist',
         ('passacre', 'default.example.com'): 'GEvloj!NLoJTP;$ymbp0lz<P#`3[/#4>',
+    }
+    extra_expected_sites = {
+        'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L': {
+            'iterations': 10, 'schema': [[2, 'word']]
+        },
     }
 
 
