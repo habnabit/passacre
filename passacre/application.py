@@ -20,6 +20,7 @@ try:
 except ImportError:
     xerox = None
 
+
 if sys.version_info < (3,):
     input = raw_input
     def perhaps_decode(s):
@@ -27,10 +28,13 @@ if sys.version_info < (3,):
 else:
     perhaps_decode = lambda x: x
 
-def open_first(paths, mode='r'):
+
+def open_first(paths, mode='r', expanduser=None, open=open):
+    if expanduser is None:
+        expanduser = os.path.expanduser
     for path in paths:
         try:
-            return open(os.path.expanduser(path), mode)
+            return open(expanduser(path), mode)
         except EnvironmentError:
             pass
     raise ValueError('no file in %r could be opened' % (paths,))
@@ -38,23 +42,40 @@ def open_first(paths, mode='r'):
 def idna_encode(site):
     return perhaps_decode(site).encode('idna').decode()
 
+def prompt(query, input=input):
+    sys.stderr.write(query)
+    return input()
+
+def prompt_password(confirm=False, getpass=getpass):
+    password = getpass()
+    if confirm and password != getpass('Confirm password: '):
+        raise ValueError("passwords don't match")
+    return password
+
+
 class Passacre(object):
+    xerox = xerox
+    prompt = staticmethod(prompt)
+    prompt_password = staticmethod(prompt_password)
+    sleep = staticmethod(time.sleep)
+    _load_config = staticmethod(load_config)
+
     _subcommands = {
         'generate': "generate a password",
         'entropy': "display each site's password entropy",
         'sitehash': "hash a site's name",
     }
 
-    def load_config(self):
+    def load_config(self, expanduser=None):
         "Load the passacre configuration to ``self.config``."
         config_fobj = open_first([
             '~/.config/passacre/passacre.sqlite',
             '~/.config/passacre/passacre.yaml',
             '~/.passacre.sqlite',
             '~/.passacre.yaml',
-        ], 'rb')
+        ], 'rb', expanduser)
         with config_fobj:
-            self.config = load_config(config_fobj)
+            self.config = self._load_config(config_fobj)
 
     def generate_args(self, subparser):
         subparser.add_argument('site', nargs='?',
@@ -65,7 +86,7 @@ class Passacre(object):
                                help="don't write a newline after the password")
         subparser.add_argument('-c', '--confirm', action='store_true',
                                help='confirm prompted password')
-        if xerox is not None:
+        if self.xerox is not None:
             subparser.add_argument('-C', '--copy', action='store_true',
                                    help='put the generated password on the clipboard')
             subparser.add_argument('-w', '--timeout', type=int, metavar='N',
@@ -73,21 +94,18 @@ class Passacre(object):
 
     def generate_action(self, args):
         "Generate a password."
-        password = getpass()
-        if args.confirm and password != getpass('Confirm password: '):
-            raise ValueError("passwords don't match")
+        password = self.prompt_password(args.confirm)
         if args.site is None:
-            sys.stderr.write('Site: ')
-            args.site = input()
+            args.site = self.prompt('Site: ')
         password = self.config.generate_for_site(
             args.username, password, idna_encode(args.site))
         if getattr(args, 'copy', False):  # since the argument might not exist
             sys.stderr.write('password copied.\n')
-            xerox.copy(password)
+            self.xerox.copy(password)
             if args.timeout:
-                atexit.register(xerox.copy, '')
+                atexit.register(self.xerox.copy, '')
                 try:
-                    time.sleep(args.timeout)
+                    self.sleep(args.timeout)
                 except KeyboardInterrupt:
                     pass
         else:
@@ -123,11 +141,8 @@ class Passacre(object):
         site name is tried if the unhashed name doesn't exist.
         """
 
-        password = getpass()
-        if args.confirm and password != getpass('Confirm password: '):
-            raise ValueError("passwords don't match")
-        sys.stderr.write('Site: ')
-        site = input()
+        password = self.prompt_password(args.confirm)
+        site = self.prompt('Site: ')
         config = self.config.site_hashing
         if args.method is not None:
             config['method'] = args.method

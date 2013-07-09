@@ -2,7 +2,6 @@
 
 import applescript
 from passacre.application import Passacre, idna_encode
-from passacre.generator import generate_from_config
 import sys
 
 try:
@@ -74,7 +73,7 @@ pw = trap_cancel(req_pw.run, proc, 'password')
 pwconf = trap_cancel(req_pw.run, proc, 'confirm password')
 if pw != pwconf:
   sys.exit(1)
-generated = generate_from_config(username, pw, idna_encode(site), p.config)
+generated = p.config.generate_for_site(username, pw, idna_encode(site))
 
 applescript.AppleScript("""
 on run {proc, w, keys}
