@@ -8,5 +8,5 @@ python:
 install:
   # duplicated because pip can't do `install .` with variants
   - "pip install pytest pyyaml cykeccak --use-mirrors"
-  - "bach .travis.install"
+  - "bash .travis.install"
 script: "py.test"
