@@ -1,12 +1,24 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+import sys
+
 # may god have mercy on my soul
 from setuptools import setup
 
 
 with open('README', 'r') as infile:
     long_description = infile.read()
+
+
+extras_require = {
+    'cli': ['PyYAML'],
+    'clipboard': ['xerox'],
+    'keccak_generation': ['cykeccak>=0.13.2'],
+}
+
+if sys.version_info > (3,):
+    extras_require['skein_generation'] = ['pyskein>=0.7']
 
 setup(
     name='passacre',
@@ -36,12 +48,7 @@ setup(
     },
     packages=['passacre', 'passacre.test'],
     setup_requires=['vcversioner'],
-    extras_require={
-        'cli': ['PyYAML'],
-        'clipboard': ['xerox'],
-        'keccak_generation': ['cykeccak>=0.13.2'],
-        'skein_generation': ['pyskein>=0.7'],
-    },
+    extras_require=extras_require,
     entry_points={
         'console_scripts': ['passacre = passacre.application:main [cli]'],
     },

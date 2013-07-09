@@ -9,4 +9,6 @@ install:
   # duplicated because pip can't do `install .` with variants
   - "pip install pytest pyyaml cykeccak --use-mirrors"
   - "bash .travis.install"
+  # to get vcversioner to generate _version.py
+  - "python setup.py"
 script: "py.test"
