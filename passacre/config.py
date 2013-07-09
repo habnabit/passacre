@@ -33,7 +33,7 @@ def multibase_of_schema(schema, words):
             if not words:
                 raise ValueError('no words provided')
             items = []
-            for x in xrange(count):
+            for x in range(count):
                 if x != 0:
                     items.append([delimiter])
                 items.append(words)
