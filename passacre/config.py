@@ -175,7 +175,7 @@ class SqliteConfig(ConfigBase):
 
 
 def load(infile):
-    if infile.read(16) == 'SQLite format 3\x00':
+    if infile.read(16) == b'SQLite format 3\x00':
         config = SqliteConfig()
     else:
         config = YAMLConfig()

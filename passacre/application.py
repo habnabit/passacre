@@ -52,7 +52,7 @@ class Passacre(object):
             '~/.config/passacre/passacre.yaml',
             '~/.passacre.sqlite',
             '~/.passacre.yaml',
-        ])
+        ], 'rb')
         with config_fobj:
             self.config = load_config(config_fobj)
 

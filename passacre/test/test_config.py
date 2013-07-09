@@ -15,7 +15,7 @@ class ConfigTestCaseMixin(object):
 
     def setUp(self):
         os.chdir(datadir)
-        self.config = config.load(open(self.config_file))
+        self.config = config.load(open(self.config_file, 'rb'))
 
     def test_expected_passwords(self):
         for site, expected in self.expected_passwords.items():
