@@ -11,4 +11,4 @@ install:
   - "bash .travis.install"
   # to get vcversioner to generate _version.py
   - "python setup.py build"
-script: "py.test"
+script: "py.test passacre"
