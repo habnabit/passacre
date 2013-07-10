@@ -113,6 +113,17 @@ class YAMLConfig(ConfigBase):
     def get_all_sites(self):
         return self.sites
 
+    def _no_config_modification(self, *a, **kw):
+        raise NotImplementedError("YAMLConfig doesn't implement configuration modification.")
+
+    add_site = remove_site = set_site_schema = _no_config_modification
+    add_schema = remove_schema = set_schema_value = set_schema_name = _no_config_modification
+
+    def get_all_schemata(self):
+        raise NotImplementedError("YAMLConfig doesn't have a way to list schemata.")
+
+    get_schema = get_all_schemata
+
 
 def maybe_json(val):
     try:
@@ -155,6 +166,25 @@ class SqliteConfig(ConfigBase):
         self.fill_out_config(config)
         return config
 
+    def add_site(self, name, schema_id):
+        curs = self._db.cursor()
+        curs.execute(
+            'INSERT INTO sites (site_name, schema_id) VALUES (?, ?)',
+            (name, schema_id))
+        self._db.commit()
+
+    def set_site_schema(self, name, schema_id):
+        curs = self._db.cursor()
+        curs.execute(
+            'UPDATE sites SET schema_id = ? WHERE name = ?',
+            (schema_id, name))
+        self._db.commit()
+
+    def remove_site(self, name):
+        curs = self._db.cursor()
+        curs.execute('DELETE FROM sites WHERE site_name = ?', (name,))
+        self._db.commit()
+
     def get_all_sites(self):
         curs = self._db.cursor()
         curs.execute(
@@ -164,14 +194,33 @@ class SqliteConfig(ConfigBase):
             sites[site][k] = maybe_json(v)
 
         curs.execute(
-            'SELECT site_name, value FROM sites JOIN schemata USING (schema_id) WHERE site_name IS NOT NULL')
-        for site, schema in curs:
+            'SELECT site_name, name, value FROM sites JOIN schemata USING (schema_id) WHERE site_name IS NOT NULL')
+        for site, schema_name, schema in curs:
+            sites[site]['schema-name'] = schema_name
             sites[site]['schema'] = json.loads(schema)
 
         for config in sites.values():
             self.fill_out_config(config)
 
         return dict(sites)
+
+    def get_all_schemata(self):
+        curs = self._db.cursor()
+        curs.execute('SELECT name, value FROM schemata')
+        return maybe_json_dict(curs)
+
+    def get_schema(self, name):
+        curs = self._db.cursor()
+        curs.execute('SELECT schema_id, value FROM schemata WHERE name = ?', (name,))
+        results = curs.fetchall()
+        if not results:
+            raise ValueError('there is no schema by the name %r' % (name,))
+        return results[0]
+
+    def set_schema_name(self, oldname, newname):
+        curs = self._db.cursor()
+        curs.execute('UPDATE schemata SET name = ? WHERE name = ?', (newname, oldname))
+        self._db.commit()
 
 
 def load(infile):

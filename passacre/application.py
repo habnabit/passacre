@@ -45,6 +45,12 @@ def prompt_password(confirm=False, getpass=getpass):
         raise ValueError("passwords don't match")
     return password
 
+def is_likely_hashed_site(site):
+    return len(site) == 48 and '.' not in site
+
+def site_sort_key(site):
+    return not is_likely_hashed_site(site), site
+
 
 class Passacre(object):
     atexit = atexit
@@ -66,7 +72,8 @@ class Passacre(object):
         'schema': ("actions on schemata", {
             'add': "add a schema",
             'remove': "remove a schema",
-            'set': "change a schema",
+            'set-value': "change a schema's value",
+            'set-name': "change a schema's name",
         }),
     }
 
@@ -147,6 +154,14 @@ class Passacre(object):
     def site_action(self, args):
         "Perform an action on a site in a config file."
 
+        sites = self.config.get_all_sites()
+        for site in sorted(sites, key=site_sort_key):
+            site_config = sites[site]
+            if 'schema-name' in site_config:
+                print('%s: %s' % (site, site_config['schema-name']))
+            else:
+                print(site)
+
     def site_hash_args(self, subparser):
         subparser.add_argument('site', nargs='?',
                                help='the site to hash')
@@ -174,17 +189,53 @@ class Passacre(object):
         if not args.no_newline:
             sys.stdout.write('\n')
 
+    def site_add_args(self, subparser):
+        subparser.add_argument('site', help='the name of the site')
+        subparser.add_argument('schema', help='the schema to use')
+        subparser.add_argument('-a', '--hashed', action='store_true',
+                               help='hash the site name')
+        subparser.add_argument('-c', '--confirm', action='store_true',
+                               help='confirm prompted password')
+
     def site_add_action(self, args):
-        pass
+        schema_id, _ = self.config.get_schema(args.schema)
+        if args.hashed:
+            password = self.prompt_password(args.confirm)
+            args.site = hash_site(password, args.site, self.config.site_hashing)
+        self.config.add_site(args.site, schema_id)
+
+    def site_remove_args(self, subparser):
+        subparser.add_argument('site', help='the name of the site to remove')
+        subparser.add_argument('-a', '--hashed', action='store_true',
+                               help='hash the site name')
+        subparser.add_argument('-c', '--confirm', action='store_true',
+                               help='confirm prompted password')
 
     def site_remove_action(self, args):
-        pass
+        if args.site == 'default':
+            sys.exit("can't remove the default site")
+        if args.hashed:
+            password = self.prompt_password(args.confirm)
+            args.site = hash_site(password, args.site, self.config.site_hashing)
+        self.config.remove_site(args.site)
+
+    def site_set_schema_args(self, subparser):
+        subparser.add_argument('site', help='the name of the site to update')
+        subparser.add_argument('-a', '--hashed', action='store_true',
+                               help='hash the site name')
+        subparser.add_argument('-c', '--confirm', action='store_true',
+                               help='confirm prompted password')
 
     def site_set_schema_action(self, args):
-        pass
+        schema_id, _ = self.config.get_schema(args.schema)
+        self.config.set_site_schema(args.site, schema_id)
 
     def schema_action(self, args):
         "Perform an action on a schema in a config file."
+
+        schemata = self.config.get_all_schemata()
+        for schema in sorted(schemata):
+            print('%s: %s' % (schema, schemata[schema]))
 
     def schema_add_action(self, args):
         pass
@@ -192,7 +243,15 @@ class Passacre(object):
     def schema_remove_action(self, args):
         pass
 
-    def schema_set_action(self, args):
+    def schema_set_name_args(self, subparser):
+        subparser.add_argument('schema', help='the schema to set the name of')
+        subparser.add_argument('name', help='the new name of the schema')
+
+    def schema_set_name_action(self, args):
+        self.config.get_schema(args.schema)
+        self.config.set_schema_name(args.schema, args.name)
+
+    def schema_set_value_action(self, args):
         pass
 
     def build_subcommands(self, action_prefix, subparsers, subcommands):
@@ -211,7 +270,8 @@ class Passacre(object):
 
             if subsubcommand:
                 subaction_prefix = subcommand_method + '_'
-                subsubparsers = subparser.add_subparsers(dest=subaction_prefix + 'command')
+                command = subaction_prefix + 'command'
+                subsubparsers = subparser.add_subparsers(dest=command)
                 self.build_subcommands(subaction_prefix, subsubparsers, subsubcommands)
 
     def build_parser(self):
