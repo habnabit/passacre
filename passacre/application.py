@@ -3,10 +3,10 @@
 
 from __future__ import unicode_literals, print_function
 
+import passacre._argparse as argparse
 from passacre.config import load as load_config
 from passacre.generator import hash_site
 
-import argparse
 import atexit
 from getpass import getpass
 import math
