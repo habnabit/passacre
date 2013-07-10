@@ -1,7 +1,7 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 
 from passacre.config import load as load_config
 from passacre.generator import hash_site
@@ -125,13 +125,13 @@ class Passacre(object):
                        for site, bits in pre_entropy)
         max_site_len, max_ibits_len, max_fbits_len = [
             len(max(x, key=len)) for x in zip(*entropy)]
-        print
+        print()
         for e, (site, ibits, fbits) in enumerate(entropy):
             if e == 0:
                 site = site.center(max_site_len)
-            print '%*s   %*s%s%*s' % (
+            print('%*s   %*s%s%*s' % (
                 -max_site_len, site, max_ibits_len, ibits,
-                '.' if ibits.isdigit() else ' ', -max_fbits_len, fbits)
+                '.' if ibits.isdigit() else ' ', -max_fbits_len, fbits))
 
     def sitehash_args(self, subparser):
         subparser.add_argument('method', nargs='?',
