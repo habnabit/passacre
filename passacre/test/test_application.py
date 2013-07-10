@@ -203,45 +203,51 @@ example.com                                             26.58
 %s        13.29""" % (self.hashed_site,)
 
 
-    def test_sitehash_with_newline(self):
-        self.app.main(['sitehash', 'hashed.example.com'])
+    def test_site_hash_with_newline(self):
+        self.app.main(['site', 'hash', 'hashed.example.com'])
         assert not self.confirmed_password
         out, err = self.capsys.readouterr()
         assert not err
         assert out == self.hashed_site + '\n'
 
-    def test_sitehash_no_newline(self):
-        self.app.main(['sitehash', '-n', 'hashed.example.com'])
+    def test_site_hash_no_newline(self):
+        self.app.main(['site', 'hash', '-n', 'hashed.example.com'])
         out, err = self.capsys.readouterr()
         assert not err
         assert out == self.hashed_site
 
-    def test_sitehash_prompt_site(self):
+    def test_site_hash_prompt_site(self):
         self.app.prompt = lambda _: 'hashed.example.com'
-        self.app.main(['sitehash'])
+        self.app.main(['site', 'hash'])
         out, err = self.capsys.readouterr()
         assert not err
         assert out == self.hashed_site + '\n'
 
-    def test_sitehash_confirm_password(self):
-        self.app.main(['sitehash', 'hashed.example.com', '-c'])
+    def test_site_hash_confirm_password(self):
+        self.app.main(['site', 'hash', 'hashed.example.com', '-c'])
         assert self.confirmed_password
         out, err = self.capsys.readouterr()
         assert not err
         assert out == self.hashed_site + '\n'
 
-    def test_sitehash_overridden_method_keccak(self):
-        self.app.main(['sitehash', 'hashed.example.com', '-m', 'keccak'])
+    def test_site_hash_overridden_method_keccak(self):
+        self.app.main(['site', 'hash', 'hashed.example.com', '-m', 'keccak'])
         out, err = self.capsys.readouterr()
         assert not err
         assert out == 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4\n'
 
     @pytest.mark.skipif("sys.version_info < (3,)")
-    def test_sitehash_overridden_method_skein(self):
-        self.app.main(['sitehash', 'hashed.example.com', '-m', 'skein'])
+    def test_site_hash_overridden_method_skein(self):
+        self.app.main(['site', 'hash', 'hashed.example.com', '-m', 'skein'])
         out, err = self.capsys.readouterr()
         assert not err
         assert out == 'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L\n'
+
+
+    def test_no_args(self):
+        with pytest.raises(SystemExit) as excinfo:
+            self.app.main([])
+        assert excinfo.value.args[0] == 2
 
 
 class KeccakTestCaseMixin(ApplicationTestCaseMixin):

@@ -57,7 +57,17 @@ class Passacre(object):
     _subcommands = {
         'generate': "generate a password",
         'entropy': "display each site's password entropy",
-        'sitehash': "hash a site's name",
+        'site': ("actions on sites", {
+            'add': "add a site to a config file",
+            'remove': "remove a site from a config file",
+            'set-schema': "change a site's schema",
+            'hash': "hash a site's name",
+        }),
+        'schema': ("actions on schemata", {
+            'add': "add a schema",
+            'remove': "remove a schema",
+            'set': "change a schema",
+        }),
     }
 
     def load_config(self, expanduser=None):
@@ -134,7 +144,10 @@ class Passacre(object):
                 -max_site_len, site, max_ibits_len, ibits,
                 '.' if ibits.isdigit() else ' ', -max_fbits_len, fbits))
 
-    def sitehash_args(self, subparser):
+    def site_action(self, args):
+        "Perform an action on a site in a config file."
+
+    def site_hash_args(self, subparser):
         subparser.add_argument('site', nargs='?',
                                help='the site to hash')
         subparser.add_argument('-m', '--method',
@@ -144,7 +157,7 @@ class Passacre(object):
         subparser.add_argument('-c', '--confirm', action='store_true',
                                help='confirm prompted password')
 
-    def sitehash_action(self, args):
+    def site_hash_action(self, args):
         """Hash a site.
 
         This is so that hostnames need not leak from a config file; the hashed
@@ -161,24 +174,75 @@ class Passacre(object):
         if not args.no_newline:
             sys.stdout.write('\n')
 
+    def site_add_action(self, args):
+        pass
+
+    def site_remove_action(self, args):
+        pass
+
+    def site_set_schema_action(self, args):
+        pass
+
+    def schema_action(self, args):
+        "Perform an action on a schema in a config file."
+
+    def schema_add_action(self, args):
+        pass
+
+    def schema_remove_action(self, args):
+        pass
+
+    def schema_set_action(self, args):
+        pass
+
+    def build_subcommands(self, action_prefix, subparsers, subcommands):
+        for subcommand, subcommand_help in subcommands.items():
+            subsubcommand = False
+            if isinstance(subcommand_help, tuple):
+                subcommand_help, subsubcommands = subcommand_help
+                subsubcommand = True
+            subcommand_method = action_prefix + subcommand.replace('-', '_')
+            action_method = getattr(self, '%s_action' % (subcommand_method,))
+            subparser = subparsers.add_parser(
+                subcommand, help=subcommand_help, description=action_method.__doc__)
+            args_method = getattr(self, '%s_args' % (subcommand_method,), None)
+            if args_method is not None:
+                args_method(subparser)
+
+            if subsubcommand:
+                subaction_prefix = subcommand_method + '_'
+                subsubparsers = subparser.add_subparsers(dest=subaction_prefix + 'command')
+                self.build_subcommands(subaction_prefix, subsubparsers, subsubcommands)
+
     def build_parser(self):
         "Build an ``ArgumentParser`` from the defined subcommands."
         parser = argparse.ArgumentParser(prog='passacre')
-        subparsers = parser.add_subparsers()
-        for subcommand, subcommand_help in self._subcommands.items():
-            action_method = getattr(self, '%s_action' % (subcommand,))
-            subparser = subparsers.add_parser(
-                subcommand, help=subcommand_help, description=action_method.__doc__)
-            args_method = getattr(self, '%s_args' % (subcommand,), None)
-            if args_method is not None:
-                args_method(subparser)
-            subparser.set_defaults(func=action_method)
+        subparsers = parser.add_subparsers(dest='command')
+        self.build_subcommands('', subparsers, self._subcommands)
         return parser
+
+    def find_action(self, args):
+        if not args.command:
+            return None
+        command = ret = args.command.replace('-', '_')
+        while True:
+            next_command = command + '_command'
+            subcommand = getattr(args, next_command, None)
+            if subcommand is None:
+                break
+            command, ret = next_command, '%s_%s' % (ret, subcommand.replace('-', '_'))
+        return ret
 
     def main(self, args=None):
         self.load_config()
-        args = self.build_parser().parse_args(args)
-        args.func(args)
+        parser = self.build_parser()
+        args = parser.parse_args(args)
+        action = self.find_action(args)
+        if not action:
+            parser.print_help()
+            sys.exit(2)
+        action_method = getattr(self, action + '_action')
+        action_method(args)
 
 def main(args=None):
     Passacre().main(args)
