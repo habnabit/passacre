@@ -247,7 +247,7 @@ example.com                                             26.58
     def test_no_args(self):
         with pytest.raises(SystemExit) as excinfo:
             self.app.main([])
-        assert excinfo.value.args[0] == 2
+        assert excinfo.value == 2 or excinfo.value.args[0] == 2
 
 
 class KeccakTestCaseMixin(ApplicationTestCaseMixin):
