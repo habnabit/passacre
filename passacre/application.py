@@ -47,6 +47,7 @@ def prompt_password(confirm=False, getpass=getpass):
 
 
 class Passacre(object):
+    atexit = atexit
     xerox = xerox
     prompt = staticmethod(prompt)
     prompt_password = staticmethod(prompt_password)
@@ -96,7 +97,7 @@ class Passacre(object):
             sys.stderr.write('password copied.\n')
             self.xerox.copy(password)
             if args.timeout:
-                atexit.register(self.xerox.copy, '')
+                self.atexit.register(self.xerox.copy, '')
                 try:
                     self.sleep(args.timeout)
                 except KeyboardInterrupt:
@@ -120,7 +121,7 @@ class Passacre(object):
             for site, site_config in self.config.get_all_sites().items()
             if site_config['schema'] != default_site['schema'] or site == 'default'
         ]
-        pre_entropy.sort(key=operator.itemgetter(1), reverse=True)
+        pre_entropy.sort(key=operator.itemgetter(1, 0), reverse=True)
         entropy.extend([site] + ('%0.2f' % bits).split('.')
                        for site, bits in pre_entropy)
         max_site_len, max_ibits_len, max_fbits_len = [
@@ -134,7 +135,9 @@ class Passacre(object):
                 '.' if ibits.isdigit() else ' ', -max_fbits_len, fbits))
 
     def sitehash_args(self, subparser):
-        subparser.add_argument('method', nargs='?',
+        subparser.add_argument('site', nargs='?',
+                               help='the site to hash')
+        subparser.add_argument('-m', '--method',
                                help='which hash method to use')
         subparser.add_argument('-n', '--no-newline', action='store_true',
                                help="don't write a newline after the hash")
@@ -149,11 +152,12 @@ class Passacre(object):
         """
 
         password = self.prompt_password(args.confirm)
-        site = self.prompt('Site: ')
+        if args.site is None:
+            args.site = self.prompt('Site: ')
         config = self.config.site_hashing
         if args.method is not None:
             config['method'] = args.method
-        sys.stdout.write(hash_site(password, site, config))
+        sys.stdout.write(hash_site(password, args.site, config))
         if not args.no_newline:
             sys.stdout.write('\n')
 
