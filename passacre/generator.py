@@ -68,7 +68,7 @@ def build_prng(username, password, site, options):
     seed = (
         (perhaps_encode(username) + b':' if username else b'')
         + perhaps_encode(password) + b':'
-        + perhaps_encode(site)
+        + site.encode('idna')
         + (_some_nulls * iterations))
 
     if method == 'keccak':

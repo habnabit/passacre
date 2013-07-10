@@ -23,10 +23,6 @@ except ImportError:
 
 if sys.version_info < (3,):
     input = raw_input
-    def perhaps_decode(s):
-        return s.decode('utf-8')
-else:
-    perhaps_decode = lambda x: x
 
 
 def open_first(paths, mode='r', expanduser=None, open=open):
@@ -38,9 +34,6 @@ def open_first(paths, mode='r', expanduser=None, open=open):
         except EnvironmentError:
             pass
     raise ValueError('no file in %r could be opened' % (paths,))
-
-def idna_encode(site):
-    return perhaps_decode(site).encode('idna').decode()
 
 def prompt(query, input=input):
     sys.stderr.write(query)
@@ -98,7 +91,7 @@ class Passacre(object):
         if args.site is None:
             args.site = self.prompt('Site: ')
         password = self.config.generate_for_site(
-            args.username, password, idna_encode(args.site))
+            args.username, password, args.site)
         if getattr(args, 'copy', False):  # since the argument might not exist
             sys.stderr.write('password copied.\n')
             self.xerox.copy(password)
@@ -146,7 +139,7 @@ class Passacre(object):
         config = self.config.site_hashing
         if args.method is not None:
             config['method'] = args.method
-        sys.stdout.write(hash_site(password, idna_encode(site), config))
+        sys.stdout.write(hash_site(password, site, config))
         if not args.no_newline:
             sys.stdout.write('\n')
 
