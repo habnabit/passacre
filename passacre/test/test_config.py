@@ -67,6 +67,7 @@ class ConfigTestCaseMixin(object):
         sites = self.config.get_all_sites()
         for site, config in list(sites.items()):
             config.pop('multibase', None)
+            config.pop('schema-name', None)
             self.assertEqual(self.method, config.pop('method'))
             if site in self.extra_expected_sites:
                 self.assertEqual(

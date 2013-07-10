@@ -3,7 +3,6 @@
 
 from __future__ import unicode_literals, print_function
 
-import passacre._argparse as argparse
 from passacre.config import load as load_config
 from passacre.generator import hash_site
 
@@ -23,6 +22,11 @@ except ImportError:
 
 if sys.version_info < (3,):
     input = raw_input
+
+if sys.version_info < (3, 3):
+    import passacre._argparse as argparse
+else:
+    import argparse
 
 
 def open_first(paths, mode='r', expanduser=None, open=open):
