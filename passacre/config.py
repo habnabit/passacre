@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 
 from passacre.multibase import MultiBase
+from passacre.util import nested_set
 from passacre import generator
 
 import collections
@@ -60,10 +61,12 @@ class ConfigBase(object):
             'enabled': True,
         }
         self.words = None
+        self.word_list_file = None
 
     def load_words_file(self, path):
         if path is None:
             return
+        self.word_list_file = path
         with open(os.path.expanduser(path)) as infile:
             self.words = [word.strip() for word in infile]
 
@@ -74,7 +77,9 @@ class ConfigBase(object):
 
     def set_defaults(self, defaults):
         self.defaults.update(defaults)
-        self.site_hashing.update(self.defaults)
+        self.site_hashing.update(
+            (k, v) for k, v in self.defaults.items()
+            if k in ('method', 'iterations'))
         self.fill_out_config(self.defaults)
 
     def get_site(self, site, password=None):
@@ -89,6 +94,15 @@ class ConfigBase(object):
     def generate_for_site(self, username, password, site):
         config = self.get_site(site, password)
         return generator.generate(username, password, site, config)
+
+    @property
+    def global_config(self):
+        ret = {
+            'word-list': self.word_list_file,
+        }
+        for k, v in self.site_hashing.items():
+            ret['site-hashing.' + k] = v
+        return ret
 
 
 class YAMLConfig(ConfigBase):
@@ -147,6 +161,13 @@ class SqliteConfig(ConfigBase):
         self.set_defaults(self._get_site('default'))
         self.site_hashing.update(config.get('site-hashing', {}))
 
+    def get_site_config(self, site):
+        curs = self._db.cursor()
+        curs.execute(
+            'SELECT name, value FROM config_values WHERE site_name IS ?',
+            (site,))
+        return maybe_json_dict(curs)
+
     def _get_site(self, site):
         curs = self._db.cursor()
         curs.execute(
@@ -158,10 +179,7 @@ class SqliteConfig(ConfigBase):
 
         config = self.defaults.copy()
         config['schema'] = json.loads(results[0][0])
-        curs.execute(
-            'SELECT name, value FROM config_values WHERE site_name = ?',
-            (site,))
-        config.update(maybe_json_dict(curs))
+        config.update(self.get_site_config(site))
 
         self.fill_out_config(config)
         return config
@@ -217,10 +235,68 @@ class SqliteConfig(ConfigBase):
             raise ValueError('there is no schema by the name %r' % (name,))
         return results[0]
 
-    def set_schema_name(self, oldname, newname):
+    def add_schema(self, name, value):
         curs = self._db.cursor()
-        curs.execute('UPDATE schemata SET name = ? WHERE name = ?', (newname, oldname))
+        curs.execute(
+            'INSERT INTO schemata (name, value) VALUES (?, ?)',
+            (name, json.dumps(value)))
         self._db.commit()
+
+    def remove_schema(self, schema_id):
+        curs = self._db.cursor()
+        curs.execute('SELECT site_name FROM sites WHERE schema_id = ?', (schema_id,))
+        sites = sorted(site for site, in curs)
+        if sites:
+            raise ValueError(
+                "can't delete this schema; at least one site is using it: %r" % (sites,))
+        curs.execute('DELETE FROM schemata WHERE schema_id = ?', (schema_id,))
+        self._db.commit()
+
+    def set_schema_name(self, schema_id, newname):
+        curs = self._db.cursor()
+        curs.execute('UPDATE schemata SET name = ? WHERE schema_id = ?', (newname, schema_id))
+        self._db.commit()
+
+    def set_schema_value(self, schema_id, value):
+        curs = self._db.cursor()
+        curs.execute(
+            'UPDATE schemata SET value = ? WHERE schema_id = ?',
+            (json.dumps(value), schema_id))
+        self._db.commit()
+
+    def get_config(self, site, name):
+        curs = self._db.cursor()
+        curs.execute(
+            'SELECT value FROM config_values WHERE site_name IS ? AND name = ?',
+            (site, name))
+        results = curs.fetchall()
+        if not results:
+            raise ValueError('there is no config %r for %r' % (name, site))
+        return maybe_json(results[0][0])
+
+    def set_config(self, site, name, value):
+        split_name = name.split('.')
+        if len(split_name) > 1:
+            try:
+                base_value = self.get_config(site, split_name[0])
+            except ValueError:
+                base_value = {}
+            nested_set(base_value, split_name[1:], value)
+            name, new_value = split_name[0], base_value
+        else:
+            new_value = value
+        curs = self._db.cursor()
+        curs.execute(
+            'DELETE FROM config_values WHERE site_name IS ? AND name = ?',
+            (site, name,))
+        if new_value is not None:
+            curs.execute(
+                'INSERT INTO config_values (site_name, name, value) VALUES (?, ?, ?)',
+                (site, name, json.dumps(new_value)))
+        self._db.commit()
+
+    def set_global_config(self, name, value):
+        self.set_config(None, name, value)
 
 
 def load(infile):

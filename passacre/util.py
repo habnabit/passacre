@@ -37,3 +37,23 @@ class reify(object):
         val = self.wrapped(inst)
         setattr(inst, self.wrapped.__name__, val)
         return val
+
+
+def dotify(d, prefix=''):
+    ret = []
+    for k, v in d.items():
+        if isinstance(v, dict):
+            ret.extend(dotify(v, prefix=prefix + k + '.'))
+        else:
+            ret.append((prefix + k, v))
+    return ret
+
+def nested_get(d, keys):
+    intermediate = d
+    for key in keys:
+        intermediate = intermediate.setdefault(key, {})
+    return intermediate
+
+def nested_set(d, keys, value):
+    intermediate = nested_get(d, keys[:-1])
+    intermediate[keys[-1]] = value
