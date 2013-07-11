@@ -201,7 +201,8 @@ class Passacre(object):
 
 
     def site_args(self, subparser):
-        subparser.add_argument('--by-schema', help='list sites organized by schema')
+        subparser.add_argument('--by-schema', action='store_true',
+                               help='list sites organized by schema')
 
     def site_action(self, args):
         "Perform an action on a site in a config file."
