@@ -1,12 +1,15 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 from __future__ import unicode_literals
 
-import os
 import pytest
 import py.path
 import sqlite3
 import unittest
 
 from passacre import application
+from passacre.test.util import excinfo_arg_0
 
 
 datadir = py.path.local(__file__).dirpath('data')
@@ -249,7 +252,7 @@ example.com                                             26.58
     def test_no_args(self):
         with pytest.raises(SystemExit) as excinfo:
             self.app.main([])
-        assert excinfo.value == 2 or excinfo.value.args[0] == 2
+        assert excinfo_arg_0(excinfo) == 2
 
 
 class KeccakTestCaseMixin(ApplicationTestCaseMixin):
@@ -393,7 +396,7 @@ def test_site_remove(mutable_app):
 def test_site_remove_default_fails(app):
     with pytest.raises(SystemExit) as excinfo:
         app.main(['site', 'remove', 'default'])
-    assert excinfo.value.args[0]
+    assert excinfo_arg_0(excinfo)
 
 def test_config(app, capsys):
     app.main(['config'])
