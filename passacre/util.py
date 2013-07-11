@@ -1,6 +1,9 @@
 # Parts of this file (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+import json
+
+
 class reify(object):
     """ Use as a class method decorator.  It operates almost exactly like the
     Python ``@property`` decorator, but it puts the result of the method it
@@ -60,3 +63,6 @@ def nested_get(d, keys):
 def nested_set(d, keys, value):
     intermediate = nested_get(d, keys[:-1])
     intermediate[keys[-1]] = value
+
+def jdumps(val):
+    return json.dumps(val, sort_keys=True)

@@ -2,12 +2,14 @@ from __future__ import unicode_literals
 
 import os
 import pytest
+import py.path
+import sqlite3
 import unittest
 
 from passacre import application
 
 
-datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+datadir = py.path.local(__file__).dirpath('data')
 
 
 def fake_open(path, mode):
@@ -109,10 +111,10 @@ class ApplicationTestCaseMixin(object):
         self.capsys = capsys
 
     def setUp(self):
-        os.chdir(os.path.join(datadir, self.config_dir))
+        datadir.join(self.config_dir).chdir()
         self.app = application.Passacre()
         _load_config = self.app.load_config
-        self.app.load_config = lambda: _load_config(expanduser=fake_expanduser)
+        self.app.load_config = lambda f=None: _load_config(f, expanduser=fake_expanduser)
         self.confirmed_password = False
         self.app.prompt_password = self.prompt_password
         self.password = 'passacre'
@@ -271,3 +273,204 @@ class SkeinYAMLTestCase(SkeinTestCaseMixin, unittest.TestCase):
 
 class SkeinSqliteTestCase(SkeinTestCaseMixin, unittest.TestCase):
     config_dir = 'skein-sqlite'
+
+
+@pytest.fixture
+def app():
+    app = application.Passacre()
+    app.load_config(datadir.join('keccak.sqlite').open('rb'))
+    return app
+
+@pytest.fixture
+def mutable_app(app, tmpdir):
+    datadir.join('keccak.sqlite').copy(tmpdir)
+    db_copy = tmpdir.join('keccak.sqlite')
+    app._db = sqlite3.connect(db_copy.strpath)
+    app.load_config(db_copy.open('rb'))
+    app.prompt_password = lambda confirm: 'passacre'
+    return app
+
+def test_init(app, tmpdir):
+    dbpath = tmpdir.join('test.db').strpath
+    app.main(['init', dbpath])
+    db = sqlite3.connect(dbpath)
+    curs = db.cursor()
+
+    curs.execute('SELECT * FROM config_values')
+    assert curs.fetchall() == []
+
+    curs.execute('SELECT schema_id, name, value FROM schemata')
+    (schema_id, name, value), = curs
+    assert (name, value) == ('32-printable', '[[32, "printable"]]')
+
+    curs.execute('SELECT site_name, schema_id FROM sites')
+    assert curs.fetchall() == [('default', schema_id)]
+
+def test_site_yaml(app, capsys):
+    app.load_config(datadir.join('keccak.yaml').open('rb'))
+    app.main(['site'])
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == """gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4
+becu.org
+default
+example.com
+fhcrc.org
+fidelity.com
+further.example.com
+schwab.com
+still.further.example.com
+"""
+
+def test_site_sqlite(app, capsys):
+    app.main(['site'])
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == """gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4: schema_7
+becu.org: schema_3
+default: schema_5
+example.com: schema_0
+fhcrc.org: schema_5
+fidelity.com: schema_6
+further.example.com: schema_2
+schwab.com: schema_1
+still.further.example.com: schema_4
+"""
+
+    app.main(['site', '--by-schema'])
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == """schema_0: example.com
+schema_1: schwab.com
+schema_2: further.example.com
+schema_3: becu.org
+schema_4: still.further.example.com
+schema_5: default, fhcrc.org
+schema_6: fidelity.com
+schema_7: gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4
+"""
+
+def get_schema_value(curs, site):
+    curs.execute(
+        'SELECT value FROM sites JOIN schemata USING (schema_id) WHERE site_name = ?',
+        (site,))
+    return curs.fetchall()
+
+def test_site_add(mutable_app):
+    app = mutable_app
+    curs = app._db.cursor()
+
+    app.main(['site', 'add', 'example.org', 'schema_0'])
+    assert get_schema_value(curs, 'example.org') == [('[[4, "word"]]',)]
+
+    app.main(['site', '-a', 'add', 'hashed.example.org', 'schema_0'])
+    assert get_schema_value(
+        curs, 'ovzItJro7gu7DYNiwa5ve23okNCe-yWv9v1a0PNiBKIbHKBp') == [('[[4, "word"]]',)]
+
+def test_site_set_schema(mutable_app):
+    app = mutable_app
+    curs = app._db.cursor()
+
+    app.main(['site', 'set-schema', 'example.com', 'schema_7'])
+    assert get_schema_value(curs, 'example.com') == [('[[2, "word"]]',)]
+
+    app.main(['site', '-a', 'set-schema', 'hashed.example.com', 'schema_7'])
+    assert get_schema_value(
+        curs, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4') == [('[[2, "word"]]',)]
+
+def test_site_remove(mutable_app):
+    app = mutable_app
+    curs = app._db.cursor()
+
+    app.main(['site', 'remove', 'example.com'])
+    curs.execute('SELECT * FROM sites WHERE site_name = "example.com"')
+    assert curs.fetchall() == []
+
+    app.main(['site', '-a', 'remove', 'hashed.example.com'])
+    curs.execute('SELECT * FROM sites WHERE site_name = "hashed.example.com"')
+    assert curs.fetchall() == []
+
+def test_site_remove_default_fails(app):
+    with pytest.raises(SystemExit) as excinfo:
+        app.main(['site', 'remove', 'default'])
+    assert excinfo.value.args[0]
+
+def test_config(app, capsys):
+    app.main(['config'])
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == """site-hashing.enabled: true
+site-hashing.iterations: 10
+words-file: "words"
+"""
+
+    app.main(['config', 'site-hashing.enabled'])
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == 'true\n'
+
+    app.main(['config', 'site-hashing'])
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == '{"enabled": true, "iterations": 10}\n'
+
+    app.main(['config', '-s', 'fhcrc.org'])
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == 'increment: 5\n'
+
+    app.main(['config', '-s', 'fhcrc.org', 'increment'])
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == '5\n'
+
+def get_config_name(curs, site, name):
+    curs.execute(
+        'SELECT value FROM config_values WHERE site_name IS ? AND name = ?',
+        (site, name))
+    return curs.fetchall()
+
+def test_config_set(mutable_app):
+    app = mutable_app
+    curs = app._db.cursor()
+
+    app.main(['config', 'words-file', 'foo'])
+    assert get_config_name(curs, None, 'words-file') == [('"foo"',)]
+
+    app.main(['config', 'words-file', 'null'])
+    assert get_config_name(curs, None, 'words-file') == []
+
+    app.main(['config', 'spam.spam.spam.eggs', 'spam'])
+    assert get_config_name(curs, None, 'spam') == [('{"spam": {"spam": {"eggs": "spam"}}}',)]
+
+    app.main(['config', 'spam.spam.spam.spam', 'spam'])
+    assert get_config_name(curs, None, 'spam') == [
+        ('{"spam": {"spam": {"eggs": "spam", "spam": "spam"}}}',)]
+
+    app.main(['config', '-s', 'fhcrc.org', 'increment', '6'])
+    assert get_config_name(curs, 'fhcrc.org', 'increment') == [('6',)]
+
+    app.main(['config', '-s', 'example.com', 'increment', '7'])
+    assert get_config_name(curs, 'example.com', 'increment') == [('7',)]
+
+    app.main(['config', '-as', 'hashed.example.com', 'increment', '8'])
+    assert get_config_name(
+        curs, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment') == [('8',)]
+
+    app.main(['config', '-cas', 'hashed.example.com', 'increment', '9'])
+    assert get_config_name(
+        curs, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment') == [('9',)]
+
+def test_schema(app, capsys):
+    app.main(['schema'])
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == r"""schema_0: [[4, "word"]]
+schema_1: [[8, "alphanumeric"]]
+schema_2: [[4, "word", ", "]]
+schema_3: [[32, "alphanumeric"]]
+schema_4: ["printable", [4, "word", ", "], "printable"]
+schema_5: [[32, "printable"]]
+schema_6: [[16, ["alphanumeric", "\"%'()+,-/:;<=>?\\ ^_|"]]]
+schema_7: [[2, "word"]]
+"""

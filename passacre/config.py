@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 
 from passacre.multibase import MultiBase
-from passacre.util import nested_set
+from passacre.util import nested_set, jdumps
 from passacre import generator
 
 import collections
@@ -133,7 +133,7 @@ class YAMLConfig(ConfigBase):
     add_site = remove_site = set_site_schema = _no_config_modification
     add_schema = remove_schema = set_schema_value = set_schema_name = _no_config_modification
 
-    def get_all_schemata(self):
+    def get_all_schemata(self, *a, **kw):
         raise NotImplementedError("YAMLConfig doesn't have a way to list schemata.")
 
     get_schema = get_all_schemata
@@ -194,7 +194,7 @@ class SqliteConfig(ConfigBase):
     def set_site_schema(self, name, schema_id):
         curs = self._db.cursor()
         curs.execute(
-            'UPDATE sites SET schema_id = ? WHERE name = ?',
+            'UPDATE sites SET schema_id = ? WHERE site_name = ?',
             (schema_id, name))
         self._db.commit()
 
@@ -239,7 +239,7 @@ class SqliteConfig(ConfigBase):
         curs = self._db.cursor()
         curs.execute(
             'INSERT INTO schemata (name, value) VALUES (?, ?)',
-            (name, json.dumps(value)))
+            (name, jdumps(value)))
         self._db.commit()
 
     def remove_schema(self, schema_id):
@@ -261,7 +261,7 @@ class SqliteConfig(ConfigBase):
         curs = self._db.cursor()
         curs.execute(
             'UPDATE schemata SET value = ? WHERE schema_id = ?',
-            (json.dumps(value), schema_id))
+            (jdumps(value), schema_id))
         self._db.commit()
 
     def get_config(self, site, name):
@@ -292,7 +292,7 @@ class SqliteConfig(ConfigBase):
         if new_value is not None:
             curs.execute(
                 'INSERT INTO config_values (site_name, name, value) VALUES (?, ?, ?)',
-                (site, name, json.dumps(new_value)))
+                (site, name, jdumps(new_value)))
         self._db.commit()
 
     def set_global_config(self, name, value):

@@ -5,7 +5,7 @@ from __future__ import unicode_literals, print_function
 
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
-from passacre.util import reify, dotify, nested_get
+from passacre.util import reify, dotify, nested_get, jdumps
 from passacre import __version__
 
 import atexit
@@ -77,7 +77,7 @@ class Passacre(object):
     sleep = staticmethod(time.sleep)
     _load_config = staticmethod(load_config)
 
-    _config = None
+    _config = _config_file = None
 
     _subcommands = {
         'init': "initialize an sqlite config",
@@ -101,17 +101,18 @@ class Passacre(object):
     @reify
     def config(self):
         if self._config is None:
-            self.load_config()
+            self.load_config(self._config_file)
         return self._config
 
-    def load_config(self, expanduser=None):
+    def load_config(self, config_fobj=None, expanduser=None):
         "Load the passacre configuration to ``self.config``."
-        config_fobj = open_first([
-            '~/.config/passacre/passacre.sqlite',
-            '~/.config/passacre/passacre.yaml',
-            '~/.passacre.sqlite',
-            '~/.passacre.yaml',
-        ], 'rb', expanduser)
+        if config_fobj is None:
+            config_fobj = open_first([
+                '~/.config/passacre/passacre.sqlite',
+                '~/.config/passacre/passacre.yaml',
+                '~/.passacre.sqlite',
+                '~/.passacre.yaml',
+            ], 'rb', expanduser)
         with config_fobj:
             self._config = self._load_config(config_fobj)
 
@@ -204,6 +205,12 @@ class Passacre(object):
         subparser.add_argument('--by-schema', action='store_true',
                                help='list sites organized by schema')
 
+        hash_group = subparser.add_argument_group('for {add,remove,set-schema}')
+        hash_group.add_argument('-a', '--hashed', action='store_true',
+                                help='hash the site name')
+        hash_group.add_argument('-c', '--confirm', action='store_true',
+                                help='confirm prompted password')
+
     def site_action(self, args):
         "Perform an action on a site in a config file."
 
@@ -213,7 +220,8 @@ class Passacre(object):
             for site, site_config in sites.items():
                 sites_by_schema[site_config['schema-name']].append(site)
             for schema in sorted(sites_by_schema):
-                print('%s: %s' % (schema, sites_by_schema[schema]))
+                print('%s: %s' % (
+                    schema, ', '.join(sorted(sites_by_schema[schema], key=site_sort_key))))
             return
 
         for site in sorted(sites, key=site_sort_key):
@@ -255,10 +263,6 @@ class Passacre(object):
     def site_add_args(self, subparser):
         subparser.add_argument('name', help='the name of the site')
         subparser.add_argument('schema', help='the schema to use')
-        subparser.add_argument('-a', '--hashed', action='store_true',
-                               help='hash the site name')
-        subparser.add_argument('-c', '--confirm', action='store_true',
-                               help='confirm prompted password')
 
     def site_add_action(self, args):
         schema_id, _ = self.config.get_schema(args.schema)
@@ -270,10 +274,6 @@ class Passacre(object):
 
     def site_remove_args(self, subparser):
         subparser.add_argument('name', help='the name of the site to remove')
-        subparser.add_argument('-a', '--hashed', action='store_true',
-                               help='hash the site name')
-        subparser.add_argument('-c', '--confirm', action='store_true',
-                               help='confirm prompted password')
 
     def site_remove_action(self, args):
         if args.name == 'default':
@@ -287,10 +287,6 @@ class Passacre(object):
     def site_set_schema_args(self, subparser):
         subparser.add_argument('site', help='the name of the site to update')
         subparser.add_argument('schema', help='the schema to use')
-        subparser.add_argument('-a', '--hashed', action='store_true',
-                               help='hash the site name')
-        subparser.add_argument('-c', '--confirm', action='store_true',
-                               help='confirm prompted password')
 
     def site_set_schema_action(self, args):
         schema_id, _ = self.config.get_schema(args.schema)
@@ -305,7 +301,7 @@ class Passacre(object):
 
         schemata = self.config.get_all_schemata()
         for schema in sorted(schemata):
-            print('%s: %s' % (schema, json.dumps(schemata[schema])))
+            print('%s: %s' % (schema, jdumps(schemata[schema])))
 
 
     def schema_add_args(self, subparser):
@@ -345,18 +341,25 @@ class Passacre(object):
     def config_args(self, subparser):
         subparser.add_argument('-s', '--site',
                                help='the site to operate on or omitted for global config')
+        subparser.add_argument('-a', '--hashed', action='store_true',
+                               help='hash the site name')
+        subparser.add_argument('-c', '--confirm', action='store_true',
+                               help='confirm prompted password')
         subparser.add_argument('name', nargs='?',
                                help='the config option to get or set or omitted to get all')
         subparser.add_argument('value', nargs='?',
                                help='the new value to set or omitted to get')
 
     def config_action(self, args):
+        if args.hashed and args.site:
+            password = self.prompt_password(args.confirm)
+            args.site = hash_site(password, args.site, self.config.site_hashing)
         if not args.name:
             for k, v in sorted(dotify(self.config.get_site_config(args.site))):
-                print('%s: %s' % (k, json.dumps(v)))
+                print('%s: %s' % (k, jdumps(v)))
             return
         if not args.value:
-            print(json.dumps(nested_get(
+            print(jdumps(nested_get(
                 self.config.get_site_config(args.site), args.name.split('.'))))
             return
         self.config.set_config(args.site, args.name, maybe_load_json(args.value))
@@ -387,6 +390,8 @@ class Passacre(object):
         parser = argparse.ArgumentParser(prog='passacre')
         parser.add_argument('-V', '--version', action='version',
                             version='%(prog)s ' + __version__)
+        parser.add_argument('-f', '--config', type=argparse.FileType('rb'),
+                            help='specify a config file to use')
         subparsers = parser.add_subparsers(dest='command')
         self.build_subcommands('', subparsers, self._subcommands)
         return parser
@@ -406,6 +411,7 @@ class Passacre(object):
     def main(self, args=None):
         parser = self.build_parser()
         args = parser.parse_args(args)
+        self._config_file = args.config
         action = self.find_action(args)
         if not action:
             parser.print_help()
