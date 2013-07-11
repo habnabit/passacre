@@ -350,7 +350,7 @@ schema_6: fidelity.com
 schema_7: gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4
 """
 
-def get_schema_value(curs, site):
+def get_site_schema(curs, site):
     curs.execute(
         'SELECT value FROM sites JOIN schemata USING (schema_id) WHERE site_name = ?',
         (site,))
@@ -361,10 +361,10 @@ def test_site_add(mutable_app):
     curs = app._db.cursor()
 
     app.main(['site', 'add', 'example.org', 'schema_0'])
-    assert get_schema_value(curs, 'example.org') == [('[[4, "word"]]',)]
+    assert get_site_schema(curs, 'example.org') == [('[[4, "word"]]',)]
 
     app.main(['site', '-a', 'add', 'hashed.example.org', 'schema_0'])
-    assert get_schema_value(
+    assert get_site_schema(
         curs, 'ovzItJro7gu7DYNiwa5ve23okNCe-yWv9v1a0PNiBKIbHKBp') == [('[[4, "word"]]',)]
 
 def test_site_set_schema(mutable_app):
@@ -372,10 +372,10 @@ def test_site_set_schema(mutable_app):
     curs = app._db.cursor()
 
     app.main(['site', 'set-schema', 'example.com', 'schema_7'])
-    assert get_schema_value(curs, 'example.com') == [('[[2, "word"]]',)]
+    assert get_site_schema(curs, 'example.com') == [('[[2, "word"]]',)]
 
     app.main(['site', '-a', 'set-schema', 'hashed.example.com', 'schema_7'])
-    assert get_schema_value(
+    assert get_site_schema(
         curs, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4') == [('[[2, "word"]]',)]
 
 def test_site_remove(mutable_app):
@@ -474,3 +474,42 @@ schema_5: [[32, "printable"]]
 schema_6: [[16, ["alphanumeric", "\"%'()+,-/:;<=>?\\ ^_|"]]]
 schema_7: [[2, "word"]]
 """
+
+def get_schema_value(curs, name):
+    curs.execute('SELECT value FROM schemata WHERE name = ?', (name,))
+    return curs.fetchall()
+
+def test_schema_add(mutable_app):
+    app = mutable_app
+    curs = app._db.cursor()
+
+    app.main(['schema', 'add', 'schema_10', '["alphanumeric", [10, "digit"]]'])
+    assert get_schema_value(curs, 'schema_10') == [('["alphanumeric", [10, "digit"]]',)]
+
+def test_schema_set_value(mutable_app):
+    app = mutable_app
+    curs = app._db.cursor()
+
+    app.main(['schema', 'set-value', 'schema_0', '[[10, "digit"]]'])
+    assert get_schema_value(curs, 'schema_0') == [('[[10, "digit"]]',)]
+    assert get_site_schema(curs, 'example.com') == [('[[10, "digit"]]',)]
+
+def test_schema_set_name(mutable_app):
+    app = mutable_app
+    curs = app._db.cursor()
+
+    app.main(['schema', 'set-name', 'schema_0', 'schema_10'])
+    assert get_schema_value(curs, 'schema_10') == [('[[4, "word"]]',)]
+    curs.execute(
+        'SELECT name FROM schemata JOIN sites USING (schema_id) WHERE site_name = "example.com"')
+    assert curs.fetchall() == [('schema_10',)]
+
+def test_schema_remove(mutable_app):
+    app = mutable_app
+    curs = app._db.cursor()
+    curs.execute('INSERT INTO schemata (name, value) VALUES ("schema_10", "[""digit""]")')
+    app._db.commit()
+
+    assert get_schema_value(curs, 'schema_10') != []
+    app.main(['schema', 'remove', 'schema_10'])
+    assert get_schema_value(curs, 'schema_10') == []

@@ -95,15 +95,6 @@ class ConfigBase(object):
         config = self.get_site(site, password)
         return generator.generate(username, password, site, config)
 
-    @property
-    def global_config(self):
-        ret = {
-            'word-list': self.word_list_file,
-        }
-        for k, v in self.site_hashing.items():
-            ret['site-hashing.' + k] = v
-        return ret
-
 
 class YAMLConfig(ConfigBase):
     def read(self, infile):
@@ -294,9 +285,6 @@ class SqliteConfig(ConfigBase):
                 'INSERT INTO config_values (site_name, name, value) VALUES (?, ?, ?)',
                 (site, name, jdumps(new_value)))
         self._db.commit()
-
-    def set_global_config(self, name, value):
-        self.set_config(None, name, value)
 
 
 def load(infile):
