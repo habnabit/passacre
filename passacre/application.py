@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals, print_function
 
-from passacre.config import load as load_config
+from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
 from passacre.util import reify, dotify, nested_get
 from passacre import __version__
@@ -65,6 +65,9 @@ def maybe_load_json(val):
     except ValueError:
         return val
 
+schema_file = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'schema.sql')
+
 
 class Passacre(object):
     atexit = atexit
@@ -77,6 +80,7 @@ class Passacre(object):
     _config = None
 
     _subcommands = {
+        'init': "initialize an sqlite config",
         'generate': "generate a password",
         'entropy': "display each site's password entropy",
         'site': ("actions on sites", {
@@ -110,6 +114,25 @@ class Passacre(object):
         ], 'rb', expanduser)
         with config_fobj:
             self._config = self._load_config(config_fobj)
+
+
+    def init_args(self, subparser):
+        subparser.add_argument('path', nargs='?', default='~/.passacre.sqlite',
+                               help='path of the config file to initialize (default: %(default)s)')
+
+    def init_action(self, args):
+        import sqlite3
+        db = sqlite3.connect(os.path.expanduser(args.path))
+        curs = db.cursor()
+        with open(schema_file) as infile:
+            schema = infile.read()
+        curs.executescript(schema)
+
+        config = SqliteConfig()
+        config._db = db
+        config.add_schema('32-printable', [[32, 'printable']])
+        schema_id, _ = config.get_schema('32-printable')
+        config.add_site('default', schema_id)
 
 
     def generate_args(self, subparser):
