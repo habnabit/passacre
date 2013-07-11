@@ -1,3 +1,6 @@
+# Parts of this file (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 class reify(object):
     """ Use as a class method decorator.  It operates almost exactly like the
     Python ``@property`` decorator, but it puts the result of the method it

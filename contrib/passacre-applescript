@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
 
 import applescript
 from passacre.application import Passacre

@@ -1,3 +1,6 @@
+-- Copyright (c) Aaron Gallagher <_@habnab.it>
+-- See COPYING for details.
+
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE schemata (
