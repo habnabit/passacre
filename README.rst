@@ -17,3 +17,14 @@ also, it's ISC-licensed!
 every user-facing part of this sucks right now, but it's a work-in-progress.
 
 docs coming soon!!
+
+here's how to use it for now::
+
+  # for keccak generation
+  pip install 'passacre[cli,keccak_generation]'
+  # for skein generation (python 3 only)
+  pip install 'passacre[cli,skein_generation]'
+  # to be able to copy passwords, add the 'clipboard' variant too:
+  pip install 'passacre[cli,clipboard,keccak_generation]'
+  # then finally:
+  passacre init

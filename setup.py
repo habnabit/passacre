@@ -7,7 +7,7 @@ import sys
 from setuptools import setup
 
 
-with open('README', 'r') as infile:
+with open('README.rst', 'r') as infile:
     long_description = infile.read()
 
 
@@ -47,9 +47,15 @@ setup(
         'version_module_paths': ['passacre/_version.py'],
     },
     packages=['passacre', 'passacre.test'],
+    package_data={
+        'passacre': ['schema.sql'],
+        'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',
+                          'data/*/words', 'data/*/.passacre.*'],
+    },
     setup_requires=['vcversioner'],
     extras_require=extras_require,
     entry_points={
         'console_scripts': ['passacre = passacre.application:main [cli]'],
     },
+    zip_safe=False,
 )
