@@ -41,11 +41,10 @@ h1 {
     Choice(
         0,
         NonTerminal('character-set'),
-        OneOrMore(
-            Sequence(
-                '[',
-                OneOrMore(NonTerminal('character-set')),
-                ']')))).addTo();
+        Sequence(
+            '[',
+            OneOrMore(NonTerminal('character-set')),
+            ']'))).addTo();
   </script>
 
   <h1>character-set</h1>
