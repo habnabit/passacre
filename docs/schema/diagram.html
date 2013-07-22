@@ -26,7 +26,7 @@ h1 {
     Choice(
         0,
         NonTerminal('character-sets'),
-        Sequence('[', 'count', NonTerminal('item'), ']'),
+        Sequence('[', 'count', OneOrMore(NonTerminal('item')), ']'),
         Sequence(
             '[',
             Optional('count', 'skip'),

@@ -1,7 +1,7 @@
 from parsley import makeGrammar
 import string
 
-builtin_digits = {
+character_classes = {
     'printable': string.digits + string.ascii_letters + string.punctuation,
     'alphanumeric': string.digits + string.ascii_letters,
     'digit': string.digits,
@@ -15,26 +15,28 @@ grammar = """
 str = anything:x ?(isinstance(x, str)) -> x
 int = anything:x ?(isinstance(x, int)) -> x
 
-builtin_digits = str:x ?(x in builtin_digits) -> builtin_digits[x]
-digits = builtin_digits | str
-digits_list = [digits+:x] -> ''.join(x)
-digits_item = digits | digits_list
+character_class = str:x ?(x in character_classes) -> character_classes[x]
+character_set = character_class | str
+character_set_list = [character_set+:x] -> ''.join(x)
 
-word_item = [int?:count 'word' str?:delimiter] -> [(_word, delimiter)] * (count or 1)
-schema_item = ( digits_item:digits -> [(digits,)]
-              | [int:count digits_item:digits] -> [(digits,)] * count)
-item = word_item | schema_item
+character_sets = (character_set | character_set_list):s -> [(s,)]
+word = [int?:count 'word' str?:delimiter] -> [(_word, delimiter)] * (count or 1)
+item = ( character_sets
+       | word
+       | [int:count items:items] -> items * count)
 
-items = (item | counted_items)+:items -> [item for subitems in items for item in subitems]
-counted_items = [int:count items:items] -> items * count
+items = item+:items -> [item for subitems in items for item in subitems]
 
 """
 
-parser = makeGrammar(grammar, {'builtin_digits': builtin_digits, '_word': object()})
+parser = makeGrammar(grammar, {'character_classes': character_classes, '_word': object()})
 print parser([
-    [2, [3,
-     [2, ['foo', 'bar', 'baz', 'bar']],
-     [3, ['digit', 'uppercase']]]],
+    [2,
+        [3,
+            [2, ['foo', 'bar', 'baz', 'bar']],
+            [3, ['digit', 'uppercase']],
+        ]
+    ],
     ['word'],
     [2, 'word'],
     [3, 'word', ', '],
