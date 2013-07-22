@@ -29,21 +29,21 @@ sites:
 
   example.com:
     schema:
-      - [4, word]
+      - [' ', 4, word]
 
   further.example.com:
     schema:
-      - [4, word, ', ']
+      - [', ', 4, word]
 
   still.further.example.com:
     schema:
       - printable
-      - [4, word, ', ']
+      - [', ', 4, word]
       - printable
 
   UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L:
     schema:
-      - [2, word]
+      - [' ', 2, word]
 
 site-hashing:
   enabled: true

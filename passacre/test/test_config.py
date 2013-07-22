@@ -28,7 +28,7 @@ class ConfigTestCaseMixin(object):
             'iterations': 10, 'schema': [[32, 'alphanumeric']],
         },
         'example.com': {
-            'iterations': 10, 'schema': [[4, 'word']],
+            'iterations': 10, 'schema': [[' ', 4, 'word']],
         },
         'fhcrc.org': {
             'increment': 5, 'iterations': 15, 'schema': [[32, 'printable']],
@@ -38,14 +38,14 @@ class ConfigTestCaseMixin(object):
             'schema': [[16, ['alphanumeric', '"%\'()+,-/:;<=>?\\ ^_|']]],
         },
         'further.example.com': {
-            'iterations': 10, 'schema': [[4, 'word', ', ']],
+            'iterations': 10, 'schema': [[', ', 4, 'word']],
         },
         'schwab.com': {
             'iterations': 10, 'schema': [[8, 'alphanumeric']],
         },
         'still.further.example.com': {
             'iterations': 10,
-            'schema': ['printable', [4, 'word', ', '], 'printable'],
+            'schema': ['printable', [', ', 4, 'word'], 'printable'],
         }
     }
     extra_expected_sites = {}
@@ -99,7 +99,7 @@ class KeccakTestCaseMixin(ConfigTestCaseMixin):
     }
     extra_expected_sites = {
         'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4': {
-            'iterations': 10, 'schema': [[2, 'word']]
+            'iterations': 10, 'schema': [[' ', 2, 'word']]
         },
     }
 
@@ -134,7 +134,7 @@ class SkeinTestCaseMixin(ConfigTestCaseMixin):
     }
     extra_expected_sites = {
         'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L': {
-            'iterations': 10, 'schema': [[2, 'word']]
+            'iterations': 10, 'schema': [[' ', 2, 'word']]
         },
     }
 

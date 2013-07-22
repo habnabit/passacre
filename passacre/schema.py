@@ -17,6 +17,14 @@ character_classes = {
 }
 
 
+try:
+    unicode
+except NameError:
+    unicode = str
+
+string_types = unicode, str
+
+
 class ParseError(Exception):
     def __init__(self, got, expected):
         super(ParseError, self).__init__(got, expected)
@@ -82,7 +90,7 @@ def parse_value(x, value, expected):
 
 @trace_parse('a character set')
 def parse_character_set(x):
-    x = parse_type(x, str, 'a string')
+    x = parse_type(x, string_types, 'a string')
     return character_classes.get(x, x)
 
 @trace_parse('character sets')
@@ -101,7 +109,7 @@ def parse_counted_item(x):
         count = parse_type(x[0], int, 'a number', _index=0)
         start = 1
     else:
-        delimiter = parse_type(x[0], str, 'a string', _index=0)
+        delimiter = parse_type(x[0], string_types, 'a string', _index=0)
         count = parse_type(x[1], int, 'a number', _index=1)
         start = 2
     each_item = [z
@@ -110,7 +118,7 @@ def parse_counted_item(x):
     items = []
     for e in range(count):
         if e != 0 and delimiter:
-            items.append(delimiter)
+            items.append([delimiter])
         items.extend(each_item)
     return items
 
@@ -131,5 +139,8 @@ def parse_items(x):
 
 def multibase_of_schema(schema, words):
     "Convert a password schema from decoded YAML to a ``MultiBase``."
-    items = [words if item is _word else item for item in parse_items(schema)]
+    items = parse_items(schema)
+    if words is None and _word in items:
+        raise ValueError("can't use a schema with 'word' without a words file")
+    items = [words if item is _word else item for item in items]
     return MultiBase(items)
