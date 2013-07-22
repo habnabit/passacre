@@ -3,11 +3,10 @@
 
 import string
 
-from parsley import makeGrammar, ParseError
-
 from passacre.multibase import MultiBase
 
 
+_word = object()
 character_classes = {
     'printable': string.digits + string.ascii_letters + string.punctuation,
     'alphanumeric': string.digits + string.ascii_letters,
@@ -17,80 +16,120 @@ character_classes = {
     'uppercase': string.ascii_uppercase,
 }
 
-grammar = """
 
-str = anything:x ?(isinstance(x, str)) ^(string) -> x
-int = anything:x ?(isinstance(x, int)) ^(number) -> x
+class ParseError(Exception):
+    def __init__(self, got, expected):
+        super(ParseError, self).__init__(got, expected)
+        self.got = got
+        self.expected = expected
+        self.parse_stack = []
 
-character_class = str:x ?(x in character_classes) ^(character class) -> character_classes[x]
-character_set = character_class ^(character class) | str ^(character set)
-character_set_list = [(character_set ^(character set))+:x] ^(array of character sets) -> ''.join(x)
+    def __str__(self):
+        whats, xs, indices = zip(*reversed(self.parse_stack))
+        whats_max_len = max(len(what) for what in whats) + 1
+        whats = [(what + ':').ljust(whats_max_len) for what in whats]
+        spaced_xs = []
+        spaces = 0
+        prev = None
+        for x, index in zip(xs, indices):
+            if index is not None:
+                spaces += 1
+                for e in range(index):
+                    spaces += 2 + len(repr(prev[e]))
+            spaced_xs.append(' ' * spaces + repr(x))
+            prev = x
+        repaired = zip(whats, spaced_xs)
 
-character_sets = (character_set ^(character set) | character_set_list ^(concatenated character sets)):s -> [(s,)]
-word = [(int ^(word count))?:count 'word' (str ^(word delimiter))?:delimiter] ^(word array) -> [(_word, count, delimiter)]
-item = ( word ^(word array)
-       | character_sets ^(character set)
-       | [(int ^(count of items)):count (items ^(series of items)):items] ^(item array with count) -> items * count)
+        return '\n%s\nexpected %s; got %r' % (
+            '\n'.join('while parsing %s %s' % x for x in repaired),
+            self.expected, self.got)
 
-items = (item ^(item))+:items -> [item for subitems in items for item in subitems]
-
-"""
-
-_word = object()
-parser = makeGrammar(
-    grammar, {'character_classes': character_classes, '_word': _word})
+class RetryableParseError(ParseError):
+    pass
 
 
-class ListParseError(ParseError):
-    def formatError(self):
-        """
-        Return a pretty string containing error info about string
-        parsing failure.
-        """
-        stringified = str(self.input)
-        columnNo = 1
-        if self.position <= len(self.input):
-            for x in range(self.position - 1):
-                columnNo += 2 + len(str(self.input[x]))
-            if self.position > 1:
-                columnNo += 2
-        reason = self.formatReason()
-        return ('\n' + stringified + '\n' + (' ' * columnNo + '^') +
-                "\nParse error at item %s: %s. trail: [%s]\n"
-                % (self.position, reason, ' '.join(self.trail)))
+def trace_parse(what):
+    def deco(f):
+        def wrap(x, *a, **kw):
+            index = kw.pop('_index', None)
+            try:
+                return f(x, *a)
+            except ParseError as e:
+                e.parse_stack.append((what, x, index))
+                raise
+        return wrap
+    return deco
 
-    def __hash__(self):
-        return id(self)
+def try_each(x, fs, expected):
+    for f in fs:
+        try:
+            return f(x)
+        except RetryableParseError:
+            pass
+    raise ParseError(x, expected)
+
+@trace_parse('the value')
+def parse_type(x, type_, expected):
+    if not isinstance(x, type_):
+        raise ParseError(x, expected)
+    return x
+
+@trace_parse('the value')
+def parse_value(x, value, expected):
+    if x != value:
+        raise ParseError(x, expected)
+    return x
+
+@trace_parse('a character set')
+def parse_character_set(x):
+    x = parse_type(x, str, 'a string')
+    return character_classes.get(x, x)
+
+@trace_parse('character sets')
+def parse_character_sets(x):
+    if x == 'word':
+        return [_word]
+    elif isinstance(x, list):
+        return [''.join(parse_character_set(y, _index=e) for e, y in enumerate(x))]
+    else:
+        return [parse_character_set(x)]
+
+@trace_parse('a count and items array')
+def parse_counted_item(x):
+    delimiter = ''
+    if isinstance(x[0], int):
+        count = parse_type(x[0], int, 'a number', _index=0)
+        start = 1
+    else:
+        delimiter = parse_type(x[0], str, 'a string', _index=0)
+        count = parse_type(x[1], int, 'a number', _index=1)
+        start = 2
+    each_item = [z
+                 for e, y in enumerate(x[start:], start=start)
+                 for z in parse_item(y, _index=e)]
+    items = []
+    for e in range(count):
+        if e != 0 and delimiter:
+            items.append(delimiter)
+        items.extend(each_item)
+    return items
+
+@trace_parse('an item')
+def parse_item(x):
+    if isinstance(x, list):
+        if len(x) < 2:
+            raise ParseError(x, 'an array at least two elements')
+        if isinstance(x[0], int) or isinstance(x[1], int):
+            return parse_counted_item(x)
+    return parse_character_sets(x)
+
+@trace_parse('the items')
+def parse_items(x):
+    items = [parse_item(y, _index=e) for e, y in enumerate(parse_type(x, list, 'an array'))]
+    return [y for subitems in items for y in subitems]
 
 
 def multibase_of_schema(schema, words):
     "Convert a password schema from decoded YAML to a ``MultiBase``."
-    try:
-        items = parser(schema).items()
-    except ParseError as e:
-        e.__class__ = ListParseError
-        raise
-    ret = []
-    for item in items:
-        if item[0] is _word:
-            _, count, delimiter = item
-            for x in range(count):
-                if x != 0:
-                    ret.append([delimiter])
-                ret.append(words)
-        else:
-            ret.append(item[0])
-    return MultiBase(ret)
-
-print(multibase_of_schema([
-    [2,
-        [3,
-            [2, ['foo', 'foo', 'baz', 'bar']],
-            [1, ['foo']],
-        ]
-    ],
-    ['word', None],
-    [2, 'word'],
-    [3, 'word', ', '],
-    ['word', ';'],
-], None))
+    items = [words if item is _word else item for item in parse_items(schema)]
+    return MultiBase(items)
