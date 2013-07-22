@@ -25,14 +25,24 @@ h1 {
     Diagram(
     Choice(
         0,
+        NonTerminal('word'),
         NonTerminal('character-sets'),
-        Sequence('[', 'count', OneOrMore(NonTerminal('item')), ']'),
-        Sequence(
-            '[',
-            Optional('count', 'skip'),
+        Sequence('[', 'count', OneOrMore(NonTerminal('item')), ']'))).addTo();
+  </script>
+
+  <h1>word</h1>
+  <script>
+    Diagram(
+    Sequence(
+        '[',
+        Choice(
+            0,
             '"word"',
-            Optional('delimiter', 'skip'),
-            ']'))).addTo();
+            Sequence(
+                'count',
+                '"word"',
+                Optional('delimiter', 'skip'))),
+        ']')).addTo();
   </script>
 
   <h1>character-sets</h1>
