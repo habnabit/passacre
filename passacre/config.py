@@ -3,52 +3,13 @@
 
 from __future__ import unicode_literals
 
-from passacre.multibase import MultiBase
+from passacre.schema import multibase_of_schema
 from passacre.util import nested_set, jdumps
 from passacre import generator
 
 import collections
 import json
 import os
-import string
-
-
-default_digits = {
-    'printable': string.digits + string.ascii_letters + string.punctuation,
-    'alphanumeric': string.digits + string.ascii_letters,
-    'digit': string.digits,
-    'letter': string.ascii_letters,
-    'lowercase': string.ascii_lowercase,
-    'uppercase': string.ascii_uppercase,
-}
-
-def multibase_of_schema(schema, words):
-    "Convert a password schema from decoded YAML to a ``MultiBase``."
-    ret = []
-    for item in schema:
-        if isinstance(item, list) and item[1] == 'word':
-            count = item[0]
-            delimiter = ' '
-            if len(item) == 3:
-                delimiter = item[2]
-            if not words:
-                raise ValueError('no words provided')
-            items = []
-            for x in range(count):
-                if x != 0:
-                    items.append([delimiter])
-                items.append(words)
-        else:
-            count = 1
-            if isinstance(item, list) and isinstance(item[0], int):
-                if len(item) == 2:
-                    count, item = item
-            if not isinstance(item, list):
-                item = [item]
-            items = [''.join(default_digits.get(i, i) for i in item)] * count
-        ret.extend(items)
-    return MultiBase(ret)
-
 
 
 class ConfigBase(object):
