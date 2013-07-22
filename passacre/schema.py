@@ -41,7 +41,7 @@ class ParseError(Exception):
         repaired = zip(whats, spaced_xs)
 
         return '\n%s\nexpected %s; got %r' % (
-            '\n'.join('while parsing %s %s' % x for x in repaired),
+            '\n'.join('whilst parsing %s %s' % x for x in repaired),
             self.expected, self.got)
 
 class RetryableParseError(ParseError):
