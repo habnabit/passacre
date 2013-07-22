@@ -25,7 +25,7 @@ h1 {
     Diagram(
     Choice(
         0,
-        NonTerminal('digits'),
+        NonTerminal('character-sets'),
         Sequence('[', 'count', NonTerminal('item'), ']'),
         Sequence(
             '[',
@@ -35,25 +35,25 @@ h1 {
             ']'))).addTo();
   </script>
 
-  <h1>digits</h1>
+  <h1>character-sets</h1>
   <script>
     Diagram(
     Choice(
         0,
-        NonTerminal('characters'),
+        NonTerminal('character-set'),
         OneOrMore(
             Sequence(
                 '[',
-                OneOrMore(NonTerminal('characters')),
+                OneOrMore(NonTerminal('character-set')),
                 ']')))).addTo();
   </script>
 
-  <h1>characters</h1>
+  <h1>character-set</h1>
   <script>
     Diagram(
     Choice(
         0,
         'character class',
-        'character set')).addTo();
+        'characters')).addTo();
   </script>
 </body>
