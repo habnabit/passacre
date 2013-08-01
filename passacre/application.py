@@ -250,7 +250,7 @@ class Passacre(object):
 
 
     def perhaps_hash_site(self, args):
-        if args.hashed or self.config.site_hashing['enabled'] == 'always':
+        if args.hashed or (self.config.site_hashing['enabled'] == 'always' and args.site != 'default'):
             password = self.prompt_password(args.confirm)
             args.site = hash_site(password, args.site, self.config.site_hashing)
 
@@ -368,9 +368,7 @@ class Passacre(object):
                                help='the new value to set or omitted to get')
 
     def config_action(self, args):
-        if args.hashed and args.site:
-            password = self.prompt_password(args.confirm)
-            args.site = hash_site(password, args.site, self.config.site_hashing)
+        self.perhaps_hash_site(args)
         if not args.name:
             for k, v in sorted(dotify(self.config.get_site_config(args.site))):
                 print('%s: %s' % (k, jdumps(v)))
