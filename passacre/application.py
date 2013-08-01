@@ -249,6 +249,12 @@ class Passacre(object):
                 print(site)
 
 
+    def perhaps_hash_site(self, args):
+        if args.hashed or self.config.site_hashing['enabled'] == 'always':
+            password = self.prompt_password(args.confirm)
+            args.site = hash_site(password, args.site, self.config.site_hashing)
+
+
     def site_hash_args(self, subparser):
         subparser.add_argument('site', nargs='?',
                                help='the site to hash')
@@ -278,27 +284,23 @@ class Passacre(object):
 
 
     def site_add_args(self, subparser):
-        subparser.add_argument('name', help='the name of the site')
+        subparser.add_argument('site', help='the name of the site')
         subparser.add_argument('schema', help='the schema to use')
 
     def site_add_action(self, args):
         schema_id, _ = self.config.get_schema(args.schema)
-        if args.hashed:
-            password = self.prompt_password(args.confirm)
-            args.name = hash_site(password, args.name, self.config.site_hashing)
-        self.config.add_site(args.name, schema_id)
+        self.perhaps_hash_site(args)
+        self.config.add_site(args.site, schema_id)
 
 
     def site_remove_args(self, subparser):
-        subparser.add_argument('name', help='the name of the site to remove')
+        subparser.add_argument('site', help='the name of the site to remove')
 
     def site_remove_action(self, args):
-        if args.name == 'default':
+        if args.site == 'default':
             sys.exit("can't remove the default site")
-        if args.hashed:
-            password = self.prompt_password(args.confirm)
-            args.name = hash_site(password, args.name, self.config.site_hashing)
-        self.config.remove_site(args.name)
+        self.perhaps_hash_site(args)
+        self.config.remove_site(args.site)
 
 
     def site_set_schema_args(self, subparser):
@@ -307,9 +309,7 @@ class Passacre(object):
 
     def site_set_schema_action(self, args):
         schema_id, _ = self.config.get_schema(args.schema)
-        if args.hashed:
-            password = self.prompt_password(args.confirm)
-            args.site = hash_site(password, args.site, self.config.site_hashing)
+        self.perhaps_hash_site(args)
         self.config.set_site_schema(args.site, schema_id)
 
 

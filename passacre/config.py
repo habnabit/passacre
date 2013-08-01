@@ -45,7 +45,7 @@ class ConfigBase(object):
 
     def get_site(self, site, password=None):
         config = self._get_site(site)
-        if config is None and password is not None:
+        if config is None and password is not None and self.site_hashing['enabled']:
             hashed_site = generator.hash_site(password, site, self.site_hashing)
             config = self._get_site(hashed_site)
         if config is None:
