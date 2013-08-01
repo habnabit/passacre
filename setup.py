@@ -2,9 +2,15 @@
 # See COPYING for details.
 
 import sys
+import vcversioner
 
 # may god have mercy on my soul
 from setuptools import setup
+
+
+version = vcversioner.find_version(
+    version_module_paths=['passacre/_version.py'],
+)
 
 
 with open('README.rst', 'r') as infile:
@@ -43,16 +49,13 @@ setup(
     ],
     license='ISC',
 
-    vcversioner={
-        'version_module_paths': ['passacre/_version.py'],
-    },
+    version=version.version,
     packages=['passacre', 'passacre.test'],
     package_data={
         'passacre': ['schema.sql'],
         'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',
                           'data/*/words', 'data/*/.passacre.*'],
     },
-    setup_requires=['vcversioner'],
     extras_require=extras_require,
     entry_points={
         'console_scripts': ['passacre = passacre.application:main [cli]'],
