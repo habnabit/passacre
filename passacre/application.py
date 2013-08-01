@@ -96,7 +96,6 @@ class Passacre(object):
             'set-name': "change a schema's name",
         }),
         'config': "view/change global configuration",
-        'yaml2sqlite': "convert YAML config to sqlite",
     }
 
     @reify
@@ -121,21 +120,26 @@ class Passacre(object):
     def init_args(self, subparser):
         subparser.add_argument('path', nargs='?', default='~/.passacre.sqlite',
                                help='path of the config file to initialize (default: %(default)s)')
+        subparser.add_argument('-y', '--from-yaml', type=argparse.FileType('rb'), metavar='YAML',
+                               help='optional input YAML config file to convert from')
 
     def init_action(self, args):
         import sqlite3
-        db = sqlite3.connect(os.path.expanduser(args.path))
+        path = os.path.expanduser(args.path)
+        db = sqlite3.connect(path)
         curs = db.cursor()
         with open(schema_file) as infile:
             schema = infile.read()
         curs.executescript(schema)
 
-        config = SqliteConfig()
-        config._db = db
-        config.add_schema('32-printable', [[32, 'printable']])
-        schema_id, _ = config.get_schema('32-printable')
-        config.add_site('default', schema_id)
-
+        if args.from_yaml:
+            yaml2sqlite.main(args.from_yaml.name, path)
+        else:
+            config = SqliteConfig()
+            config._db = db
+            config.add_schema('32-printable', [[32, 'printable']])
+            schema_id, _ = config.get_schema('32-printable')
+            config.add_site('default', schema_id)
 
     def generate_args(self, subparser):
         subparser.add_argument('site', nargs='?',
@@ -364,22 +368,6 @@ class Passacre(object):
                 self.config.get_site_config(args.site), args.name.split('.'))))
             return
         self.config.set_config(args.site, args.name, maybe_load_json(args.value))
-
-    def yaml2sqlite_args(self, subparser):
-        subparser.add_argument('infile', type=argparse.FileType('rb'),
-                               help='the input YAML config file')
-        subparser.add_argument('outfile', type=argparse.FileType('wb'),
-                               help='the output sqlite config file')
-
-    def yaml2sqlite_action(self, args):
-        import sqlite3
-        db = sqlite3.connect(args.outfile.name)
-        curs = db.cursor()
-        with open(schema_file) as infile:
-            schema = infile.read()
-        curs.executescript(schema)
-
-        yaml2sqlite.main(args.infile.name, args.outfile.name)
 
     def build_subcommands(self, action_prefix, subparsers, subcommands):
         for subcommand, subcommand_help in subcommands.items():
