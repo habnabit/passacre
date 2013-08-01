@@ -1,17 +1,21 @@
-#!/usr/bin/env python
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
 import json
 import sqlite3
-import sys
 import yaml
 
 
-def main():
-    _, yaml_file, sqlite_file = sys.argv
+def main(yaml_file, sqlite_file):
     with open(yaml_file) as infile:
-        config = yaml.safe_load(infile)
+        loader = yaml.SafeLoader(infile)
+        loader.check_node()
+        loader.get_event()
+        node = loader.compose_node(None, None)
+        schema_names = dict(
+            (json.dumps(map(loader.construct_sequence, v.value)), k)
+            for k, v in loader.anchors.iteritems())
+        config = loader.construct_document(node)
     db = sqlite3.connect(sqlite_file)
     sites = config.pop('sites', {})
     config.pop('schemata', None)
@@ -24,10 +28,12 @@ def main():
         schemata.setdefault(schema, []).append(site)
         config_rows.extend(
             (site, k, json.dumps(v)) for k, v in site_config.iteritems())
+    for e, schema in enumerate(schemata):
+        schema_names.setdefault(schema, 'schema_%d' % e)
     curs = db.cursor()
     curs.executemany(
         'INSERT INTO schemata (name, value) VALUES (?, ?)',
-        (('schema_%d' % e, schema) for e, schema in enumerate(schemata)))
+        ((schema_names[schema], schema) for schema in schemata))
     curs.executemany(
         'INSERT INTO sites (site_name, schema_id) SELECT ?, schema_id FROM schemata WHERE value = ?',
         ((site, value)
@@ -36,4 +42,7 @@ def main():
     curs.executemany('INSERT INTO config_values (site_name, name, value) VALUES (?, ?, ?)', config_rows)
     db.commit()
 
-main()
+
+if __name__ == '__main__':
+    import sys
+    main(*sys.argv[1:])
