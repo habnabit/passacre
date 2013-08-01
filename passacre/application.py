@@ -6,7 +6,7 @@ from __future__ import unicode_literals, print_function
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
 from passacre.util import reify, dotify, nested_get, jdumps
-from passacre import __version__
+from passacre import __version__, yaml2sqlite
 
 import atexit
 import collections
@@ -96,6 +96,7 @@ class Passacre(object):
             'set-name': "change a schema's name",
         }),
         'config': "view/change global configuration",
+        'yaml2sqlite': "convert YAML config to sqlite",
     }
 
     @reify
@@ -364,6 +365,21 @@ class Passacre(object):
             return
         self.config.set_config(args.site, args.name, maybe_load_json(args.value))
 
+    def yaml2sqlite_args(self, subparser):
+        subparser.add_argument('infile', type=argparse.FileType('rb'),
+                               help='the input YAML config file')
+        subparser.add_argument('outfile', type=argparse.FileType('wb'),
+                               help='the output sqlite config file')
+
+    def yaml2sqlite_action(self, args):
+        import sqlite3
+        db = sqlite3.connect(args.outfile.name)
+        curs = db.cursor()
+        with open(schema_file) as infile:
+            schema = infile.read()
+        curs.executescript(schema)
+
+        yaml2sqlite.main(args.infile.name, args.outfile.name)
 
     def build_subcommands(self, action_prefix, subparsers, subcommands):
         for subcommand, subcommand_help in subcommands.items():
