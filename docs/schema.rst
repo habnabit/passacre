@@ -1,3 +1,5 @@
+.. _schemata:
+
 Password schemata
 =================
 

@@ -123,7 +123,8 @@ combination without modifying the global ``iterations``.
 ~~~~~~~~~~
 
 The schema used to generate passwords for this site. Required; there is no
-default. This is set with ``passacre schema`` for sqlite.
+default. This is set with ``passacre schema`` for sqlite. See the section on
+:ref:`password schemata <schemata>` for details of its format.
 
 
 .. _cykeccak: https://crate.io/packages/cykeccak/
