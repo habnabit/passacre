@@ -7,8 +7,9 @@ python:
 
 install:
   # duplicated because pip can't do `install .` with variants
-  - "pip install pytest pyyaml cykeccak --use-mirrors"
+  - "pip install pytest pyyaml cykeccak coveralls --use-mirrors"
   - "bash .travis.install"
   # to get vcversioner to generate _version.py
   - "python setup.py build"
 script: "py.test passacre"
+after_success: "coveralls"
