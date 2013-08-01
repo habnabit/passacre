@@ -5,6 +5,7 @@ from __future__ import unicode_literals, print_function
 
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
+from passacre.schema import multibase_of_schema
 from passacre.util import reify, dotify, nested_get, jdumps
 from passacre import __version__, yaml2sqlite
 
@@ -179,6 +180,10 @@ class Passacre(object):
                 sys.stdout.write('\n')
 
 
+    def entropy_args(self, subparser):
+        subparser.add_argument('--schema', action='store_true',
+                               help='show entropy by schema instead of by site')
+
     def entropy_action(self, args):
         """Display each site's potential password entropy in bits.
 
@@ -186,13 +191,19 @@ class Passacre(object):
         possible passwords for a site.
         """
 
-        entropy = [('site', 'entropy', '(bits)'), ('', '', '')]
-        default_site = self.config.get_site('default')
-        pre_entropy = [
-            (site, math.log(site_config['multibase'].max_encodable_value + 1, 2))
-            for site, site_config in self.config.get_all_sites().items()
-            if site_config['schema'] != default_site['schema'] or site == 'default'
-        ]
+        entropy = [('schema' if args.schema else 'site', 'entropy', '(bits)'), ('', '', '')]
+        if args.schema:
+            pre_entropy = []
+            for schema_name, schema in self.config.get_all_schemata().iteritems():
+                multibase = multibase_of_schema(schema, self.config.words)
+                pre_entropy.append((schema_name, math.log(multibase.max_encodable_value + 1, 2)))
+        else:
+            default_site = self.config.get_site('default')
+            pre_entropy = [
+                (site, math.log(site_config['multibase'].max_encodable_value + 1, 2))
+                for site, site_config in self.config.get_all_sites().items()
+                if site_config['schema'] != default_site['schema'] or site == 'default'
+            ]
         pre_entropy.sort(key=operator.itemgetter(1, 0), reverse=True)
         entropy.extend([site] + ('%0.2f' % bits).split('.')
                        for site, bits in pre_entropy)
