@@ -141,6 +141,7 @@ class Passacre(object):
             schema_id, _ = config.get_schema('32-printable')
             config.add_site('default', schema_id)
 
+
     def generate_args(self, subparser):
         subparser.add_argument('site', nargs='?',
                                help='site for which to generate a password')
@@ -368,6 +369,7 @@ class Passacre(object):
                 self.config.get_site_config(args.site), args.name.split('.'))))
             return
         self.config.set_config(args.site, args.name, maybe_load_json(args.value))
+
 
     def build_subcommands(self, action_prefix, subparsers, subcommands):
         for subcommand, subcommand_help in subcommands.items():
