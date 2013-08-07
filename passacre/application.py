@@ -368,7 +368,8 @@ class Passacre(object):
                                help='the new value to set or omitted to get')
 
     def config_action(self, args):
-        self.perhaps_hash_site(args)
+        if args.site:
+            self.perhaps_hash_site(args)
         if not args.name:
             for k, v in sorted(dotify(self.config.get_site_config(args.site))):
                 print('%s: %s' % (k, jdumps(v)))

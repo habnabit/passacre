@@ -43,11 +43,17 @@ class ConfigBase(object):
             if k in ('method', 'iterations'))
         self.fill_out_config(self.defaults)
 
+    def _get_hashed_site(self, site, password):
+        hashed_site = generator.hash_site(password, site, self.site_hashing)
+        return self._get_site(hashed_site)
+
     def get_site(self, site, password=None):
-        config = self._get_site(site)
-        if config is None and password is not None and self.site_hashing['enabled']:
-            hashed_site = generator.hash_site(password, site, self.site_hashing)
-            config = self._get_site(hashed_site)
+        if self.site_hashing['enabled'] == 'always' and site != 'default':
+            config = self._get_hashed_site(site, password)
+        else:
+            config = self._get_site(site)
+        if config is None and password:
+            config = self._get_hashed_site(site, password)
         if config is None:
             config = self.defaults
         return config
