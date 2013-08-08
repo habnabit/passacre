@@ -109,7 +109,7 @@ def parse_counted_item(x):
 def parse_item(x):
     if isinstance(x, list):
         if len(x) < 2:
-            raise ParseError(x, 'an array at least two elements')
+            raise ParseError(x, 'an array with at least two elements')
         if isinstance(x[0], int) or isinstance(x[1], int):
             return parse_counted_item(x)
     return parse_character_sets(x)
