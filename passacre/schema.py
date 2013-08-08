@@ -52,9 +52,6 @@ class ParseError(Exception):
             '\n'.join('whilst parsing %s %s' % x for x in repaired),
             self.expected, self.got)
 
-class RetryableParseError(ParseError):
-    pass
-
 
 def trace_parse(what):
     def deco(f):
@@ -68,23 +65,9 @@ def trace_parse(what):
         return wrap
     return deco
 
-def try_each(x, fs, expected):
-    for f in fs:
-        try:
-            return f(x)
-        except RetryableParseError:
-            pass
-    raise ParseError(x, expected)
-
 @trace_parse('the value')
 def parse_type(x, type_, expected):
     if not isinstance(x, type_):
-        raise ParseError(x, expected)
-    return x
-
-@trace_parse('the value')
-def parse_value(x, value, expected):
-    if x != value:
         raise ParseError(x, expected)
     return x
 
