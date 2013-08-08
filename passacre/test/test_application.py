@@ -255,6 +255,25 @@ example.com                                             26.58
         assert excinfo_arg_0(excinfo) == 2
 
 
+class SqliteTestCaseMixin(object):
+    def test_schema_entropy(self):
+        self.app.main(['entropy', '--schema'])
+        out, err = self.capsys.readouterr()
+        assert not err
+        out = '\n'.join(line.rstrip() for line in out.splitlines())
+        assert out == """
+ schema    entropy (bits)
+
+schema_5       209.75
+schema_3       190.53
+schema_6       101.72
+schema_1        47.63
+schema_4        39.68
+schema_2        26.58
+schema_0        26.58
+schema_7        13.29"""
+
+
 class KeccakTestCaseMixin(ApplicationTestCaseMixin):
     hashed_site = 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4'
     hashed_password = 'Abaris abaisance abashedness abarticulation'
@@ -262,7 +281,7 @@ class KeccakTestCaseMixin(ApplicationTestCaseMixin):
 class KeccakYAMLTestCase(KeccakTestCaseMixin, unittest.TestCase):
     config_dir = 'keccak-yaml'
 
-class KeccakSqliteTestCase(KeccakTestCaseMixin, unittest.TestCase):
+class KeccakSqliteTestCase(KeccakTestCaseMixin, SqliteTestCaseMixin, unittest.TestCase):
     config_dir = 'keccak-sqlite'
 
 
@@ -274,7 +293,7 @@ class SkeinTestCaseMixin(ApplicationTestCaseMixin):
 class SkeinYAMLTestCase(SkeinTestCaseMixin, unittest.TestCase):
     config_dir = 'skein-yaml'
 
-class SkeinSqliteTestCase(SkeinTestCaseMixin, unittest.TestCase):
+class SkeinSqliteTestCase(SkeinTestCaseMixin, SqliteTestCaseMixin, unittest.TestCase):
     config_dir = 'skein-sqlite'
 
 

@@ -194,7 +194,7 @@ class Passacre(object):
         entropy = [('schema' if args.schema else 'site', 'entropy', '(bits)'), ('', '', '')]
         if args.schema:
             pre_entropy = []
-            for schema_name, schema in self.config.get_all_schemata().iteritems():
+            for schema_name, schema in self.config.get_all_schemata().items():
                 multibase = multibase_of_schema(schema, self.config.words)
                 pre_entropy.append((schema_name, math.log(multibase.max_encodable_value + 1, 2)))
         else:
