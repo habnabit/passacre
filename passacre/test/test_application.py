@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 import pytest
 import py.path
-import sqlite3
 import unittest
 
 from passacre import application
@@ -22,6 +21,19 @@ def fake_open(path, mode):
 
 def fake_expanduser(path):
     return path.replace('~', '.')
+
+def read_out(capsys, app, *args):
+    app.main(args)
+    out, err = capsys.readouterr()
+    assert not err
+    return out
+
+def read_err(capsys, app, *args):
+    app.main(args)
+    out, err = capsys.readouterr()
+    assert not out
+    return err
+
 
 def test_open_first():
     assert application.open_first([
@@ -128,37 +140,27 @@ class ApplicationTestCaseMixin(object):
 
 
     def test_generate_with_newline(self):
-        self.app.main(['generate', 'example.com'])
+        out = read_out(self.capsys, self.app, 'generate', 'example.com')
         assert not self.confirmed_password
-        out, err = self.capsys.readouterr()
-        assert not err
         assert out == self.hashed_password + '\n'
 
     def test_generate_no_newline(self):
-        self.app.main(['generate', '-n', 'example.com'])
-        out, err = self.capsys.readouterr()
-        assert not err
+        out = read_out(self.capsys, self.app, 'generate', '-n', 'example.com')
         assert out == self.hashed_password
 
     def test_generate_prompt_site(self):
         self.app.prompt = lambda _: 'example.com'
-        self.app.main(['generate'])
-        out, err = self.capsys.readouterr()
-        assert not err
+        out = read_out(self.capsys, self.app, 'generate')
         assert out == self.hashed_password + '\n'
 
     def test_generate_confirm_password(self):
-        self.app.main(['generate', 'example.com', '-c'])
+        out = read_out(self.capsys, self.app, 'generate', 'example.com', '-c')
         assert self.confirmed_password
-        out, err = self.capsys.readouterr()
-        assert not err
         assert out == self.hashed_password + '\n'
 
     def test_generate_copying(self):
         self.app.xerox = FakeXerox()
-        self.app.main(['generate', 'example.com', '-C'])
-        out, err = self.capsys.readouterr()
-        assert not out
+        err = read_err(self.capsys, self.app, 'generate', 'example.com', '-C')
         assert err == 'password copied.\n'
         assert self.app.xerox.copied == [self.hashed_password]
 
@@ -166,9 +168,7 @@ class ApplicationTestCaseMixin(object):
         self.app.xerox = FakeXerox()
         self.app.sleep = FakeSleep()
         self.app.atexit = FakeAtexit()
-        self.app.main(['generate', 'example.com', '-C', '-w', '10'])
-        out, err = self.capsys.readouterr()
-        assert not out
+        err = read_err(self.capsys, self.app, 'generate', 'example.com', '-C', '-w', '10')
         assert err == 'password copied.\n'
         assert self.app.xerox.copied == [self.hashed_password]
         assert self.app.sleep.duration == 10
@@ -179,9 +179,7 @@ class ApplicationTestCaseMixin(object):
         self.app.xerox = FakeXerox()
         self.app.sleep = FakeSleep(interrupt=True)
         self.app.atexit = FakeAtexit()
-        self.app.main(['generate', 'example.com', '-C', '-w', '10'])
-        out, err = self.capsys.readouterr()
-        assert not out
+        err = read_err(self.capsys, self.app, 'generate', 'example.com', '-C', '-w', '10')
         assert err == 'password copied.\n'
         assert self.app.xerox.copied == [self.hashed_password]
         assert self.app.sleep.duration == 10
@@ -190,9 +188,7 @@ class ApplicationTestCaseMixin(object):
 
 
     def test_entropy(self):
-        self.app.main(['entropy'])
-        out, err = self.capsys.readouterr()
-        assert not err
+        out = read_out(self.capsys, self.app, 'entropy')
         # stripping trailing whitespace is a bitch
         out = '\n'.join(line.rstrip() for line in out.splitlines())
         assert out == """
@@ -209,43 +205,31 @@ example.com                                             26.58
 
 
     def test_site_hash_with_newline(self):
-        self.app.main(['site', 'hash', 'hashed.example.com'])
+        out = read_out(self.capsys, self.app, 'site', 'hash', 'hashed.example.com')
         assert not self.confirmed_password
-        out, err = self.capsys.readouterr()
-        assert not err
         assert out == self.hashed_site + '\n'
 
     def test_site_hash_no_newline(self):
-        self.app.main(['site', 'hash', '-n', 'hashed.example.com'])
-        out, err = self.capsys.readouterr()
-        assert not err
+        out = read_out(self.capsys, self.app, 'site', 'hash', '-n', 'hashed.example.com')
         assert out == self.hashed_site
 
     def test_site_hash_prompt_site(self):
         self.app.prompt = lambda _: 'hashed.example.com'
-        self.app.main(['site', 'hash'])
-        out, err = self.capsys.readouterr()
-        assert not err
+        out = read_out(self.capsys, self.app, 'site', 'hash')
         assert out == self.hashed_site + '\n'
 
     def test_site_hash_confirm_password(self):
-        self.app.main(['site', 'hash', 'hashed.example.com', '-c'])
+        out = read_out(self.capsys, self.app, 'site', 'hash', 'hashed.example.com', '-c')
         assert self.confirmed_password
-        out, err = self.capsys.readouterr()
-        assert not err
         assert out == self.hashed_site + '\n'
 
     def test_site_hash_overridden_method_keccak(self):
-        self.app.main(['site', 'hash', 'hashed.example.com', '-m', 'keccak'])
-        out, err = self.capsys.readouterr()
-        assert not err
+        out = read_out(self.capsys, self.app, 'site', 'hash', 'hashed.example.com', '-m', 'keccak')
         assert out == 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4\n'
 
     @pytest.mark.skipif("sys.version_info < (3,)")
     def test_site_hash_overridden_method_skein(self):
-        self.app.main(['site', 'hash', 'hashed.example.com', '-m', 'skein'])
-        out, err = self.capsys.readouterr()
-        assert not err
+        out = read_out(self.capsys, self.app, 'site', 'hash', 'hashed.example.com', '-m', 'skein')
         assert out == 'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L\n'
 
 
@@ -257,9 +241,7 @@ example.com                                             26.58
 
 class SqliteTestCaseMixin(object):
     def test_schema_entropy(self):
-        self.app.main(['entropy', '--schema'])
-        out, err = self.capsys.readouterr()
-        assert not err
+        out = read_out(self.capsys, self.app, 'entropy', '--schema')
         out = '\n'.join(line.rstrip() for line in out.splitlines())
         assert out == """
  schema    entropy (bits)
@@ -304,35 +286,30 @@ def app():
     return app
 
 @pytest.fixture
-def mutable_app(app, tmpdir):
-    datadir.join('keccak.sqlite').copy(tmpdir)
-    db_copy = tmpdir.join('keccak.sqlite')
-    app._db = sqlite3.connect(db_copy.strpath)
-    app.load_config(db_copy.open('rb'))
-    app.prompt_password = lambda confirm: 'passacre'
-    return app
-
-def test_init(app, tmpdir):
+def init_app(app, tmpdir):
     dbpath = tmpdir.join('test.db').strpath
     app.main(['init', dbpath])
-    db = sqlite3.connect(dbpath)
-    curs = db.cursor()
+    return dbpath, application.Passacre()
 
-    curs.execute('SELECT * FROM config_values')
-    assert curs.fetchall() == []
+def test_init_config(init_app, capsys):
+    dbpath, app = init_app
+    out = read_out(capsys, app, '-f', dbpath, 'config')
+    assert out == ''
 
-    curs.execute('SELECT schema_id, name, value FROM schemata')
-    (schema_id, name, value), = curs
-    assert (name, value) == ('32-printable', '[[32, "printable"]]')
+def test_init_schemata(init_app, capsys):
+    dbpath, app = init_app
+    out = read_out(capsys, app, '-f', dbpath, 'schema')
+    assert out == '32-printable: [[32, "printable"]]\n'
 
-    curs.execute('SELECT site_name, schema_id FROM sites')
-    assert curs.fetchall() == [('default', schema_id)]
+def test_init_sites(init_app, capsys):
+    dbpath, app = init_app
+    out = read_out(capsys, app, '-f', dbpath, 'site')
+    assert out == 'default: 32-printable\n'
+
 
 def test_site_yaml(app, capsys):
     app.load_config(datadir.join('keccak.yaml').open('rb'))
-    app.main(['site'])
-    out, err = capsys.readouterr()
-    assert not err
+    out = read_out(capsys, app, 'site')
     assert out == """gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4
 becu.org
 default
@@ -345,9 +322,7 @@ still.further.example.com
 """
 
 def test_site_sqlite(app, capsys):
-    app.main(['site'])
-    out, err = capsys.readouterr()
-    assert not err
+    out = read_out(capsys, app, 'site')
     assert out == """gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4: schema_7
 becu.org: schema_3
 default: schema_5
@@ -359,9 +334,8 @@ schwab.com: schema_1
 still.further.example.com: schema_4
 """
 
-    app.main(['site', '--by-schema'])
-    out, err = capsys.readouterr()
-    assert not err
+def test_site_sqlite_by_schema(app, capsys):
+    out = read_out(capsys, app, 'site', '--by-schema')
     assert out == """schema_0: example.com
 schema_1: schwab.com
 schema_2: further.example.com
@@ -372,45 +346,52 @@ schema_6: fidelity.com
 schema_7: gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4
 """
 
-def get_site_schema(curs, site):
-    curs.execute(
-        'SELECT value FROM sites JOIN schemata USING (schema_id) WHERE site_name = ?',
-        (site,))
-    return curs.fetchall()
 
-def test_site_add(mutable_app):
+@pytest.fixture
+def mutable_app(app, tmpdir):
+    datadir.join('keccak.sqlite').copy(tmpdir)
+    db_copy = tmpdir.join('keccak.sqlite')
+    app.load_config(db_copy.open('rb'))
+    app.prompt_password = lambda confirm: 'passacre'
+    return app
+
+def test_site_add(mutable_app, capsys):
     app = mutable_app
-    curs = app._db.cursor()
-
+    assert '\nexample.org: schema_0\n' not in read_out(capsys, app, 'site')
     app.main(['site', 'add', 'example.org', 'schema_0'])
-    assert get_site_schema(curs, 'example.org') == [('[[" ", 4, "word"]]',)]
+    assert '\nexample.org: schema_0\n' in read_out(capsys, app, 'site')
 
-    app.main(['site', '-a', 'add', 'hashed.example.org', 'schema_0'])
-    assert get_site_schema(
-        curs, 'ovzItJro7gu7DYNiwa5ve23okNCe-yWv9v1a0PNiBKIbHKBp') == [('[[" ", 4, "word"]]',)]
-
-def test_site_set_schema(mutable_app):
+def test_site_add_hashed(mutable_app, capsys):
     app = mutable_app
-    curs = app._db.cursor()
+    assert 'KE76ybZ-sO7o4iS944E_mo_jTQPCjzifFjyRELZS-RuDbcGu: schema_0\n' not in read_out(
+        capsys, app, 'site')
+    app.main(['site', '-a', 'add', 'example.org', 'schema_0'])
+    assert 'KE76ybZ-sO7o4iS944E_mo_jTQPCjzifFjyRELZS-RuDbcGu: schema_0\n' in read_out(
+        capsys, app, 'site')
 
+def test_site_set_schema(mutable_app, capsys):
+    app = mutable_app
+    assert '\nexample.com: schema_0\n' in read_out(capsys, app, 'site')
     app.main(['site', 'set-schema', 'example.com', 'schema_7'])
-    assert get_site_schema(curs, 'example.com') == [('[[" ", 2, "word"]]',)]
+    assert '\nexample.com: schema_7\n' in read_out(capsys, app, 'site')
 
-    app.main(['site', '-a', 'set-schema', 'hashed.example.com', 'schema_7'])
-    assert get_site_schema(
-        curs, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4') == [('[[" ", 2, "word"]]',)]
-
-def test_site_remove(mutable_app):
+def test_site_set_schema_hashed(mutable_app, capsys):
     app = mutable_app
-    curs = app._db.cursor()
+    assert 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4: schema_7\n' in read_out(capsys, app, 'site')
+    app.main(['site', '-a', 'set-schema', 'hashed.example.com', 'schema_0'])
+    assert 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4: schema_0\n' in read_out(capsys, app, 'site')
 
+def test_site_remove(mutable_app, capsys):
+    app = mutable_app
+    assert '\nexample.com:' in read_out(capsys, app, 'site')
     app.main(['site', 'remove', 'example.com'])
-    curs.execute('SELECT * FROM sites WHERE site_name = "example.com"')
-    assert curs.fetchall() == []
+    assert '\nexample.com:' not in read_out(capsys, app, 'site')
 
+def test_site_remove_hashed(mutable_app, capsys):
+    app = mutable_app
+    assert 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4:' in read_out(capsys, app, 'site')
     app.main(['site', '-a', 'remove', 'hashed.example.com'])
-    curs.execute('SELECT * FROM sites WHERE site_name = "hashed.example.com"')
-    assert curs.fetchall() == []
+    assert 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4:' not in read_out(capsys, app, 'site')
 
 def test_site_remove_default_fails(app):
     with pytest.raises(SystemExit) as excinfo:
@@ -418,70 +399,63 @@ def test_site_remove_default_fails(app):
     assert excinfo_arg_0(excinfo)
 
 def test_config(app, capsys):
-    app.main(['config'])
-    out, err = capsys.readouterr()
-    assert not err
+    out = read_out(capsys, app, 'config')
     assert out == """site-hashing.enabled: true
 site-hashing.iterations: 10
 words-file: "words"
 """
 
-    app.main(['config', 'site-hashing.enabled'])
-    out, err = capsys.readouterr()
-    assert not err
+    out = read_out(capsys, app, 'config', 'site-hashing.enabled')
     assert out == 'true\n'
 
-    app.main(['config', 'site-hashing'])
-    out, err = capsys.readouterr()
-    assert not err
+    out = read_out(capsys, app, 'config', 'site-hashing')
     assert out == '{"enabled": true, "iterations": 10}\n'
 
-    app.main(['config', '-s', 'fhcrc.org'])
-    out, err = capsys.readouterr()
-    assert not err
+    out = read_out(capsys, app, 'config', '-s', 'fhcrc.org')
     assert out == 'increment: 5\n'
 
-    app.main(['config', '-s', 'fhcrc.org', 'increment'])
-    out, err = capsys.readouterr()
-    assert not err
+    out = read_out(capsys, app, 'config', '-s', 'fhcrc.org', 'increment')
     assert out == '5\n'
 
-def get_config_name(curs, site, name):
-    curs.execute(
-        'SELECT value FROM config_values WHERE site_name IS ? AND name = ?',
-        (site, name))
-    return curs.fetchall()
+def get_config_name(app, capsys, site, name):
+    args = ['config']
+    if site is not None:
+        args.extend(['-s', site])
+    args.append(name)
+    app.main(args)
+    out, err = capsys.readouterr()
+    assert not err
+    return out.rstrip('\n')
 
-def test_config_set(mutable_app):
+def test_config_set(mutable_app, capsys):
     app = mutable_app
-    curs = app._db.cursor()
 
     app.main(['config', 'words-file', 'foo'])
-    assert get_config_name(curs, None, 'words-file') == [('"foo"',)]
+    assert get_config_name(app, capsys, None, 'words-file') == '"foo"'
 
     app.main(['config', 'words-file', 'null'])
-    assert get_config_name(curs, None, 'words-file') == []
+    assert get_config_name(app, capsys, None, 'words-file') == ''
 
     app.main(['config', 'spam.spam.spam.eggs', 'spam'])
-    assert get_config_name(curs, None, 'spam') == [('{"spam": {"spam": {"eggs": "spam"}}}',)]
+    assert get_config_name(app, capsys, None, 'spam') == '{"spam": {"spam": {"eggs": "spam"}}}'
 
     app.main(['config', 'spam.spam.spam.spam', 'spam'])
-    assert get_config_name(curs, None, 'spam') == [
-        ('{"spam": {"spam": {"eggs": "spam", "spam": "spam"}}}',)]
+    assert get_config_name(app, capsys, None, 'spam') == (
+        '{"spam": {"spam": {"eggs": "spam", "spam": "spam"}}}')
 
     app.main(['config', '-s', 'fhcrc.org', 'increment', '6'])
-    assert get_config_name(curs, 'fhcrc.org', 'increment') == [('6',)]
+    assert get_config_name(app, capsys, 'fhcrc.org', 'increment') == '6'
 
     app.main(['config', '-s', 'example.com', 'increment', '7'])
-    assert get_config_name(curs, 'example.com', 'increment') == [('7',)]
+    assert get_config_name(app, capsys, 'example.com', 'increment') == '7'
 
     app.main(['config', '-as', 'hashed.example.com', 'increment', '8'])
     assert get_config_name(
-        curs, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment') == [('8',)]
+        app, capsys, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment') == '8'
 
     app.main(['config', '-cas', 'hashed.example.com', 'increment', '9'])
     assert get_config_name(
-        curs, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment') == [('9',)]
+        app, capsys, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment') == '9'
 
 def test_schema(app, capsys):
     app.main(['schema'])
@@ -497,41 +471,25 @@ schema_6: [[16, ["alphanumeric", "\"%'()+,-/:;<=>?\\ ^_|"]]]
 schema_7: [[" ", 2, "word"]]
 """
 
-def get_schema_value(curs, name):
-    curs.execute('SELECT value FROM schemata WHERE name = ?', (name,))
-    return curs.fetchall()
-
-def test_schema_add(mutable_app):
+def test_schema_add(mutable_app, capsys):
     app = mutable_app
-    curs = app._db.cursor()
-
     app.main(['schema', 'add', 'schema_10', '["alphanumeric", [10, "digit"]]'])
-    assert get_schema_value(curs, 'schema_10') == [('["alphanumeric", [10, "digit"]]',)]
+    assert '\nschema_10: ["alphanumeric", [10, "digit"]]\n' in read_out(capsys, app, 'schema')
 
-def test_schema_set_value(mutable_app):
+def test_schema_set_value(mutable_app, capsys):
     app = mutable_app
-    curs = app._db.cursor()
-
     app.main(['schema', 'set-value', 'schema_0', '[[10, "digit"]]'])
-    assert get_schema_value(curs, 'schema_0') == [('[[10, "digit"]]',)]
-    assert get_site_schema(curs, 'example.com') == [('[[10, "digit"]]',)]
+    assert 'schema_0: [[10, "digit"]]\n' in read_out(capsys, app, 'schema')
 
-def test_schema_set_name(mutable_app):
+def test_schema_set_name(mutable_app, capsys):
     app = mutable_app
-    curs = app._db.cursor()
-
+    assert 'schema_10:' not in read_out(capsys, app, 'schema')
     app.main(['schema', 'set-name', 'schema_0', 'schema_10'])
-    assert get_schema_value(curs, 'schema_10') == [('[[" ", 4, "word"]]',)]
-    curs.execute(
-        'SELECT name FROM schemata JOIN sites USING (schema_id) WHERE site_name = "example.com"')
-    assert curs.fetchall() == [('schema_10',)]
+    assert 'schema_10:' in read_out(capsys, app, 'schema')
 
-def test_schema_remove(mutable_app):
+def test_schema_remove(mutable_app, capsys):
     app = mutable_app
-    curs = app._db.cursor()
-    curs.execute('INSERT INTO schemata (name, value) VALUES ("schema_10", "[""digit""]")')
-    app._db.commit()
-
-    assert get_schema_value(curs, 'schema_10') != []
+    app.main(['schema', 'add', 'schema_10', '["alphanumeric", [10, "digit"]]'])
+    assert 'schema_10:' in read_out(capsys, app, 'schema')
     app.main(['schema', 'remove', 'schema_10'])
-    assert get_schema_value(curs, 'schema_10') == []
+    assert 'schema_10:' not in read_out(capsys, app, 'schema')

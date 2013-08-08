@@ -13,8 +13,8 @@ def main(yaml_file, sqlite_file):
         loader.get_event()
         node = loader.compose_node(None, None)
         schema_names = dict(
-            (json.dumps(map(loader.construct_sequence, v.value)), k)
-            for k, v in loader.anchors.iteritems())
+            (json.dumps(list(map(loader.construct_sequence, v.value))), k)
+            for k, v in loader.anchors.items())
         config = loader.construct_document(node)
     db = sqlite3.connect(sqlite_file)
     sites = config.pop('sites', {})
@@ -22,12 +22,12 @@ def main(yaml_file, sqlite_file):
     default_schema = sites['default']['schema']
     schemata = {}
     config_rows = [
-        (None, k, json.dumps(v)) for k, v in config.iteritems()]
-    for site, site_config in sites.iteritems():
+        (None, k, json.dumps(v)) for k, v in config.items()]
+    for site, site_config in sites.items():
         schema = json.dumps(site_config.pop('schema', default_schema))
         schemata.setdefault(schema, []).append(site)
         config_rows.extend(
-            (site, k, json.dumps(v)) for k, v in site_config.iteritems())
+            (site, k, json.dumps(v)) for k, v in site_config.items())
     for e, schema in enumerate(schemata):
         schema_names.setdefault(schema, 'schema_%d' % e)
     curs = db.cursor()

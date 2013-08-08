@@ -54,14 +54,16 @@ def dotify(d, prefix=''):
             ret.append((prefix + k, v))
     return ret
 
-def nested_get(d, keys):
+def nested_get(d, keys, default_fac=lambda: None):
     intermediate = d
     for key in keys:
-        intermediate = intermediate.setdefault(key, {})
+        if intermediate is None:
+            intermediate = {}
+        intermediate = intermediate.setdefault(key, default_fac())
     return intermediate
 
 def nested_set(d, keys, value):
-    intermediate = nested_get(d, keys[:-1])
+    intermediate = nested_get(d, keys[:-1], dict)
     intermediate[keys[-1]] = value
 
 def jdumps(val):

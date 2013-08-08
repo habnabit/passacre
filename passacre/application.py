@@ -375,8 +375,10 @@ class Passacre(object):
                 print('%s: %s' % (k, jdumps(v)))
             return
         if not args.value:
-            print(jdumps(nested_get(
-                self.config.get_site_config(args.site), args.name.split('.'))))
+            value = nested_get(
+                self.config.get_site_config(args.site), args.name.split('.'))
+            if value is not None:
+                print(jdumps(value))
             return
         self.config.set_config(args.site, args.name, maybe_load_json(args.value))
 
