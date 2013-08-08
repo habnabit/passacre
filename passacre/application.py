@@ -21,16 +21,16 @@ import time
 
 try:
     import xerox
-except ImportError:
+except ImportError:  # pragma: nocover
     xerox = None
 
 
-if sys.version_info < (3,):
+if sys.version_info < (3,):  # pragma: nocover
     input = raw_input
 
-if sys.version_info < (3, 3):
+if sys.version_info < (3, 3):  # pragma: nocover
     import passacre._argparse as argparse
-else:
+else:  # pragma: nocover
     import argparse
 
 
@@ -435,5 +435,5 @@ class Passacre(object):
         action_method = getattr(self, action + '_action')
         action_method(args)
 
-def main(args=None):
+def main(args=None):  # pragma: nocover
     Passacre().main(args)

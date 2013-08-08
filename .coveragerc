@@ -1,3 +1,6 @@
 [run]
 source = passacre
-omit = passacre/_[a-z]*
+omit =
+    passacre/_[a-z]*
+    passacre/test/*
+    passacre/__main__.py

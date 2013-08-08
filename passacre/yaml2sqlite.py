@@ -43,6 +43,6 @@ def main(yaml_file, sqlite_file):
     db.commit()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: nocover
     import sys
     main(*sys.argv[1:])

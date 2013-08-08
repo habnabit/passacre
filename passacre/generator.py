@@ -14,10 +14,10 @@ _site_multibase = MultiBase([string.ascii_letters + string.digits + '-_'] * 48)
 _site_multibase_bits = 288
 
 
-if sys.version_info > (3,):
+if sys.version_info > (3,):  # pragma: nocover
     def perhaps_encode(s):
         return s.encode()
-else:
+else:  # pragma: nocover
     perhaps_encode = lambda x: x
 
 
