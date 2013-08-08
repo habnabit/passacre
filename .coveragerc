@@ -1,2 +1,3 @@
 [run]
 source = passacre
+omit = passacre/_[a-z]*
