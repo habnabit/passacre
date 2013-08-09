@@ -131,7 +131,7 @@ class ApplicationTestCaseMixin(object):
         _load_config = self.app.load_config
         self.app.load_config = lambda f=None: _load_config(f, expanduser=fake_expanduser)
         self.confirmed_password = False
-        self.app.prompt_password = self.prompt_password
+        self.app._prompt_password = self.prompt_password
         self.password = 'passacre'
 
     def prompt_password(self, confirm):
@@ -401,7 +401,7 @@ def copy_app(name, app, tmpdir):
     datadir.join(name).copy(tmpdir)
     db_copy = tmpdir.join(name)
     app.load_config(db_copy.open('rb'))
-    app.prompt_password = lambda confirm: 'passacre'
+    app._prompt_password = lambda confirm: 'passacre'
     return app
 
 @pytest.fixture
@@ -577,7 +577,27 @@ def test_always_hash_site_config(always_hash_app, capsys):
 
 @pytest.fixture
 def always_confirm_app(app, tmpdir):
-    return copy_app('always-confirm.sqlite', app, tmpdir)
+    app = copy_app('always-confirm.sqlite', app, tmpdir)
+    def prompt_password(confirm):
+        app._confirmed_password = confirm
+        return 'passacre'
+    app._prompt_password = prompt_password
+    return app
+
+def test_always_confirm_site_add(always_confirm_app):
+    app = always_confirm_app
+    app.main(['site', '-a', 'add', 'example.org', 'schema_0'])
+    assert app._confirmed_password
+
+def test_always_confirm_site_remove(always_confirm_app):
+    app = always_confirm_app
+    app.main(['site', '-a', 'remove', 'hashed.example.com'])
+    assert app._confirmed_password
+
+def test_always_confirm_site_config(always_confirm_app):
+    app = always_confirm_app
+    app.main(['config', '-a', '-s', 'hashed.example.com'])
+    assert app._confirmed_password
 
 
 @pytest.fixture

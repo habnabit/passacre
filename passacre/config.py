@@ -22,6 +22,7 @@ class ConfigBase(object):
         self.site_hashing = {
             'enabled': True,
         }
+        self.global_config = {}
         self.words = None
         self.word_list_file = None
 
@@ -74,16 +75,18 @@ class YAMLConfig(ConfigBase):
         "Load site configuration from a YAML file object."
         import yaml
         parsed = yaml.load(infile)
-        self.set_defaults(parsed['sites'].get('default', {}))
-        self.load_words_file(parsed.get('words-file'))
+        sites = parsed.pop('sites', {})
+        self.set_defaults(sites.get('default', {}))
+        self.load_words_file(parsed.pop('words-file', None))
 
         self.sites = {}
-        for site, additional_config in parsed['sites'].items():
+        for site, additional_config in sites.items():
             site_config = self.sites[site] = self.defaults.copy()
             site_config.update(additional_config)
             self.fill_out_config(site_config)
 
-        self.site_hashing.update(parsed.get('site-hashing', {}))
+        self.site_hashing.update(parsed.pop('site-hashing', {}))
+        self.global_config = parsed
 
     def _get_site(self, site, password=None):
         return self.sites.get(site)
@@ -121,9 +124,10 @@ class SqliteConfig(ConfigBase):
         curs.execute(
             'SELECT config_values.name, value FROM config_values WHERE site_name IS NULL')
         config = maybe_json_dict(curs)
-        self.load_words_file(config.get('words-file'))
+        self.load_words_file(config.pop('words-file', None))
         self.set_defaults(self._get_site('default'))
-        self.site_hashing.update(config.get('site-hashing', {}))
+        self.site_hashing.update(config.pop('site-hashing', {}))
+        self.global_config = config
 
     def get_site_config(self, site):
         curs = self._db.cursor()

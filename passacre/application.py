@@ -74,7 +74,7 @@ class Passacre(object):
     atexit = atexit
     xerox = xerox
     prompt = staticmethod(prompt)
-    prompt_password = staticmethod(prompt_password)
+    _prompt_password = staticmethod(prompt_password)
     sleep = staticmethod(time.sleep)
     _load_config = staticmethod(load_config)
 
@@ -116,6 +116,11 @@ class Passacre(object):
             ], 'rb', expanduser)
         with config_fobj:
             self._config = self._load_config(config_fobj)
+
+    def prompt_password(self, confirm):
+        if self.config.global_config.get('always-confirm-passwords'):
+            confirm = True
+        return self._prompt_password(confirm)
 
 
     def init_args(self, subparser):
