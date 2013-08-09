@@ -27,6 +27,13 @@ All of these options are set either as root keys in the YAML document of with
 the ``passacre config`` command for sqlite.
 
 
+``always-confirm-passwords``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Either ``true`` or ``false`` (the default). Toggles whether passwords will
+always be confirmed when prompted.
+
+
 ``method``
 ~~~~~~~~~~
 
