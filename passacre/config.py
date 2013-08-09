@@ -1,7 +1,7 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 
 from passacre.schema import multibase_of_schema
 from passacre.util import nested_set, jdumps
@@ -10,6 +10,7 @@ from passacre import generator
 import collections
 import json
 import os
+import sys
 
 
 class ConfigBase(object):
@@ -28,8 +29,13 @@ class ConfigBase(object):
         if path is None:
             return
         self.word_list_file = path
-        with open(os.path.expanduser(path)) as infile:
-            self.words = [word.strip() for word in infile]
+        try:
+            infile = open(os.path.expanduser(path))
+        except IOError as e:
+            print("warning: couldn't open %r: %s" % (path, e), file=sys.stderr)
+        else:
+            with infile:
+                self.words = [word.strip() for word in infile]
 
     def fill_out_config(self, config):
         config['multibase'] = multibase_of_schema(config['schema'], self.words)
@@ -159,6 +165,7 @@ class SqliteConfig(ConfigBase):
     def remove_site(self, name):
         curs = self._db.cursor()
         curs.execute('DELETE FROM sites WHERE site_name = ?', (name,))
+        curs.execute('DELETE FROM config_values WHERE site_name = ?', (name,))
         self._db.commit()
 
     def get_all_sites(self):

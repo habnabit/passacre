@@ -397,13 +397,16 @@ schema_7: gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4
 """
 
 
-@pytest.fixture
-def mutable_app(app, tmpdir):
-    datadir.join('keccak.sqlite').copy(tmpdir)
-    db_copy = tmpdir.join('keccak.sqlite')
+def copy_app(name, app, tmpdir):
+    datadir.join(name).copy(tmpdir)
+    db_copy = tmpdir.join(name)
     app.load_config(db_copy.open('rb'))
     app.prompt_password = lambda confirm: 'passacre'
     return app
+
+@pytest.fixture
+def mutable_app(app, tmpdir):
+    return copy_app('keccak.sqlite', app, tmpdir)
 
 def test_site_add(mutable_app, capsys):
     app = mutable_app
@@ -543,3 +546,45 @@ def test_schema_remove(mutable_app, capsys):
     assert 'schema_10:' in read_out(capsys, app, 'schema')
     app.main(['schema', 'remove', 'schema_10'])
     assert 'schema_10:' not in read_out(capsys, app, 'schema')
+
+
+@pytest.fixture
+def always_hash_app(app, tmpdir):
+    return copy_app('always-hash.sqlite', app, tmpdir)
+
+def test_always_hash_site_add(always_hash_app, capsys):
+    app = always_hash_app
+    assert 'KE76ybZ-sO7o4iS944E_mo_jTQPCjzifFjyRELZS-RuDbcGu: schema_0\n' not in read_out(
+        capsys, app, 'site')
+    app.main(['site', 'add', 'example.org', 'schema_0'])
+    assert 'KE76ybZ-sO7o4iS944E_mo_jTQPCjzifFjyRELZS-RuDbcGu: schema_0\n' in read_out(
+        capsys, app, 'site')
+
+def test_always_hash_site_remove(always_hash_app, capsys):
+    app = always_hash_app
+    assert 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4: schema_7\n' in read_out(
+        capsys, app, 'site')
+    app.main(['site', 'remove', 'hashed.example.com'])
+    assert 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4' not in read_out(
+        capsys, app, 'site')
+
+def test_always_hash_site_config(always_hash_app, capsys):
+    app = always_hash_app
+    assert read_out(capsys, app, 'config', '-s', 'hashed.example.com') == 'foo: "bar"\n'
+    app.main(['config', '-s', 'hashed.example.com', 'foo', 'spam'])
+    assert read_out(capsys, app, 'config', '-s', 'hashed.example.com') == 'foo: "spam"\n'
+
+
+@pytest.fixture
+def always_confirm_app(app, tmpdir):
+    return copy_app('always-confirm.sqlite', app, tmpdir)
+
+
+@pytest.fixture
+def nonextant_words_app(app, tmpdir):
+    return copy_app('nonextant-words.sqlite', app, tmpdir)
+
+def test_nonextant_words_warns(nonextant_words_app):
+    app = nonextant_words_app
+    with pytest.raises(ValueError):
+        app.main(['generate', 'example.com'])
