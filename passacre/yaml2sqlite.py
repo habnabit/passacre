@@ -28,12 +28,12 @@ def main(yaml_file, sqlite_file):
         schemata.setdefault(schema, []).append(site)
         config_rows.extend(
             (site, k, json.dumps(v)) for k, v in site_config.items())
-    for e, schema in enumerate(schemata):
+    for e, schema in enumerate(sorted(schemata)):
         schema_names.setdefault(schema, 'schema_%d' % e)
     curs = db.cursor()
     curs.executemany(
         'INSERT INTO schemata (name, value) VALUES (?, ?)',
-        ((schema_names[schema], schema) for schema in schemata))
+        ((name, schema) for schema, name in schema_names.items()))
     curs.executemany(
         'INSERT INTO sites (site_name, schema_id) SELECT ?, schema_id FROM schemata WHERE value = ?',
         ((site, value)

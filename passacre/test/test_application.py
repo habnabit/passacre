@@ -307,6 +307,30 @@ def test_init_sites(init_app, capsys):
     assert out == 'default: 32-printable\n'
 
 
+@pytest.fixture
+def yaml2sqlite_app(tmpdir):
+    tmp_app = application.Passacre()
+    dbpath = tmpdir.join('test.db')
+    tmp_app.main(
+        ['init', '-y', datadir.join('keccak.yaml').strpath, dbpath.strpath])
+    app = application.Passacre()
+    app.load_config(dbpath.open('rb'))
+    return app
+
+def test_init_from_yaml(yaml2sqlite_app, capsys):
+    app = yaml2sqlite_app
+    assert read_out(capsys, app, 'schema') == """12-alphanumeric: [[12, "alphanumeric"]]
+32-alphanumeric: [[32, "alphanumeric"]]
+32-printable: [[32, "printable"]]
+8-alphanumeric: [[8, "alphanumeric"]]
+schema_0: ["printable", [", ", 4, "word"], "printable"]
+schema_1: [[" ", 2, "word"]]
+schema_2: [[" ", 4, "word"]]
+schema_3: [[", ", 4, "word"]]
+schema_4: [[16, ["alphanumeric", "\\"%'()+,-/:;<=>?\\\\ ^_|"]]]
+"""
+
+
 def test_site_yaml(app, capsys):
     app.load_config(datadir.join('keccak.yaml').open('rb'))
     out = read_out(capsys, app, 'site')
