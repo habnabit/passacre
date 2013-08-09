@@ -330,6 +330,32 @@ schema_3: [[", ", 4, "word"]]
 schema_4: [[16, ["alphanumeric", "\\"%'()+,-/:;<=>?\\\\ ^_|"]]]
 """
 
+def test_init_from_yaml_sites(yaml2sqlite_app, capsys):
+    app = yaml2sqlite_app
+    assert read_out(capsys, app, 'site') == """gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4: schema_1
+becu.org: 32-alphanumeric
+default: 32-printable
+example.com: schema_2
+fhcrc.org: 32-printable
+fidelity.com: schema_4
+further.example.com: schema_3
+schwab.com: 8-alphanumeric
+still.further.example.com: schema_0
+"""
+
+def test_init_from_yaml_config(yaml2sqlite_app, capsys):
+    app = yaml2sqlite_app
+    assert read_out(capsys, app, 'config') == """site-hashing.enabled: true
+site-hashing.iterations: 10
+words-file: "words"
+"""
+
+def test_init_from_yaml_site_config(yaml2sqlite_app, capsys):
+    app = yaml2sqlite_app
+    assert read_out(capsys, app, 'config', '-s', 'default') == """iterations: 10
+method: "keccak"
+"""
+
 
 def test_site_yaml(app, capsys):
     app.load_config(datadir.join('keccak.yaml').open('rb'))
