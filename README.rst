@@ -1,5 +1,7 @@
 .. image:: https://travis-ci.org/habnabit/passacre.png
+
 .. image:: https://coveralls.io/repos/habnabit/passacre/badge.png?branch=master
+
 
 ========
 passacre
