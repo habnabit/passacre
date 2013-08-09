@@ -1,3 +1,10 @@
+.. image:: https://travis-ci.org/habnabit/passacre.png
+.. image:: https://coveralls.io/repos/habnabit/passacre/badge.png?branch=master
+
+========
+passacre
+========
+
 passacre = password massacre (i.e. what happens when you use the same password
 on every site)
 
@@ -16,7 +23,8 @@ also, it's ISC-licensed!
 
 every user-facing part of this sucks right now, but it's a work-in-progress.
 
-docs coming soon!!
+minimal documentation available `on readthedocs
+<https://passacre.readthedocs.org/en/latest/>`_.
 
 here's how to use it for now::
 
