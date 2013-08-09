@@ -19,7 +19,7 @@ character_classes = {
 
 try:
     unicode
-except NameError:
+except NameError:  # pragma: nocover
     unicode = str
 
 string_types = unicode, str
