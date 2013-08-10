@@ -233,9 +233,9 @@ class Passacre(object):
         hash_group.add_argument('-a', '--hashed', action='store_true',
                                 help='hash the site name')
 
-        hash_group = subparser.add_argument_group('for {add,remove,set-schema,hash-all}')
-        hash_group.add_argument('-c', '--confirm', action='store_true',
-                                help='confirm prompted password')
+        confirm_group = subparser.add_argument_group('for {add,remove,set-schema,hash-all}')
+        confirm_group.add_argument('-c', '--confirm', action='store_true',
+                                   help='confirm prompted password')
 
     def site_action(self, args):
         "Perform an action on a site in a config file."
