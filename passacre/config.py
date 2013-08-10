@@ -12,7 +12,6 @@ import collections
 import json
 import os
 import sys
-import urllib
 
 
 if sys.version_info > (3,):  # pragma: nocover
@@ -39,17 +38,6 @@ class ConfigBase(object):
         self.global_config = {}
         self.words = None
         self.word_list_file = None
-        self.subordinate_configs = []
-
-    def load_global_config(self, config):
-        self.load_words_file(config.pop('words-file', None))
-        self.site_hashing.update(config.pop('site-hashing', {}))
-        subordinates = config.pop('include', [])
-        if not isinstance(subordinates, list):
-            subordinates = [subordinates]
-        for subordinate in subordinates:
-            self.add_subordinate_config(urllib.urlopen(subordinate), YAMLConfig)
-        self.global_config = config
 
     def load_words_file(self, path):
         if path is None:
@@ -62,14 +50,6 @@ class ConfigBase(object):
         else:
             with infile:
                 self.words = [word.strip() for word in infile]
-
-    def add_subordinate_config(self, fobj, config_type=None):
-        if config_type is None:
-            config = load(fobj)
-        else:
-            config = config_type()
-            config.read(fobj)
-        self.subordinate_configs.append(config)
 
     def fill_out_config(self, config):
         config['multibase'] = multibase_of_schema(config['schema'], self.words)
@@ -87,7 +67,7 @@ class ConfigBase(object):
         hashed_site = generator.hash_site(password, site, self.site_hashing)
         return self._get_site(hashed_site)
 
-    def get_site(self, site, password=None, default='defaults'):
+    def get_site(self, site, password=None):
         if self.site_hashing['enabled'] == 'always' and site != 'default':
             config = self._get_hashed_site(site, password)
         else:
@@ -95,15 +75,7 @@ class ConfigBase(object):
         if config is None and password:
             config = self._get_hashed_site(site, password)
         if config is None:
-            for subordinate_config in self.subordinate_configs:
-                config = subordinate_config.get_site(site, password, default=None)
-                if config is not None:
-                    break
-        if config is None:
-            if default == 'defaults':
-                config = self.defaults
-            else:
-                config = default
+            config = self.defaults
         return config
 
     def generate_for_site(self, username, password, site):
@@ -124,13 +96,16 @@ class YAMLConfig(ConfigBase):
         parsed = yaml.load(infile)
         sites = parsed.pop('sites', {})
         self.set_defaults(sites.get('default', {}))
-        self.load_global_config(parsed)
+        self.load_words_file(parsed.pop('words-file', None))
 
         self.sites = {}
         for site, additional_config in sites.items():
             site_config = self.sites[site] = self.defaults.copy()
             site_config.update(additional_config)
             self.fill_out_config(site_config)
+
+        self.site_hashing.update(parsed.pop('site-hashing', {}))
+        self.global_config = parsed
 
     def _get_site(self, site, password=None):
         return self.sites.get(site)
@@ -167,8 +142,11 @@ class SqliteConfig(ConfigBase):
 
         curs.execute(
             'SELECT config_values.name, value FROM config_values WHERE site_name IS NULL')
-        self.load_global_config(maybe_json_dict(curs))
+        config = maybe_json_dict(curs)
+        self.load_words_file(config.pop('words-file', None))
         self.set_defaults(self._get_site('default'))
+        self.site_hashing.update(config.pop('site-hashing', {}))
+        self.global_config = config
 
     def get_site_config(self, site):
         curs = self._db.cursor()
