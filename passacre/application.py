@@ -89,6 +89,7 @@ class Passacre(object):
             'add': "add a site to a config file",
             'remove': "remove a site from a config file",
             'set-schema': "change a site's schema",
+            'set-name': "change a site's domain",
             'hash': "hash a site's name",
             'hash-all': "hash all non-hashed sites",
         }),
@@ -338,6 +339,21 @@ class Passacre(object):
         schema_id, _ = self.config.get_schema(args.schema)
         self.perhaps_hash_site(args)
         self.config.set_site_schema(args.site, schema_id)
+
+
+    def site_set_name_args(self, subparser):
+        subparser.add_argument('oldname', help='the name of the site to update')
+        subparser.add_argument('newname', help='the new name for the site')
+
+    def site_set_name_action(self, args):
+        if args.oldname == 'default':
+            sys.exit("can't rename the default site")
+        password = None
+        if args.hashed or self.config.site_hashing['enabled'] == 'always':
+            password = self.prompt_password(args.confirm)
+            args.oldname = hash_site(password, args.oldname, self.config.site_hashing)
+            args.newname = hash_site(password, args.newname, self.config.site_hashing)
+        self.config.rename_site(args.oldname, args.newname)
 
 
     def schema_action(self, args):
