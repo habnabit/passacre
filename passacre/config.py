@@ -103,8 +103,8 @@ class ConfigBase(object):
         if config.get('yubikey-slot'):
             from ykpers import YubiKey
             yk = YubiKey.open_first_key()
-            slot = config['yubikey-slot']
-            password = yk.hmac_challenge_response(signing_uuid.bytes, slot=slot)
+            password = yk.hmac_challenge_response(
+                signing_uuid.bytes, slot=config['yubikey-slot'])
         return generator.generate(username, password, site, config)
 
 
