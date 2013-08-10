@@ -10,13 +10,9 @@
   Abort early when trying to do something that will fail. e.g. invalid hash
   methods, modifying YAML config.
 
-* ssh-agent handling? I'm no longer convinced it's a good idea actually. It
-  kind of goes against the idea of 'no persistence', and your ssh key should be
-  passworded anyway, ...
+  Idea: use decorators on action methods to indicate what kind of config it
+  requires.
 
-  ssh-agent also isn't a particularly secure protocol, but one probably
-  wouldn't want to run passacre on an untrusted system anyway.
+  * Don't show tracebacks by default. There's something for this stashed.
 
-* Factor out some common arguments, maybe. I think I've already done this a
-  bit. Necessary to do it more? Password prompts already got factored out, at
-  least, and site hashing should probably be next.
+  * Catch KeyboardInterrupt.
