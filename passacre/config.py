@@ -194,6 +194,12 @@ class SqliteConfig(ConfigBase):
         curs.execute('DELETE FROM config_values WHERE site_name = ?', (name,))
         self._db.commit()
 
+    def rename_site(self, name, newname):
+        curs = self._db.cursor()
+        curs.execute('UPDATE OR REPLACE sites SET site_name = ? WHERE site_name = ?', (newname, name))
+        curs.execute('UPDATE OR REPLACE config_values SET site_name = ? WHERE site_name = ?', (newname, name))
+        self._db.commit()
+
     def get_all_sites(self):
         curs = self._db.cursor()
         curs.execute(

@@ -89,6 +89,7 @@ class Passacre(object):
             'remove': "remove a site from a config file",
             'set-schema': "change a site's schema",
             'hash': "hash a site's name",
+            'hash-all': "hash all non-hashed sites",
         }),
         'schema': ("actions on schemata", {
             'add': "add a schema",
@@ -230,6 +231,8 @@ class Passacre(object):
         hash_group = subparser.add_argument_group('for {add,remove,set-schema}')
         hash_group.add_argument('-a', '--hashed', action='store_true',
                                 help='hash the site name')
+
+        hash_group = subparser.add_argument_group('for {add,remove,set-schema,hash-all}')
         hash_group.add_argument('-c', '--confirm', action='store_true',
                                 help='confirm prompted password')
 
@@ -286,6 +289,24 @@ class Passacre(object):
         sys.stdout.write(hash_site(password, args.site, config))
         if not args.no_newline:
             sys.stdout.write('\n')
+
+    def site_hash_all_args(self, subparser):
+        subparser.add_argument('-m', '--method',
+                               help='which hash method to use')
+        subparser.add_argument('-c', '--confirm', action='store_true',
+                               help='confirm prompted password')
+
+    def site_hash_all_action(self, args):
+        """Hash all non-hashed sites."""
+
+        password = self.prompt_password(args.confirm)
+        config = self.config.site_hashing
+        if args.method is not None:
+            config['method'] = args.method
+        for site in self.config.get_all_sites():
+            if site == 'default' or is_likely_hashed_site(site):
+                continue
+            self.config.rename_site(site, hash_site(password, site, config))
 
 
     def site_add_args(self, subparser):
