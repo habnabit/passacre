@@ -5,7 +5,7 @@ from __future__ import unicode_literals, print_function
 
 from passacre.schema import multibase_of_schema
 from passacre.util import nested_set, jdumps, errormark
-from passacre import generator
+from passacre import generator, signing_uuid
 
 import collections
 import json
@@ -100,6 +100,11 @@ class ConfigBase(object):
 
     def generate_for_site(self, username, password, site):
         config = self.get_site(site, password)
+        if config.get('yubikey-slot'):
+            from ykpers import YubiKey
+            yk = YubiKey.open_first_key()
+            slot = config['yubikey-slot']
+            password = yk.hmac_challenge_response(signing_uuid.bytes, slot=slot)
         return generator.generate(username, password, site, config)
 
 

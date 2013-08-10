@@ -21,6 +21,7 @@ extras_require = {
     'cli': ['PyYAML'],
     'clipboard': ['xerox'],
     'keccak_generation': ['cykeccak>=0.13.2'],
+    'yubikey': ['ykpers-cffi'],
 }
 
 if sys.version_info > (3,):
