@@ -4,7 +4,7 @@
 from __future__ import unicode_literals, print_function
 
 from passacre.schema import multibase_of_schema
-from passacre.util import nested_set, jdumps
+from passacre.util import nested_set, jdumps, errormark
 from passacre import generator
 
 import collections
@@ -12,6 +12,11 @@ import json
 import os
 import sys
 import urllib
+
+
+@errormark('verifying schema: {0!r}')
+def verify_multibase_schema(schema):
+    multibase_of_schema(schema, ['a'])
 
 
 class ConfigBase(object):
@@ -233,6 +238,7 @@ class SqliteConfig(ConfigBase):
         return results[0]
 
     def add_schema(self, name, value):
+        verify_multibase_schema(value)
         curs = self._db.cursor()
         curs.execute(
             'INSERT INTO schemata (name, value) VALUES (?, ?)',
@@ -255,6 +261,7 @@ class SqliteConfig(ConfigBase):
         self._db.commit()
 
     def set_schema_value(self, schema_id, value):
+        verify_multibase_schema(value)
         curs = self._db.cursor()
         curs.execute(
             'UPDATE schemata SET value = ? WHERE schema_id = ?',

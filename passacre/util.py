@@ -45,6 +45,18 @@ class reify(object):
         return val
 
 
+def errormark(description, exitcode=3):
+    def deco(f):
+        def wrap(*a, **kw):
+            try:
+                return f(*a, **kw)
+            except Exception as e:
+                e._errormark = description, exitcode, a, kw
+                raise
+        return wrap
+    return deco
+
+
 def dotify(d, prefix=''):
     ret = []
     for k, v in d.items():
@@ -65,6 +77,10 @@ def nested_get(d, keys, default_fac=lambda: None):
 def nested_set(d, keys, value):
     intermediate = nested_get(d, keys[:-1], dict)
     intermediate[keys[-1]] = value
+
+@errormark('loading the json value: {0!r}')
+def jloads(s):
+    return json.loads(s)
 
 def jdumps(val):
     return json.dumps(val, sort_keys=True)

@@ -6,7 +6,7 @@ from __future__ import unicode_literals, print_function
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
 from passacre.schema import multibase_of_schema
-from passacre.util import reify, dotify, nested_get, jdumps
+from passacre.util import reify, dotify, nested_get, jdumps, jloads
 from passacre import __version__, yaml2sqlite
 
 import atexit
@@ -18,6 +18,7 @@ import operator
 import os
 import sys
 import time
+import traceback
 
 try:
     import xerox
@@ -352,7 +353,7 @@ class Passacre(object):
         subparser.add_argument('value', help='the value of the schema')
 
     def schema_add_action(self, args):
-        self.config.add_schema(args.name, json.loads(args.value))
+        self.config.add_schema(args.name, jloads(args.value))
 
 
     def schema_remove_args(self, subparser):
@@ -378,7 +379,7 @@ class Passacre(object):
 
     def schema_set_value_action(self, args):
         schema_id, _ = self.config.get_schema(args.name)
-        self.config.set_schema_value(schema_id, json.loads(args.value))
+        self.config.set_schema_value(schema_id, jloads(args.value))
 
 
     def config_args(self, subparser):
@@ -434,6 +435,8 @@ class Passacre(object):
         parser = argparse.ArgumentParser(prog='passacre')
         parser.add_argument('-V', '--version', action='version',
                             version='%(prog)s ' + __version__)
+        parser.add_argument('-v', '--verbose', action='store_true',
+                            help='increase output on errors')
         parser.add_argument('-f', '--config', type=argparse.FileType('rb'),
                             help='specify a config file to use')
         subparsers = parser.add_subparsers(dest='command')
@@ -452,15 +455,31 @@ class Passacre(object):
             command, ret = next_command, '%s_%s' % (ret, subcommand.replace('-', '_'))
         return ret
 
+    def excepthook(self, type_, value, tb):
+        errormark = getattr(value, '_errormark', None)
+        exitcode = 1
+        if errormark is not None:
+            description, exitcode, a, kw = errormark
+            description = description.format(*a, **kw)
+            print('an error occurred {0}'.format(description), file=sys.stderr)
+        if self.verbose:
+            traceback.print_exception(type_, value, tb, file=sys.stderr)
+        else:
+            print('(pass -v for the full traceback)', file=sys.stderr)
+            print('{0.__name__}: {1}'.format(type_, value), file=sys.stderr)
+        sys.exit(exitcode)
+
     def main(self, args=None):
         parser = self.build_parser()
         args = parser.parse_args(args)
+        self.verbose = args.verbose
         self._config_file = args.config
         action = self.find_action(args)
         if not action:
             parser.print_help()
             sys.exit(2)
         action_method = getattr(self, action + '_action')
+        sys.excepthook = self.excepthook
         action_method(args)
 
 def main(args=None):  # pragma: nocover
