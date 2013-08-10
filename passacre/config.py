@@ -7,11 +7,19 @@ from passacre.schema import multibase_of_schema
 from passacre.util import nested_set, jdumps, errormark
 from passacre import generator, signing_uuid
 
+import binascii
 import collections
 import json
 import os
 import sys
 import urllib
+
+
+if sys.version_info > (3,):  # pragma: nocover
+    def hexlify(s):
+        return binascii.hexlify(s).decode()
+else:  # pragma: nocover
+    hexlify = binascii.hexlify
 
 
 @errormark('verifying schema: {0!r}')
@@ -103,8 +111,9 @@ class ConfigBase(object):
         if config.get('yubikey-slot'):
             from ykpers import YubiKey
             yk = YubiKey.open_first_key()
-            password = yk.hmac_challenge_response(
+            response = yk.hmac_challenge_response(
                 signing_uuid.bytes, slot=config['yubikey-slot'])
+            password = hexlify(response) + ':' + password
         return generator.generate(username, password, site, config)
 
 
