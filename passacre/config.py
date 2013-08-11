@@ -156,17 +156,19 @@ class SqliteConfig(ConfigBase):
         return maybe_json_dict(curs)
 
     def _get_site(self, site):
+        site_config = self.get_site_config(site)
         curs = self._db.cursor()
         curs.execute(
             'SELECT value FROM sites JOIN schemata USING (schema_id) WHERE site_name = ?',
             (site,))
         results = curs.fetchall()
-        if not results:
+        if not (results or site_config):
             return None
 
         config = self.defaults.copy()
-        config['schema'] = json.loads(results[0][0])
-        config.update(self.get_site_config(site))
+        if results:
+            config['schema'] = json.loads(results[0][0])
+        config.update(site_config)
 
         self.fill_out_config(config)
         return config
