@@ -100,6 +100,7 @@ class Passacre(object):
             'set-name': "change a schema's name",
         }),
         'config': "view/change global configuration",
+        'info': "information about the passacre environment",
     }
 
     @reify
@@ -424,6 +425,25 @@ class Passacre(object):
                 print(jdumps(value))
             return
         self.config.set_config(args.site, args.name, maybe_load_json(args.value))
+
+
+    _features = [
+        ('keccak generation', 'keccak', 'cykeccak'),
+        ('skein generation', 'pyskein', 'pyskein'),
+        ('password copying', 'xerox', 'xerox'),
+        ('yubikey support', 'ykpers', 'ykpers-cffi'),
+    ]
+
+    def info_action(self, args):
+        print('passacre version ' + __version__)
+        for feature, module, package in self._features:
+            try:
+                __import__(module)
+            except ImportError:
+                outcome = 'NOT AVAILABLE (install %s)' % (package,)
+            else:
+                outcome = 'available'
+            print(feature, 'is', outcome)
 
 
     def build_subcommands(self, action_prefix, subparsers, subcommands):
