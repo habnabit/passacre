@@ -27,6 +27,8 @@ def verify_multibase_schema(schema):
 
 
 class ConfigBase(object):
+    is_mutable_config = False
+
     def __init__(self):
         self.defaults = {
             'method': 'keccak',
@@ -138,6 +140,8 @@ def maybe_json_dict(pairs):
     return dict((k, maybe_json(v)) for k, v in pairs)
 
 class SqliteConfig(ConfigBase):
+    is_mutable_config = True
+
     def read(self, infile):
         import sqlite3
         self._db = sqlite3.connect(infile.name)

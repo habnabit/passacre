@@ -84,15 +84,3 @@ def jloads(s):
 
 def jdumps(val):
     return json.dumps(val, sort_keys=True)
-
-def transform_args(transformations):
-    def deco(f):
-        def wrap(self, args):
-            for attr, transformer in transformations:
-                val = getattr(args, attr)
-                if val is not None:
-                    val = transformer(val)
-                    setattr(args, attr, val)
-            return f(self, args)
-        return wrap
-    return deco

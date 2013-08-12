@@ -6,8 +6,7 @@ from __future__ import unicode_literals, print_function
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
 from passacre.schema import multibase_of_schema
-from passacre.util import (reify, dotify, nested_get, jdumps, jloads,
-                           transform_args)
+from passacre.util import reify, dotify, nested_get, jdumps, jloads
 from passacre import __version__, yaml2sqlite
 
 import atexit
@@ -67,6 +66,26 @@ def maybe_load_json(val):
         return json.loads(val)
     except ValueError:
         return val
+
+def transform_args(transformations):
+    def deco(f):
+        def wrap(self, args):
+            for attr, transformer in transformations:
+                val = getattr(args, attr)
+                if val is not None:
+                    val = transformer(val)
+                    setattr(args, attr, val)
+            return f(self, args)
+        return wrap
+    return deco
+
+def needs_mutable_config(f):
+    def wrap(self, args):
+        if not self.config.is_mutable_config:
+            raise NotImplementedError(
+                'this command requires a mutable config (i.e. sqlite format)')
+        return f(self, args)
+    return wrap
 
 schema_file = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'schema.sql')
@@ -305,6 +324,7 @@ class Passacre(object):
         subparser.add_argument('-c', '--confirm', action='store_true',
                                help='confirm prompted password')
 
+    @needs_mutable_config
     def site_hash_all_action(self, args):
         """Hash all non-hashed sites."""
 
@@ -322,6 +342,7 @@ class Passacre(object):
         subparser.add_argument('site', help='the name of the site')
         subparser.add_argument('schema', help='the schema to use')
 
+    @needs_mutable_config
     def site_add_action(self, args):
         schema_id, _ = self.config.get_schema(args.schema)
         self.perhaps_hash_site(args)
@@ -331,6 +352,7 @@ class Passacre(object):
     def site_remove_args(self, subparser):
         subparser.add_argument('site', help='the name of the site to remove')
 
+    @needs_mutable_config
     def site_remove_action(self, args):
         if args.site == 'default':
             sys.exit("can't remove the default site")
@@ -342,6 +364,7 @@ class Passacre(object):
         subparser.add_argument('site', help='the name of the site to update')
         subparser.add_argument('schema', help='the schema to use')
 
+    @needs_mutable_config
     def site_set_schema_action(self, args):
         schema_id, _ = self.config.get_schema(args.schema)
         self.perhaps_hash_site(args)
@@ -352,6 +375,7 @@ class Passacre(object):
         subparser.add_argument('oldname', help='the name of the site to update')
         subparser.add_argument('newname', help='the new name for the site')
 
+    @needs_mutable_config
     def site_set_name_action(self, args):
         if args.oldname == 'default':
             sys.exit("can't rename the default site")
@@ -378,6 +402,7 @@ class Passacre(object):
     @transform_args([
         ('value', jloads),
     ])
+    @needs_mutable_config
     def schema_add_action(self, args):
         self.config.add_schema(args.name, args.value)
 
@@ -385,6 +410,7 @@ class Passacre(object):
     def schema_remove_args(self, subparser):
         subparser.add_argument('name', help='the name of the schema to remove')
 
+    @needs_mutable_config
     def schema_remove_action(self, args):
         schema_id, _ = self.config.get_schema(args.name)
         self.config.remove_schema(schema_id)
@@ -394,6 +420,7 @@ class Passacre(object):
         subparser.add_argument('oldname', help='the schema to set the name of')
         subparser.add_argument('newname', help='the new name of the schema')
 
+    @needs_mutable_config
     def schema_set_name_action(self, args):
         schema_id, _ = self.config.get_schema(args.oldname)
         self.config.set_schema_name(schema_id, args.newname)
@@ -406,6 +433,7 @@ class Passacre(object):
     @transform_args([
         ('value', jloads),
     ])
+    @needs_mutable_config
     def schema_set_value_action(self, args):
         schema_id, _ = self.config.get_schema(args.name)
         self.config.set_schema_value(schema_id, args.value)
