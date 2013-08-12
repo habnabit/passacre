@@ -134,5 +134,16 @@ default. This is set with ``passacre schema`` for sqlite. See the section on
 :ref:`password schemata <schemata>` for details of its format.
 
 
+``yubikey-slot``
+~~~~~~~~~~~~~~~~
+
+The configuration slot used for `YubiKey`_ two-factor password generation. The
+specified slot must be configured for HMAC challenge/response. Generating a
+password for a site will then issue a challenge of the UUID
+``dd34b62f-9ed5-597e-85a2-c15d48ed6832`` and prepend the response to the input
+password being used for generation.
+
+
 .. _cykeccak: https://crate.io/packages/cykeccak/
 .. _pyskein: https://crate.io/packages/pyskein/
+.. _YubiKey: http://www.yubico.com/
