@@ -519,7 +519,10 @@ class Passacre(object):
             sys.exit(2)
         action_method = getattr(self, action + '_action')
         sys.excepthook = self.excepthook
-        action_method(args)
+        try:
+            action_method(args)
+        except KeyboardInterrupt:
+            sys.exit(4)
 
 def main(args=None):  # pragma: nocover
     Passacre().main(args)
