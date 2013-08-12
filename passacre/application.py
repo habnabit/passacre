@@ -155,6 +155,8 @@ class Passacre(object):
     def generate_args(self, subparser):
         subparser.add_argument('site', nargs='?',
                                help='site for which to generate a password')
+        subparser.add_argument('-o', '--override-config', metavar='CONFIG',
+                               help='a JSON dictionary of config values to override')
         subparser.add_argument('-u', '--username',
                                help='username for the site')
         subparser.add_argument('-n', '--no-newline', action='store_true',
@@ -173,7 +175,8 @@ class Passacre(object):
         if args.site is None:
             args.site = self.prompt('Site: ')
         password = self.config.generate_for_site(
-            args.username, password, args.site)
+            args.username, password, args.site,
+            jloads(args.override_config) if args.override_config else ())
         if getattr(args, 'copy', False):  # since the argument might not exist
             sys.stderr.write('password copied.\n')
             self.xerox.copy(password)

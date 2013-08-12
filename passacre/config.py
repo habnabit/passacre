@@ -78,8 +78,11 @@ class ConfigBase(object):
             config = self.defaults
         return config
 
-    def generate_for_site(self, username, password, site):
+    def generate_for_site(self, username, password, site, override=()):
         config = self.get_site(site, password)
+        if override:
+            config.update(override)
+            self.fill_out_config(config)
         if config.get('yubikey-slot'):
             from ykpers import YubiKey
             yk = YubiKey.open_first_key()
