@@ -6,7 +6,8 @@ from __future__ import unicode_literals, print_function
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
 from passacre.schema import multibase_of_schema
-from passacre.util import reify, dotify, nested_get, jdumps, jloads
+from passacre.util import (reify, dotify, nested_get, jdumps, jloads,
+                           transform_args)
 from passacre import __version__, yaml2sqlite
 
 import atexit
@@ -169,14 +170,16 @@ class Passacre(object):
             subparser.add_argument('-w', '--timeout', type=int, metavar='N',
                                    help='clear the clipboard after N seconds')
 
+    @transform_args([
+        ('override_config', jloads),
+    ])
     def generate_action(self, args):
         "Generate a password."
         password = self.prompt_password(args.confirm)
         if args.site is None:
             args.site = self.prompt('Site: ')
         password = self.config.generate_for_site(
-            args.username, password, args.site,
-            jloads(args.override_config) if args.override_config else ())
+            args.username, password, args.site, args.override_config)
         if getattr(args, 'copy', False):  # since the argument might not exist
             sys.stderr.write('password copied.\n')
             self.xerox.copy(password)
@@ -372,8 +375,11 @@ class Passacre(object):
         subparser.add_argument('name', help='the name of the schema')
         subparser.add_argument('value', help='the value of the schema')
 
+    @transform_args([
+        ('value', jloads),
+    ])
     def schema_add_action(self, args):
-        self.config.add_schema(args.name, jloads(args.value))
+        self.config.add_schema(args.name, args.value)
 
 
     def schema_remove_args(self, subparser):
@@ -397,9 +403,12 @@ class Passacre(object):
         subparser.add_argument('name', help='the name of the schema')
         subparser.add_argument('value', help='the new value for the schema')
 
+    @transform_args([
+        ('value', jloads),
+    ])
     def schema_set_value_action(self, args):
         schema_id, _ = self.config.get_schema(args.name)
-        self.config.set_schema_value(schema_id, jloads(args.value))
+        self.config.set_schema_value(schema_id, args.value)
 
 
     def config_args(self, subparser):
