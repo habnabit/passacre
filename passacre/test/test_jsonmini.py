@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 
+import io
 import json
 
 import pytest
@@ -40,15 +41,15 @@ def test_bare_embedded_tilde():
     assert parse('spam: ~, eggs: {eggs: ~}') == {'spam': None, 'eggs': {'eggs': None}}
 
 def test_parse_failures():
-    for path in jsondir.visit('fail*.jtest'):
-        with path.open() as infile:
+    for path in jsondir.visit(lambda p: p.fnmatch('fail*.jtest')):
+        with io.open(path.strpath) as infile:
             data = infile.read()
         with pytest.raises(ParseError):
             parse(data)
 
 def test_parse_successes():
-    for path in jsondir.visit('pass*.jtest'):
-        with path.open() as infile:
+    for path in jsondir.visit(lambda p: p.fnmatch('pass*.jtest')):
+        with io.open(path.strpath) as infile:
             data = infile.read()
         # can't do much else because of float equality
         assert (json.dumps(parse(data), sort_keys=True)
