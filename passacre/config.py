@@ -84,6 +84,9 @@ class ConfigBase(object):
         config = self.get_site(site, password)
         if override:
             config.update(override)
+            for k, v in list(config.items()):
+                if v is None:
+                    del config[k]
             self.fill_out_config(config)
         if config.get('yubikey-slot'):
             from ykpers import YubiKey
