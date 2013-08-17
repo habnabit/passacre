@@ -3,7 +3,7 @@
 
 import json
 
-from passacre.jsonmini import JSONMParser
+from passacre import jsonmini
 
 
 class reify(object):
@@ -82,7 +82,7 @@ def nested_set(d, keys, value):
 
 @errormark('loading the json-mini value: {0!r}')
 def jloads(s):
-    return JSONMParser(s).top()
+    return jsonmini.parse(s)
 
 def jdumps(val):
     return json.dumps(val, sort_keys=True)
