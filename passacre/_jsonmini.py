@@ -691,21 +691,36 @@ def createParserClass(GrammarBase, ruleGlobals):
             _locals = {'self': self}
             self.locals['top'] = _locals
             def _G_or_251():
-                self._trace('value', (1538, 1543), self.input.position)
+                self._trace(' value', (1538, 1544), self.input.position)
                 _G_apply_252, lastError = self._apply(self.rule_value, "value", [])
                 self.considerError(lastError, None)
-                return (_G_apply_252, self.currentError)
-            def _G_or_253():
-                self._trace(' members', (1545, 1553), self.input.position)
-                _G_apply_254, lastError = self._apply(self.rule_members, "members", [])
+                _locals['x'] = _G_apply_252
+                self._trace(' ws', (1546, 1549), self.input.position)
+                _G_apply_253, lastError = self._apply(self.rule_ws, "ws", [])
                 self.considerError(lastError, None)
-                return (_G_apply_254, self.currentError)
-            _G_or_255, lastError = self._or([_G_or_251, _G_or_253])
+                self._trace(' end', (1549, 1553), self.input.position)
+                _G_apply_254, lastError = self._apply(self.rule_end, "end", [])
+                self.considerError(lastError, None)
+                _G_python_255, lastError = eval(self._G_expr_111, self.globals, _locals), None
+                self.considerError(lastError, None)
+                return (_G_python_255, self.currentError)
+            def _G_or_256():
+                self._trace(' members', (1566, 1574), self.input.position)
+                _G_apply_257, lastError = self._apply(self.rule_members, "members", [])
+                self.considerError(lastError, None)
+                _locals['x'] = _G_apply_257
+                self._trace(' ws', (1576, 1579), self.input.position)
+                _G_apply_258, lastError = self._apply(self.rule_ws, "ws", [])
+                self.considerError(lastError, None)
+                self._trace(' end', (1579, 1583), self.input.position)
+                _G_apply_259, lastError = self._apply(self.rule_end, "end", [])
+                self.considerError(lastError, None)
+                _G_python_260, lastError = eval(self._G_expr_111, self.globals, _locals), None
+                self.considerError(lastError, None)
+                return (_G_python_260, self.currentError)
+            _G_or_261, lastError = self._or([_G_or_251, _G_or_256])
             self.considerError(lastError, 'top')
-            _locals['x'] = _G_or_255
-            _G_python_256, lastError = eval(self._G_expr_111, self.globals, _locals), None
-            self.considerError(lastError, 'top')
-            return (_G_python_256, self.currentError)
+            return (_G_or_261, self.currentError)
 
 
         _G_expr_63 = compile('[first] + rest', '<string>', 'eval')

@@ -22,11 +22,10 @@ def test_bare_string():
 def test_bare_non_ascii():
     assert parse('\xff') == '\xff'
 
-@pytest.mark.xfail
 def test_bare_object():
+    #import pdb; pdb.set_trace()
     assert parse('spam: eggs') == {'spam': 'eggs'}
 
-@pytest.mark.xfail
 def test_bare_non_ascii_object():
     assert parse('\xff: eggs') == {'\xff': 'eggs'}
 
@@ -36,7 +35,6 @@ def test_tilde():
 def test_embedded_tilde():
     assert parse('{spam: ~, eggs: {eggs: ~}}') == {'spam': None, 'eggs': {'eggs': None}}
 
-@pytest.mark.xfail
 def test_bare_embedded_tilde():
     assert parse('spam: ~, eggs: {eggs: ~}') == {'spam': None, 'eggs': {'eggs': None}}
 

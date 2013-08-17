@@ -29,4 +29,5 @@ floatPart :sign :ds = <('.' digits exponent?) | exponent>:tail
                     -> float(sign + ds + tail)
 exponent = ('e' | 'E') ('+' | '-')? digits
 
-top = (value | members):x ws -> x
+top = ( value:x ws end -> x
+      | members:x ws end -> x)
