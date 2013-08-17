@@ -469,7 +469,7 @@ class Passacre(object):
 
     _features = [
         ('keccak generation', 'keccak', 'cykeccak'),
-        ('skein generation', 'pyskein', 'pyskein'),
+        ('skein generation', 'skein', 'pyskein'),
         ('password copying', 'xerox', 'xerox'),
         ('yubikey support', 'ykpers', 'ykpers-cffi'),
     ]
