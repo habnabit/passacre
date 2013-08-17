@@ -3,6 +3,8 @@
 
 import json
 
+from passacre.jsonmini import JSONMParser
+
 
 class reify(object):
     """ Use as a class method decorator.  It operates almost exactly like the
@@ -78,9 +80,9 @@ def nested_set(d, keys, value):
     intermediate = nested_get(d, keys[:-1], dict)
     intermediate[keys[-1]] = value
 
-@errormark('loading the json value: {0!r}')
+@errormark('loading the json-mini value: {0!r}')
 def jloads(s):
-    return json.loads(s)
+    return JSONMParser(s).top()
 
 def jdumps(val):
     return json.dumps(val, sort_keys=True)

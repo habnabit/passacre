@@ -146,11 +146,6 @@ class SkeinSqliteTestCase(SkeinTestCaseMixin, unittest.TestCase):
     config_file = 'skein.sqlite'
 
 
-def test_maybe_json():
-    assert config.maybe_json('foo') == 'foo'
-    assert config.maybe_json('"foo"') == 'foo'
-    assert config.maybe_json('{"foo": "bar"}') == {'foo': 'bar'}
-
 def test_no_words_file():
     # using sqlite for lazy-loading of site data, otherwise the `load` call
     # will fail too.

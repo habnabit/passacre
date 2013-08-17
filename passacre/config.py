@@ -4,7 +4,7 @@
 from __future__ import unicode_literals, print_function
 
 from passacre.schema import multibase_of_schema
-from passacre.util import nested_set, jdumps, errormark
+from passacre.util import nested_set, jloads, jdumps, errormark
 from passacre import generator, signing_uuid
 
 import binascii
@@ -133,14 +133,8 @@ class YAMLConfig(ConfigBase):
     get_schema = get_all_schemata
 
 
-def maybe_json(val):
-    try:
-        return json.loads(val)
-    except ValueError:
-        return val
-
-def maybe_json_dict(pairs):
-    return dict((k, maybe_json(v)) for k, v in pairs)
+def jsonmini_dict(pairs):
+    return dict((k, jloads(v)) for k, v in pairs)
 
 class SqliteConfig(ConfigBase):
     is_mutable_config = True
@@ -152,7 +146,7 @@ class SqliteConfig(ConfigBase):
 
         curs.execute(
             'SELECT config_values.name, value FROM config_values WHERE site_name IS NULL')
-        config = maybe_json_dict(curs)
+        config = jsonmini_dict(curs)
         self.load_words_file(config.pop('words-file', None))
         self.set_defaults(self._get_site('default'))
         self.site_hashing.update(config.pop('site-hashing', {}))
@@ -163,7 +157,7 @@ class SqliteConfig(ConfigBase):
         curs.execute(
             'SELECT name, value FROM config_values WHERE site_name IS ?',
             (site,))
-        return maybe_json_dict(curs)
+        return jsonmini_dict(curs)
 
     def _get_site(self, site):
         site_config = self.get_site_config(site)
@@ -215,7 +209,7 @@ class SqliteConfig(ConfigBase):
             'SELECT site_name, name, value FROM config_values WHERE site_name IS NOT NULL')
         sites = collections.defaultdict(self.defaults.copy)
         for site, k, v in curs:
-            sites[site][k] = maybe_json(v)
+            sites[site][k] = jloads(v)
 
         curs.execute(
             'SELECT site_name, name, value FROM sites JOIN schemata USING (schema_id) WHERE site_name IS NOT NULL')
@@ -231,7 +225,7 @@ class SqliteConfig(ConfigBase):
     def get_all_schemata(self):
         curs = self._db.cursor()
         curs.execute('SELECT name, value FROM schemata')
-        return maybe_json_dict(curs)
+        return jsonmini_dict(curs)
 
     def get_schema(self, name):
         curs = self._db.cursor()
@@ -280,7 +274,7 @@ class SqliteConfig(ConfigBase):
         results = curs.fetchall()
         if not results:
             raise ValueError('there is no config %r for %r' % (name, site))
-        return maybe_json(results[0][0])
+        return jloads(results[0][0])
 
     def set_config(self, site, name, value):
         split_name = name.split('.')
