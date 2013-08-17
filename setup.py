@@ -55,7 +55,7 @@ setup(
     package_data={
         'passacre': ['schema.sql'],
         'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',
-                          'data/*/words', 'data/*/.passacre.*'],
+                          'data/*/words', 'data/*/.passacre.*', 'data/json/*'],
     },
     extras_require=extras_require,
     entry_points={
