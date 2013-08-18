@@ -11,6 +11,6 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   commands
    schema
    config
-

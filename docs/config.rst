@@ -1,5 +1,5 @@
-Passacre configuration
-======================
+Configuration
+=============
 
 Configuration can be either in YAML or sqlite format. The default paths
 searched for configuration files are, in order::
