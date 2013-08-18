@@ -3,10 +3,10 @@
 
 import json
 import sqlite3
-import yaml
 
 
 def main(yaml_file, sqlite_file):
+    import yaml
     with open(yaml_file) as infile:
         loader = yaml.SafeLoader(infile)
         loader.check_node()

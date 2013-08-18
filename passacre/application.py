@@ -468,6 +468,7 @@ class Passacre(object):
 
 
     _features = [
+        ('YAML config', 'yaml', 'pyyaml'),
         ('keccak generation', 'keccak', 'cykeccak'),
         ('skein generation', 'skein', 'pyskein'),
         ('password copying', 'xerox', 'xerox'),
