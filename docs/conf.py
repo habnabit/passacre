@@ -11,13 +11,22 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import os
+import sys
+
+
 try:
     import vcversioner
 except ImportError:
-    import sys, os
     sys.stderr.write("couldn't import vcversioner; groping around for it\n")
     sys.path.insert(0, os.path.abspath('..'))
     import vcversioner
+
+
+# hack for readthedocs.
+python_script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+os.environ['PATH'] = python_script_path + os.pathsep + os.environ['PATH']
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
