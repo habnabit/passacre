@@ -18,7 +18,7 @@ with open('README.rst', 'r') as infile:
 
 
 extras_require = {
-    'cli': ['PyYAML'],
+    'yaml': ['PyYAML'],
     'clipboard': ['xerox'],
     'keccak_generation': ['cykeccak>=0.13.2'],
     'yubikey': ['ykpers-cffi'],
@@ -59,7 +59,7 @@ setup(
     },
     extras_require=extras_require,
     entry_points={
-        'console_scripts': ['passacre = passacre.application:main [cli]'],
+        'console_scripts': ['passacre = passacre.application:main'],
     },
     zip_safe=False,
 )
