@@ -144,6 +144,23 @@ password for a site will then issue a challenge of the UUID
 password being used for generation.
 
 
+JSON-mini
+---------
+
+Passacre uses a small superset of `JSON`_ for specifying configuration on the
+command line. Syntax is mostly the same, but with the following changes:
+
+1. Strings don't require quotes for strings composed of just alphanumeric
+   characters, hyphens, and underscores. This works for both object keys and
+   string values. For example, ``{foo-bar: baz}`` is the same as ``{"foo-bar":
+   "baz"}``.
+2. The braces are optional for a top-level object. For example, ``spam: eggs,
+   eggs: spam`` is the same as ``{"spam": "eggs", "eggs": "spam"}``. Objects
+   beyond the top level still require braces.
+3. ``null`` can also be written as ``~``.
+
+
 .. _cykeccak: https://crate.io/packages/cykeccak/
 .. _pyskein: https://crate.io/packages/pyskein/
 .. _YubiKey: http://www.yubico.com/
+.. _JSON: http://json.org/
