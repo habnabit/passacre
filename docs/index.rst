@@ -14,11 +14,3 @@ Contents:
    schema
    config
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
