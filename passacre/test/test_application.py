@@ -516,6 +516,8 @@ def test_config_set_for_site_without_schema(mutable_app, capsys):
     assert get_config_name(app, capsys, 'nonextant.example.com', 'spam') == 'eggs'
     out = read_out(capsys, app, 'config', '-s', 'nonextant.example.com')
     assert out == 'spam: eggs\n'
+    out = read_out(capsys, app, 'site')
+    assert 'nonextant.example.com' in out.splitlines()
 
 def test_schema(app, capsys):
     app.main(['schema'])
