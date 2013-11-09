@@ -299,7 +299,7 @@ def test_init_config(init_app, capsys):
 def test_init_schemata(init_app, capsys):
     dbpath, app = init_app
     out = read_out(capsys, app, '-f', dbpath, 'schema')
-    assert out == '32-printable: [[32, "printable"]]\n'
+    assert out == '32-printable: [[32, printable]]\n'
 
 def test_init_sites(init_app, capsys):
     dbpath, app = init_app
@@ -319,15 +319,15 @@ def yaml2sqlite_app(tmpdir):
 
 def test_init_from_yaml(yaml2sqlite_app, capsys):
     app = yaml2sqlite_app
-    assert read_out(capsys, app, 'schema') == """12-alphanumeric: [[12, "alphanumeric"]]
-32-alphanumeric: [[32, "alphanumeric"]]
-32-printable: [[32, "printable"]]
-8-alphanumeric: [[8, "alphanumeric"]]
-schema_0: ["printable", [", ", 4, "word"], "printable"]
-schema_1: [[" ", 2, "word"]]
-schema_2: [[" ", 4, "word"]]
-schema_3: [[", ", 4, "word"]]
-schema_4: [[16, ["alphanumeric", "\\"%'()+,-/:;<=>?\\\\ ^_|"]]]
+    assert read_out(capsys, app, 'schema') == """12-alphanumeric: [[12, alphanumeric]]
+32-alphanumeric: [[32, alphanumeric]]
+32-printable: [[32, printable]]
+8-alphanumeric: [[8, alphanumeric]]
+schema_0: [printable, [", ", 4, word], printable]
+schema_1: [[" ", 2, word]]
+schema_2: [[" ", 4, word]]
+schema_3: [[", ", 4, word]]
+schema_4: [[16, [alphanumeric, "\\"%'()+,-/:;<=>?\\\\ ^_|"]]]
 """
 
 def test_init_from_yaml_sites(yaml2sqlite_app, capsys):
@@ -347,13 +347,13 @@ def test_init_from_yaml_config(yaml2sqlite_app, capsys):
     app = yaml2sqlite_app
     assert read_out(capsys, app, 'config') == """site-hashing.enabled: true
 site-hashing.iterations: 10
-words-file: "words"
+words-file: words
 """
 
 def test_init_from_yaml_site_config(yaml2sqlite_app, capsys):
     app = yaml2sqlite_app
     assert read_out(capsys, app, 'config', '-s', 'default') == """iterations: 10
-method: "keccak"
+method: keccak
 """
 
 
@@ -455,14 +455,14 @@ def test_config(app, capsys):
     out = read_out(capsys, app, 'config')
     assert out == """site-hashing.enabled: true
 site-hashing.iterations: 10
-words-file: "words"
+words-file: words
 """
 
     out = read_out(capsys, app, 'config', 'site-hashing.enabled')
     assert out == 'true\n'
 
     out = read_out(capsys, app, 'config', 'site-hashing')
-    assert out == '{"enabled": true, "iterations": 10}\n'
+    assert out == 'enabled: true, iterations: 10\n'
 
     out = read_out(capsys, app, 'config', '-s', 'fhcrc.org')
     assert out == 'increment: 5\n'
@@ -484,17 +484,17 @@ def test_config_set(mutable_app, capsys):
     app = mutable_app
 
     app.main(['config', 'words-file', 'foo'])
-    assert get_config_name(app, capsys, None, 'words-file') == '"foo"'
+    assert get_config_name(app, capsys, None, 'words-file') == 'foo'
 
     app.main(['config', 'words-file', 'null'])
     assert get_config_name(app, capsys, None, 'words-file') == ''
 
     app.main(['config', 'spam.spam.spam.eggs', 'spam'])
-    assert get_config_name(app, capsys, None, 'spam') == '{"spam": {"spam": {"eggs": "spam"}}}'
+    assert get_config_name(app, capsys, None, 'spam') == 'spam: {spam: {eggs: spam}}'
 
     app.main(['config', 'spam.spam.spam.spam', 'spam'])
     assert get_config_name(app, capsys, None, 'spam') == (
-        '{"spam": {"spam": {"eggs": "spam", "spam": "spam"}}}')
+        'spam: {spam: {eggs: spam, spam: spam}}')
 
     app.main(['config', '-s', 'fhcrc.org', 'increment', '6'])
     assert get_config_name(app, capsys, 'fhcrc.org', 'increment') == '6'
@@ -514,25 +514,25 @@ def test_schema(app, capsys):
     app.main(['schema'])
     out, err = capsys.readouterr()
     assert not err
-    assert out == r"""schema_0: [[" ", 4, "word"]]
-schema_1: [[8, "alphanumeric"]]
-schema_2: [[", ", 4, "word"]]
-schema_3: [[32, "alphanumeric"]]
-schema_4: ["printable", [", ", 4, "word"], "printable"]
-schema_5: [[32, "printable"]]
-schema_6: [[16, ["alphanumeric", "\"%'()+,-/:;<=>?\\ ^_|"]]]
-schema_7: [[" ", 2, "word"]]
+    assert out == r"""schema_0: [[" ", 4, word]]
+schema_1: [[8, alphanumeric]]
+schema_2: [[", ", 4, word]]
+schema_3: [[32, alphanumeric]]
+schema_4: [printable, [", ", 4, word], printable]
+schema_5: [[32, printable]]
+schema_6: [[16, [alphanumeric, "\"%'()+,-/:;<=>?\\ ^_|"]]]
+schema_7: [[" ", 2, word]]
 """
 
 def test_schema_add(mutable_app, capsys):
     app = mutable_app
-    app.main(['schema', 'add', 'schema_10', '["alphanumeric", [10, "digit"]]'])
-    assert '\nschema_10: ["alphanumeric", [10, "digit"]]\n' in read_out(capsys, app, 'schema')
+    app.main(['schema', 'add', 'schema_10', '[alphanumeric, [10, digit]]'])
+    assert '\nschema_10: [alphanumeric, [10, digit]]\n' in read_out(capsys, app, 'schema')
 
 def test_schema_set_value(mutable_app, capsys):
     app = mutable_app
-    app.main(['schema', 'set-value', 'schema_0', '[[10, "digit"]]'])
-    assert 'schema_0: [[10, "digit"]]\n' in read_out(capsys, app, 'schema')
+    app.main(['schema', 'set-value', 'schema_0', '[[10, digit]]'])
+    assert 'schema_0: [[10, digit]]\n' in read_out(capsys, app, 'schema')
 
 def test_schema_set_name(mutable_app, capsys):
     app = mutable_app
@@ -542,7 +542,7 @@ def test_schema_set_name(mutable_app, capsys):
 
 def test_schema_remove(mutable_app, capsys):
     app = mutable_app
-    app.main(['schema', 'add', 'schema_10', '["alphanumeric", [10, "digit"]]'])
+    app.main(['schema', 'add', 'schema_10', '[alphanumeric, [10, digit]]'])
     assert 'schema_10:' in read_out(capsys, app, 'schema')
     app.main(['schema', 'remove', 'schema_10'])
     assert 'schema_10:' not in read_out(capsys, app, 'schema')
@@ -570,9 +570,9 @@ def test_always_hash_site_remove(always_hash_app, capsys):
 
 def test_always_hash_site_config(always_hash_app, capsys):
     app = always_hash_app
-    assert read_out(capsys, app, 'config', '-s', 'hashed.example.com') == 'foo: "bar"\n'
+    assert read_out(capsys, app, 'config', '-s', 'hashed.example.com') == 'foo: bar\n'
     app.main(['config', '-s', 'hashed.example.com', 'foo', 'spam'])
-    assert read_out(capsys, app, 'config', '-s', 'hashed.example.com') == 'foo: "spam"\n'
+    assert read_out(capsys, app, 'config', '-s', 'hashed.example.com') == 'foo: spam\n'
 
 
 @pytest.fixture

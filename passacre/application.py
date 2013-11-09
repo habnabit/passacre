@@ -5,8 +5,9 @@ from __future__ import unicode_literals, print_function
 
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
+from passacre.jsonmini import unparse as jdumps
 from passacre.schema import multibase_of_schema
-from passacre.util import reify, dotify, nested_get, jdumps, jloads
+from passacre.util import reify, dotify, nested_get, jloads
 from passacre import __version__, yaml2sqlite
 
 import atexit
