@@ -510,6 +510,13 @@ def test_config_set(mutable_app, capsys):
     assert get_config_name(
         app, capsys, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment') == '9'
 
+def test_config_set_for_site_without_schema(mutable_app, capsys):
+    app = mutable_app
+    app.main(['config', '-s', 'nonextant.example.com', 'spam', 'eggs'])
+    assert get_config_name(app, capsys, 'nonextant.example.com', 'spam') == 'eggs'
+    out = read_out(capsys, app, 'config', '-s', 'nonextant.example.com')
+    assert out == 'spam: eggs\n'
+
 def test_schema(app, capsys):
     app.main(['schema'])
     out, err = capsys.readouterr()
