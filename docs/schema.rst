@@ -37,9 +37,9 @@ Definitions
 |                |items in this group                                |
 +----------------+---------------------------------------------------+
 |character class |one of ``printable``, ``alphanumeric``, ``digit``, |
-|                |``letter``, ``uppercase``, or ``lowercase``,       |
-|                |corresponding to different ranges of ASCII         |
-|                |characters                                         |
+|                |``letter``, ``uppercase``, ``lowercase``, or       |
+|                |``symbols`` corresponding to different ranges of   |
+|                |ASCII characters                                   |
 +----------------+---------------------------------------------------+
 |characters      |a string representing a set of characters          |
 +----------------+---------------------------------------------------+

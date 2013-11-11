@@ -14,6 +14,7 @@ character_classes = {
     'letter': string.ascii_letters,
     'lowercase': string.ascii_lowercase,
     'uppercase': string.ascii_uppercase,
+    'symbols': string.punctuation,
 }
 
 
