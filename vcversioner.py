@@ -34,9 +34,10 @@ def print(*a, **kw):
     _print('vcversioner:', *a, **kw)
 
 
-def find_version(include_dev_version=True, version_file='version.txt',
-                 version_module_paths=(),
-                 git_args=('git', 'describe', '--tags', '--long'),
+def find_version(include_dev_version=True, root='%(pwd)s',
+                 version_file='%(root)s/version.txt', version_module_paths=(),
+                 git_args=('git', '--git-dir', '%(root)s/.git', 'describe',
+                           '--tags', '--long'),
                  Popen=subprocess.Popen):
     """Find an appropriate version number from version control.
 
@@ -58,10 +59,16 @@ def find_version(include_dev_version=True, version_file='version.txt',
                                 be ``1.0.dev3``. This behavior can be disabled
                                 by setting this parameter to ``False``.
 
+    :param root: The directory of the repository root. The default value is the
+                 current working directory, since when running ``setup.py``,
+                 this is often (but not always) the same as the current working
+                 directory. Standard substitutions are performed on this value.
+
     :param version_file: The name of the file where version information will be
                          saved. Reading and writing version files can be
                          disabled altogether by setting this parameter to
-                         ``None``.
+                         ``None``. Standard substitutions are performed on this
+                         value.
 
     :param version_module_paths: A list of python modules which will be
                                  automatically generated containing
@@ -72,13 +79,32 @@ def find_version(include_dev_version=True, version_file='version.txt',
                                  __version__, __sha__``.
 
     :param git_args: The git command to run to get a version. By default, this
-                     is ``git describe --tags --long``. Specify this as a list
-                     of string arguments including ``git``, e.g. ``['git',
-                     'describe']``.
+                     is ``git --git-dir %(root)s/.git describe --tags --long``.
+                     ``--git-dir`` is used to prevent contamination from git
+                     repositories which aren't the git repository of your
+                     project. Specify this as a list of string arguments
+                     including ``git``, e.g. ``['git', 'describe']``. Standard
+                     substitutions are performed on each value in the provided
+                     list.
 
     :param Popen: Defaults to ``subprocess.Popen``. This is for testing.
 
+    *root*, *version_file*, and *git_args* each support some substitutions:
+
+    ``%(root)s``
+      The value provided for *root*. This is not available for the *root*
+      parameter itself.
+
+    ``%(pwd)s``
+      The current working directory.
+
     """
+
+    substitutions = {'pwd': os.getcwd()}
+    substitutions['root'] = root % substitutions
+    git_args = [arg % substitutions for arg in git_args]
+    if version_file is not None:
+        version_file %= substitutions
 
     # try to pull the version from git, or (perhaps) fall back on a
     # previously-saved version.
