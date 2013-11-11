@@ -343,9 +343,16 @@ class Passacre(object):
     def site_add_args(self, subparser):
         subparser.add_argument('site', help='the name of the site')
         subparser.add_argument('schema', help='the schema to use')
+        subparser.add_argument('-N', '--new-schema', metavar='VALUE',
+                               help='a schema value for the new schema')
 
+    @transform_args([
+        ('new_schema', jloads),
+    ])
     @needs_mutable_config
     def site_add_action(self, args):
+        if args.new_schema:
+            self.config.add_schema(args.schema, args.new_schema)
         schema_id, _ = self.config.get_schema(args.schema)
         self.perhaps_hash_site(args)
         self.config.add_site(args.site, schema_id)

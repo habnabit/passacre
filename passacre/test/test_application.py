@@ -422,6 +422,12 @@ def test_site_add_hashed(mutable_app, capsys):
     assert 'KE76ybZ-sO7o4iS944E_mo_jTQPCjzifFjyRELZS-RuDbcGu: schema_0\n' in read_out(
         capsys, app, 'site')
 
+def test_site_add_with_schema(mutable_app, capsys):
+    app = mutable_app
+    app.main(['site', 'add', '-N', '[[21, printable]]', 'example.org', '21-printable'])
+    assert 'example.org: 21-printable' in read_out(capsys, app, 'site').splitlines()
+    assert '21-printable: [[21, printable]]' in read_out(capsys, app, 'schema').splitlines()
+
 def test_site_set_schema(mutable_app, capsys):
     app = mutable_app
     assert '\nexample.com: schema_0\n' in read_out(capsys, app, 'site')
