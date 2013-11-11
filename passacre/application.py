@@ -506,7 +506,7 @@ class Passacre(object):
 
 
     def build_subcommands(self, action_prefix, subparsers, subcommands):
-        for subcommand, subcommand_help in subcommands.items():
+        for subcommand, subcommand_help in sorted(subcommands.items()):
             subsubcommand = False
             if isinstance(subcommand_help, tuple):
                 subcommand_help, subsubcommands = subcommand_help
