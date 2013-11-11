@@ -109,6 +109,7 @@ class Passacre(object):
         'site': ("actions on sites", {
             'add': "add a site to a config file",
             'remove': "remove a site from a config file",
+            'config': "change a site's configuration",
             'set-schema': "change a site's schema",
             'set-name': "change a site's domain",
             'hash': "hash a site's name",
@@ -440,9 +441,7 @@ class Passacre(object):
         self.config.set_schema_value(schema_id, args.value)
 
 
-    def config_args(self, subparser):
-        subparser.add_argument('-s', '--site',
-                               help='the site to operate on or omitted for global config')
+    def _base_config_args(self, subparser):
         subparser.add_argument('-a', '--hashed', action='store_true',
                                help='hash the site name')
         subparser.add_argument('-c', '--confirm', action='store_true',
@@ -451,6 +450,11 @@ class Passacre(object):
                                help='the config option to get or set or omitted to get all')
         subparser.add_argument('value', nargs='?',
                                help='the new value to set or omitted to get')
+
+    def config_args(self, subparser):
+        subparser.add_argument('-s', '--site',
+                               help='the site to operate on or omitted for global config')
+        self._base_config_args(subparser)
 
     def config_action(self, args):
         if args.site:
@@ -466,6 +470,12 @@ class Passacre(object):
                 print(jdumps(value))
             return
         self.config.set_config(args.site, args.name, maybe_load_json(args.value))
+
+    def site_config_args(self, subparser):
+        subparser.add_argument('site', help='the site to operate on')
+        self._base_config_args(subparser)
+
+    site_config_action = config_action
 
 
     _features = [

@@ -496,19 +496,26 @@ def test_config_set(mutable_app, capsys):
     assert get_config_name(app, capsys, None, 'spam') == (
         'spam: {spam: {eggs: spam, spam: spam}}')
 
-    app.main(['config', '-s', 'fhcrc.org', 'increment', '6'])
-    assert get_config_name(app, capsys, 'fhcrc.org', 'increment') == '6'
+config_site_set_base_tests = [
+    ([], ['increment', '6'], 'fhcrc.org', 'fhcrc.org', 'increment', '6'),
+    ([], ['increment', '7'], 'example.com', 'example.com', 'increment', '7'),
+    (['-a'], ['increment', '8'], 'hashed.example.com',
+     'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment', '8'),
+    (['-ca'], ['increment', '9'], 'hashed.example.com',
+     'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment', '9'),
+]
 
-    app.main(['config', '-s', 'example.com', 'increment', '7'])
-    assert get_config_name(app, capsys, 'example.com', 'increment') == '7'
+config_site_set_tests = []
+for pre_args, args, real_site, site, name, value in config_site_set_base_tests:
+    config_site_set_tests.append((
+        ['config', '-s', real_site] + pre_args + args, site, name, value))
+    config_site_set_tests.append((
+        ['site', 'config'] + pre_args + [real_site] + args, site, name, value))
 
-    app.main(['config', '-as', 'hashed.example.com', 'increment', '8'])
-    assert get_config_name(
-        app, capsys, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment') == '8'
-
-    app.main(['config', '-cas', 'hashed.example.com', 'increment', '9'])
-    assert get_config_name(
-        app, capsys, 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4', 'increment') == '9'
+@pytest.mark.parametrize(('args', 'site', 'name', 'value'), config_site_set_tests)
+def test_config_site_setting(mutable_app, capsys, args, site, name, value):
+    mutable_app.main(args)
+    assert get_config_name(mutable_app, capsys, site, name) == value
 
 def test_config_set_for_site_without_schema(mutable_app, capsys):
     app = mutable_app
