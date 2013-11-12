@@ -193,6 +193,8 @@ class Passacre(object):
         from twisted.internet import endpoints
         from passacre.agent.main import client_main
 
+        if 'PASSACRE_AGENT' not in os.environ:
+            raise ValueError("'PASSACRE_AGENT' is not set")
         description = os.environ['PASSACRE_AGENT']
         if description.startswith('/'):
             description = 'unix:' + endpoints.quoteStringArgument(description)
