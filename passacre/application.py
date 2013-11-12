@@ -209,7 +209,12 @@ class Passacre(object):
         d.addCallback(lambda d: python_2_encode(d['password']))
         d.addCallback(self._process_generated_password, args)
         d.addErrback(self.errback)
-        self._run_agent(d, commands.Generate, site=args.site, username=args.username)
+        try:
+            self._run_agent(d, commands.Generate, site=args.site, username=args.username)
+        except SystemExit as e:
+            return not e.code
+        else:
+            return True
 
     @transform_args([
         ('override_config', jloads),
@@ -217,7 +222,8 @@ class Passacre(object):
     def generate_action(self, args):
         "Generate a password."
         if 'PASSACRE_AGENT' in os.environ:
-            return self._generate_from_agent(args)
+            if self._generate_from_agent(args):
+                return
         password = self.prompt_password(args.confirm)
         if args.site is None:
             args.site = self.prompt('Site: ')
@@ -612,6 +618,7 @@ class Passacre(object):
         return ret
 
     def errback(self, failure):
+        print('an error occurred communicating with the passacre agent', file=sys.stderr)
         self.excepthook(failure.type, failure.value, failure.getTracebackObject())
 
     def excepthook(self, type_, value, tb):
