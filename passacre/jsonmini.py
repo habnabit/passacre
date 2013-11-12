@@ -4,24 +4,7 @@ import unicodedata
 
 from passacre._ometa import OMetaBase, ParseError, EOFError
 from passacre._jsonmini import createParserClass
-
-
-try:
-    unichr
-except NameError:
-    unichr = chr
-
-
-try:
-    unicode
-except NameError:
-    unicode = str
-
-
-try:
-    long
-except NameError:
-    long = int
+from passacre.compat import unichr, unicode, long
 
 
 jsonmini_parser = createParserClass(

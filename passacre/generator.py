@@ -5,20 +5,13 @@ from __future__ import unicode_literals
 
 import math
 import string
-import sys
 
+from passacre.compat import python_3_encode
 from passacre.multibase import MultiBase
 
 _some_nulls = b'\x00' * 1024
 _site_multibase = MultiBase([string.ascii_letters + string.digits + '-_'] * 48)
 _site_multibase_bits = 288
-
-
-if sys.version_info > (3,):  # pragma: nocover
-    def perhaps_encode(s):
-        return s.encode()
-else:  # pragma: nocover
-    perhaps_encode = lambda x: x
 
 
 def generate(username, password, site, options):
@@ -66,8 +59,8 @@ def build_prng(username, password, site, options):
     method = options['method']
     iterations = options['iterations']
     seed = (
-        (perhaps_encode(username) + b':' if username else b'')
-        + perhaps_encode(password) + b':'
+        (python_3_encode(username) + b':' if username else b'')
+        + python_3_encode(password) + b':'
         + site.encode('idna')
         + (_some_nulls * iterations))
 
