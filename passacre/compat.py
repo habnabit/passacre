@@ -11,6 +11,7 @@ if sys.version_info < (3,):  # pragma: nocover
     def python_3_encode(s):
         return s
 else:
+    input = input
     unichr = chr
     unicode = str
     long = int
