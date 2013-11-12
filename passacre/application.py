@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals, print_function
 
+from passacre.compat import input, argparse, python_2_encode
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
 from passacre.jsonmini import unparse as jdumps
@@ -25,15 +26,6 @@ try:
     import xerox
 except ImportError:  # pragma: nocover
     xerox = None
-
-
-if sys.version_info < (3,):  # pragma: nocover
-    input = raw_input
-
-if sys.version_info < (3, 3):  # pragma: nocover
-    import passacre._argparse as argparse
-else:  # pragma: nocover
-    import argparse
 
 
 def open_first(paths, mode='r', expanduser=None, open=open):
@@ -123,6 +115,11 @@ class Passacre(object):
         }),
         'config': "view/change global configuration",
         'info': "information about the passacre environment",
+        'agent': ("commands for passacre-agent", {
+            'run': "run the passacre agent",
+            'lock': "lock the passacre agent",
+            'unlock': "unlock the passacre agent",
+        }),
     }
 
     @reify
@@ -191,16 +188,42 @@ class Passacre(object):
             subparser.add_argument('-w', '--timeout', type=int, metavar='N',
                                    help='clear the clipboard after N seconds')
 
+
+    def _run_agent(self, d, command, **args):
+        from twisted.internet import endpoints
+        from passacre.agent.main import client_main
+
+        description = os.environ['PASSACRE_AGENT']
+        if description.startswith('/'):
+            description = 'unix:' + endpoints.quoteStringArgument(description)
+        client_main(d, description, command, args)
+
+
+    def _generate_from_agent(self, args):
+        from twisted.internet import defer
+        from passacre.agent import commands
+
+        d = defer.Deferred()
+        d.addCallback(lambda d: python_2_encode(d['password']))
+        d.addCallback(self._process_generated_password, args)
+        d.addErrback(self.errback)
+        self._run_agent(d, commands.Generate, site=args.site, username=args.username)
+
     @transform_args([
         ('override_config', jloads),
     ])
     def generate_action(self, args):
         "Generate a password."
+        if 'PASSACRE_AGENT' in os.environ:
+            return self._generate_from_agent(args)
         password = self.prompt_password(args.confirm)
         if args.site is None:
             args.site = self.prompt('Site: ')
         password = self.config.generate_for_site(
             args.username, password, args.site, args.override_config)
+        self._process_generated_password(password, args)
+
+    def _process_generated_password(self, password, args):
         if getattr(args, 'copy', False):  # since the argument might not exist
             sys.stderr.write('password copied.\n')
             self.xerox.copy(password)
@@ -485,6 +508,41 @@ class Passacre(object):
     site_config_action = config_action
 
 
+    def agent_args(self, subparser):
+        pass
+
+    def agent_action(self, args):
+        pass
+
+    def agent_run_args(self, subparser):
+        subparser.add_argument('port', help='the port to listen on')
+
+    def agent_run_action(self, args):
+        from passacre.agent.main import server_main
+        server_main(self, args.port)
+
+    def agent_unlock_args(self, subparser):
+        subparser.add_argument('-c', '--confirm', action='store_true',
+                               help='confirm prompted password')
+
+    def agent_unlock_action(self, args):
+        from twisted.internet import defer
+        from passacre.agent import commands
+
+        password = self.prompt_password(args.confirm)
+        d = defer.Deferred()
+        d.addErrback(self.errback)
+        self._run_agent(d, commands.Unlock, password=password)
+
+    def agent_lock_action(self, args):
+        from twisted.internet import defer
+        from passacre.agent import commands
+
+        d = defer.Deferred()
+        d.addErrback(self.errback)
+        self._run_agent(d, commands.Lock)
+
+
     _features = [
         ('YAML config', 'yaml', 'pyyaml'),
         ('keccak generation', 'keccak', 'cykeccak'),
@@ -549,6 +607,9 @@ class Passacre(object):
                 break
             command, ret = next_command, '%s_%s' % (ret, subcommand.replace('-', '_'))
         return ret
+
+    def errback(self, failure):
+        self.excepthook(failure.type, failure.value, failure.getTracebackObject())
 
     def excepthook(self, type_, value, tb):
         errormark = getattr(value, '_errormark', None)
