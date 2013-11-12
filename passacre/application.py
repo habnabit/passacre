@@ -12,7 +12,6 @@ from passacre import __version__, yaml2sqlite
 
 import atexit
 import collections
-import json
 from getpass import getpass
 import math
 import operator
@@ -64,7 +63,7 @@ def site_sort_key(site):
 
 def maybe_load_json(val):
     try:
-        return json.loads(val)
+        return jloads(val)
     except ValueError:
         return val
 

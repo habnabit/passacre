@@ -157,7 +157,7 @@ command line. Syntax is mostly the same, but with the following changes:
 2. The braces are optional for a top-level object. For example, ``spam: eggs,
    eggs: spam`` is the same as ``{"spam": "eggs", "eggs": "spam"}``. Objects
    beyond the top level still require braces.
-3. ``null`` can also be written as ``~``.
+3. ``null`` can also be written as ``%``.
 
 
 .. _cykeccak: https://crate.io/packages/cykeccak/

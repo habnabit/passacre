@@ -241,8 +241,8 @@ def createParserClass(GrammarBase, ruleGlobals):
                     self.considerError(lastError, None)
                     return (_G_exactly_83, self.currentError)
                 def _G_or_84():
-                    self._trace(" '~'", (471, 475), self.input.position)
-                    _G_exactly_85, lastError = self.exactly('~')
+                    self._trace(" '%'", (471, 475), self.input.position)
+                    _G_exactly_85, lastError = self.exactly('%')
                     self.considerError(lastError, None)
                     return (_G_exactly_85, self.currentError)
                 _G_or_86, lastError = self._or([_G_or_82, _G_or_84])
