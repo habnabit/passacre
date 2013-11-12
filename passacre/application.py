@@ -551,6 +551,7 @@ class Passacre(object):
         ('skein generation', 'skein', 'pyskein'),
         ('password copying', 'xerox', 'xerox'),
         ('yubikey support', 'ykpers', 'ykpers-cffi'),
+        ('passacre agent support', 'twisted.protocols.amp', 'Twisted'),
     ]
 
     def info_action(self, args):
