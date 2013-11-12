@@ -51,7 +51,7 @@ setup(
     license='ISC',
 
     version=version.version,
-    packages=['passacre', 'passacre.test'],
+    packages=['passacre', 'passacre.agent', 'passacre.test'],
     package_data={
         'passacre': ['schema.sql'],
         'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',
