@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from passacre import _argparse as argparse
 
 
@@ -54,7 +56,7 @@ def zsh_arguments_for(arguments):
         if len(arg.option_strings) > 1:
             options = set(arg.option_strings)
             for option in options:
-                rest = options - {option}
+                rest = options - set([option])
                 option_string = '(%s)%s' % (' '.join(rest), option)
                 option_strings.append(option_string)
         else:
@@ -87,43 +89,43 @@ def _zsh_completion_for(parser, name=''):
     if not subcommands:
         return False, arguments
 
-    print """
+    print("""
 _passacre_subcommand%s () {
-    """ % (name,)
+    """ % (name,))
 
-    print """
+    print("""
     if [[ $CURRENT = 1 ]]; then
         local _passacre_commands
         _passacre_commands=(%s)
         _describe 'subcommand' _passacre_commands
     fi
     case $line[1] in
-    """ % (' '.join(escape('%s:%s' % (n, desc)) for n, _, desc, _ in subcommands),)
+    """ % (' '.join(escape('%s:%s' % (n, desc)) for n, _, desc, _ in subcommands),))
 
     for subcommand_name, full_subaction_name, _, (has_subcommands, subcommand_arguments) in subcommands:
         next_parser = ''
         if has_subcommands:
             next_parser = escape('*::site cmd:_passacre_subcommand%s' % (full_subaction_name,))
-        print """
+        print("""
         (%s)
             _arguments -S \\
                 %s %s \\
                 && return 0
             ;;
-        """ % (subcommand_name, next_parser, ' '.join(zsh_arguments_for(subcommand_arguments)))
+        """ % (subcommand_name, next_parser, ' '.join(zsh_arguments_for(subcommand_arguments))))
 
-    print """
+    print("""
     esac
 }
-    """
+    """)
 
     return True, arguments
 
 
 def zsh_completion_for(parser):
-    print '#compdef passacre'
+    print('#compdef passacre')
     _, arguments = _zsh_completion_for(parser)
-    print """
+    print("""
 _passacre () {
     _arguments -S \\
         '*::cmd:_passacre_subcommand' \\
@@ -154,7 +156,7 @@ _passacre_hash_methods () {
 
 
 _passacre "$@"
-    """ % (' '.join(zsh_arguments_for(arguments)),)
+    """ % (' '.join(zsh_arguments_for(arguments)),))
 
 
 if __name__ == '__main__':
