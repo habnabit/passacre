@@ -152,7 +152,8 @@ class Passacre(object):
         subparser.add_argument('path', nargs='?', default='~/.passacre.sqlite',
                                help='path of the config file to initialize (default: %(default)s)')
         subparser.add_argument('-y', '--from-yaml', type=argparse.FileType('rb'), metavar='YAML',
-                               help='optional input YAML config file to convert from')
+                               help='optional input YAML config file to convert from'
+        ).completer = completion.FilesCompleter()
 
     def init_action(self, args):
         import sqlite3
