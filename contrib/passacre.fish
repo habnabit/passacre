@@ -24,7 +24,7 @@ function __fish_passacre_using_command
 end
 
 function __fish_passacre_sites
-	passacre site | cut -d: -f1
+	passacre site --omit-hashed | cut -d: -f1
 end
 
 function __fish_passacre_schemata
@@ -126,6 +126,7 @@ complete -f -c passacre -n '__fish_passacre_using_command passacre site set-sche
 complete -f -c passacre -n '__fish_passacre_using_command passacre site set-schema "*"'   -d 'the schema to use'
 complete -f -c passacre -n '__fish_passacre_using_command passacre site ' -s h -l help -d 'show this help message and exit'
 complete -f -c passacre -n '__fish_passacre_using_command passacre site '  -l by-schema -d 'list sites organized by schema'
+complete -f -c passacre -n '__fish_passacre_using_command passacre site '  -l omit-hashed -d "don't list hashed sites"
 complete -f -c passacre -n '__fish_passacre_using_command passacre site ' -s a -l hashed -d 'hash the site name'
 complete -f -c passacre -n '__fish_passacre_using_command passacre site ' -s c -l confirm -d 'confirm prompted password'
 complete -f -c passacre -n '__fish_passacre_using_command passacre site' -a 'add' -d 'add a site to a config file'

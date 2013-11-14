@@ -148,7 +148,7 @@ _passacre_subcommand () {
 
         (init)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':path: ' '(-y)--from-yaml=[optional input YAML config file to convert from]:YAML: ' '(--from-yaml)-y=[optional input YAML config file to convert from]:YAML: ' \
+                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':path: ' '(-y)--from-yaml=[optional input YAML config file to convert from]:YAML:_files' '(--from-yaml)-y=[optional input YAML config file to convert from]:YAML:_files' \
                 && return 0
             ;;
         
@@ -162,7 +162,7 @@ _passacre_subcommand () {
 
         (site)
             _arguments -S \
-                '*::site cmd:_passacre_subcommand_site' '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' '--by-schema[list sites organized by schema]' '(-a)--hashed[hash the site name]' '(--hashed)-a[hash the site name]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
+                '*::site cmd:_passacre_subcommand_site' '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' '--by-schema[list sites organized by schema]' "--omit-hashed[don't list hashed sites]" '(-a)--hashed[hash the site name]' '(--hashed)-a[hash the site name]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
                 && return 0
             ;;
         
@@ -181,7 +181,7 @@ _passacre () {
 
 _passacre_sites () {
     local -a _passacre_site_list
-    _passacre_site_list=($(passacre site | cut -d: -f1))
+    _passacre_site_list=($(passacre site --omit-hashed | cut -d: -f1))
     _wanted _passacre_site_list expl 'passacre sites' compadd -a _passacre_site_list
 }
 
