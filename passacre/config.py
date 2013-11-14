@@ -26,6 +26,25 @@ def verify_multibase_schema(schema):
     multibase_of_schema(schema, ['a'])
 
 
+global_config_options = set("""
+always-confirm-passwords
+method
+iterations
+words-file
+site-hashing.enabled
+site-hashing.method
+site-hashing.iterations
+""".split())
+
+site_config_options = set("""
+method
+iterations
+increment
+schema
+yubikey-slot
+""".split())
+
+
 class ConfigBase(object):
     is_mutable_config = False
 
