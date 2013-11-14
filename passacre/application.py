@@ -258,6 +258,8 @@ class Passacre(object):
     def site_args(self, subparser):
         subparser.add_argument('--by-schema', action='store_true',
                                help='list sites organized by schema')
+        subparser.add_argument('--omit-hashed', action='store_true',
+                               help="don't list hashed sites")
 
         hash_group = subparser.add_argument_group('for {add,remove,set-schema}')
         hash_group.add_argument('-a', '--hashed', action='store_true',
@@ -271,6 +273,9 @@ class Passacre(object):
         "Perform an action on a site in a config file."
 
         sites = self.config.get_all_sites()
+        if args.omit_hashed:
+            sites = dict((name, config) for name, config in sites.items()
+                         if not is_likely_hashed_site(name))
         if args.by_schema:
             sites_by_schema = collections.defaultdict(list)
             for site, site_config in sites.items():
