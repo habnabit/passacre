@@ -191,10 +191,11 @@ def _fish_completion_for(parser, name='passacre'):
         else:
             arguments.append(action)
 
+    n_positional = 0
+
     for arg in arguments:
         completer = getattr(arg, 'completer', None) or NullCompleter()
-        if not arg.option_strings:
-            continue
+        positional = not arg.option_strings
 
         short_opt = long_opt = ''
         for option in arg.option_strings:
@@ -203,7 +204,11 @@ def _fish_completion_for(parser, name='passacre'):
             elif option.startswith('-'):
                 short_opt = '-s ' + option.lstrip('-')
 
-        predicate = '-n %s' % escape('__fish_passacre_using_command %s' % (name,))
+        positional_stars = ''
+        if positional:
+            positional_stars = ' '.join(['"*"'] * n_positional)
+            n_positional += 1
+        predicate = '-n %s' % escape('__fish_passacre_using_command %s %s' % (name, positional_stars))
         takes_argument = arg.nargs != 0
         possibilities = ''
         if takes_argument:
