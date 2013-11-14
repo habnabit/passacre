@@ -186,9 +186,8 @@ def _fish_completion_for(parser, name='passacre'):
             for subaction_name, subaction in action.choices.iteritems():
                 pseudo_action = next(pa for pa in action._choices_actions if pa.dest == subaction_name)
                 full_subaction_name = name + ' ' + subaction_name
-                subcommands.append((
-                    subaction_name, full_subaction_name, pseudo_action.help,
-                    _fish_completion_for(subaction, full_subaction_name)))
+                subcommands.append((subaction_name, pseudo_action.help))
+                _fish_completion_for(subaction, full_subaction_name)
         else:
             arguments.append(action)
 
@@ -222,7 +221,7 @@ def _fish_completion_for(parser, name='passacre'):
 
     if subcommands:
         predicate = '-n %s' % escape('__fish_passacre_using_command %s' % (name,))
-        for subcommand_name, _, help, _ in subcommands:
+        for subcommand_name, help in subcommands:
             print("complete -f -c passacre %s -a %s -d %s" % (
                 predicate, escape(subcommand_name), escape(help)))
 
