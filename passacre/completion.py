@@ -154,7 +154,7 @@ _passacre () {
 
 _passacre_sites () {
     local -a _passacre_site_list
-    _passacre_site_list=($(passacre site | cut -d: -f1))
+    _passacre_site_list=($(passacre site --omit-hashed | cut -d: -f1))
     _wanted _passacre_site_list expl 'passacre sites' compadd -a _passacre_site_list
 }
 
@@ -258,7 +258,7 @@ function __fish_passacre_using_command
 end
 
 function __fish_passacre_sites
-	passacre site | cut -d: -f1
+	passacre site --omit-hashed | cut -d: -f1
 end
 
 function __fish_passacre_schemata
