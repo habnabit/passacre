@@ -20,29 +20,47 @@ def escape(x):
     return s
 
 
+_OMIT_DASH_F = object()
+
+
 class NullCompleter(object):
     def zsh_action(self):
         return ' '
+
+    def fish_action(self):
+        return '()'
 
 
 class FilesCompleter(object):
     def zsh_action(self):
         return '_files'
 
+    def fish_action(self):
+        return _OMIT_DASH_F
+
 
 class SchemataCompleter(object):
     def zsh_action(self):
         return '_passacre_schemata'
+
+    def fish_action(self):
+        return '(__fish_passacre_schemata)'
 
 
 class SitesCompleter(object):
     def zsh_action(self):
         return '_passacre_sites'
 
+    def fish_action(self):
+        return '(__fish_passacre_sites)'
+
 
 class HashMethodsCompleter(object):
     def zsh_action(self):
         return '_passacre_hash_methods'
+
+    def fish_action(self):
+        return 'keccak skein'
 
 
 def zsh_arguments_for(arguments):
@@ -159,6 +177,90 @@ _passacre "$@"
     """ % (' '.join(zsh_arguments_for(arguments)),))
 
 
-if __name__ == '__main__':
-    from passacre.application import Passacre
-    zsh_completion_for(Passacre().build_parser())
+def _fish_completion_for(parser, name='passacre'):
+    subcommands = []
+    arguments = []
+
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            for subaction_name, subaction in action.choices.iteritems():
+                pseudo_action = next(pa for pa in action._choices_actions if pa.dest == subaction_name)
+                full_subaction_name = name + ' ' + subaction_name
+                subcommands.append((
+                    subaction_name, full_subaction_name, pseudo_action.help,
+                    _fish_completion_for(subaction, full_subaction_name)))
+        else:
+            arguments.append(action)
+
+    for arg in arguments:
+        completer = getattr(arg, 'completer', None) or NullCompleter()
+        if not arg.option_strings:
+            continue
+
+        short_opt = long_opt = ''
+        for option in arg.option_strings:
+            if option.startswith('--'):
+                long_opt = '-l ' + option.lstrip('-')
+            elif option.startswith('-'):
+                short_opt = '-s ' + option.lstrip('-')
+
+        predicate = '-n %s' % escape('__fish_passacre_using_command %s' % (name,))
+        takes_argument = arg.nargs != 0
+        possibilities = ''
+        if takes_argument:
+            action = completer.fish_action()
+            possibilities = ''
+            dash_f = '-f'
+            if action is _OMIT_DASH_F:
+                dash_f = ''
+            else:
+                possibilities = '-a ' + escape(action)
+            print("complete %s -c passacre %s %s %s %s" % (
+                dash_f, predicate, short_opt, long_opt, possibilities))
+        print("complete -f -c passacre %s %s %s -d %s" % (
+            predicate, short_opt, long_opt, escape(arg.help)))
+
+    if subcommands:
+        predicate = '-n %s' % escape('__fish_passacre_using_command %s' % (name,))
+        for subcommand_name, _, help, _ in subcommands:
+            print("complete -f -c passacre %s -a %s -d %s" % (
+                predicate, escape(subcommand_name), escape(help)))
+
+
+def fish_completion_for(parser):
+    print("""
+
+function __fish_passacre_using_command
+	set cmd (commandline -opc)
+	set argvpos 1
+	set argvcount (count $argv)
+	for c in $cmd
+		if [ $argvpos -le $argvcount ]
+			set arg $argv[$argvpos]
+		else
+			set arg --
+		end
+		switch $c
+		case '-*'
+			continue
+		case $arg
+			set argvpos (math $argvpos + 1)
+		case '*'
+			return 1
+		end
+	end
+	test $argvpos -gt $argvcount
+	return $status
+end
+
+function __fish_passacre_sites
+	passacre site | cut -d: -f1
+end
+
+function __fish_passacre_schemata
+	passacre schema | cut -d: -f1
+end
+
+    """)
+
+    _fish_completion_for(parser)
