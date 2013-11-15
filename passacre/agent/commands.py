@@ -9,6 +9,10 @@ class AgentUnlocked(Exception):
     pass
 
 
+class SiteListUnavailable(Exception):
+    pass
+
+
 class Unlock(amp.Command):
     arguments = [
         ('password', amp.Unicode()),
@@ -33,3 +37,27 @@ class Generate(amp.Command):
         ('password', amp.Unicode()),
     ]
     errors = {AgentLocked: 'AGENT_LOCKED'}
+
+
+class FetchSiteList(amp.Command):
+    arguments = [
+        ('force_disk_load', amp.Boolean(optional=True)),
+    ]
+    response = [
+        ('sites', amp.ListOf(amp.Unicode())),
+    ]
+    errors = {
+        AgentLocked: 'AGENT_LOCKED',
+        SiteListUnavailable: 'SITE_LIST_UNAVAILABLE',
+    }
+
+
+class WriteSiteList(amp.Command):
+    arguments = [
+        ('sites', amp.ListOf(amp.Unicode())),
+    ]
+    response = []
+    errors = {
+        AgentLocked: 'AGENT_LOCKED',
+        SiteListUnavailable: 'SITE_LIST_UNAVAILABLE',
+    }
