@@ -89,6 +89,7 @@ class ConfigBase(object):
                     del config[k]
             self.fill_out_config(config)
         if config.get('yubikey-slot'):
+            features.yubikey.check()
             from ykpers import YubiKey
             yk = YubiKey.open_first_key()
             response = yk.hmac_challenge_response(
@@ -100,6 +101,7 @@ class ConfigBase(object):
 class YAMLConfig(ConfigBase):
     def read(self, infile):
         "Load site configuration from a YAML file object."
+        features.yaml.check()
         import yaml
         parsed = yaml.load(infile)
         sites = parsed.pop('sites', {})
@@ -302,7 +304,7 @@ def load(infile):
     if infile.read(16) == b'SQLite format 3\x00':
         config = SqliteConfig()
     else:
-        config = features.yaml_config.check(YAMLConfig)()
+        config = YAMLConfig()
     infile.seek(0)
     config.read(infile)
     return config

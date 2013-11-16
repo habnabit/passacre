@@ -27,10 +27,15 @@ class Feature(object):
                 self.module_usable[module] = True
         self.features.append(self)
 
-    def check(self, func):
+    def _check(self):
+        if not self.usable:
+            raise FeatureUnusable(self)
+
+    def check(self, func=None):
+        if func is None:
+            return self._check()
         def wrap(*a, **kw):
-            if not self.usable:
-                raise FeatureUnusable(self)
+            self._check()
             return func(*a, **kw)
         return wrap
 
@@ -40,9 +45,9 @@ class Feature(object):
             yield '"%s" module (%s on pypi): %s' % (module, package, usable)
 
 
-yaml_config = Feature('YAML configuration', ('yaml', 'pyyaml'))
-keccak_generation = Feature('keccak password generation', ('keccak', 'cykeccak'))
-skein_generation = Feature('skein password generation', ('skein', 'pyskein'))
+yaml = Feature('YAML configuration', ('yaml', 'pyyaml'))
+keccak = Feature('keccak password generation', ('keccak', 'cykeccak'))
+skein = Feature('skein password generation', ('skein', 'pyskein'))
 copying = Feature('password copying', ('xerox', 'xerox'))
 yubikey = Feature('yubikey support', ('ykpers', 'ykpers-cffi'))
 agent = Feature(

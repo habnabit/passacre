@@ -4,8 +4,11 @@
 import json
 import sqlite3
 
+from passacre import features
+
 
 def main(yaml_file, sqlite_file):
+    features.yaml.check()
     import yaml
     with open(yaml_file) as infile:
         loader = yaml.SafeLoader(infile)

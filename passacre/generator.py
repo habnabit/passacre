@@ -8,6 +8,7 @@ import string
 
 from passacre.compat import python_3_encode
 from passacre.multibase import MultiBase
+from passacre import features
 
 _some_nulls = b'\x00' * 1024
 _site_multibase = MultiBase([string.ascii_letters + string.digits + '-_'] * 48)
@@ -65,12 +66,14 @@ def build_prng(username, password, site, options):
         + (_some_nulls * iterations))
 
     if method == 'keccak':
+        features.keccak.check()
         import keccak
         sponge = keccak.Sponge(64, 1536)
         sponge.absorb(seed)
         return keccak.SpongeRandom(sponge)
 
     elif method == 'skein':
+        features.skein.check()
         import skein
         return _patch_skein_random(skein.Random(seed))
 
