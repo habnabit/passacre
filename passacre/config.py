@@ -5,7 +5,7 @@ from __future__ import unicode_literals, print_function
 
 from passacre.schema import multibase_of_schema
 from passacre.util import nested_set, jloads, jdumps, errormark
-from passacre import generator, signing_uuid
+from passacre import features, generator, signing_uuid
 
 import binascii
 import collections
@@ -302,7 +302,7 @@ def load(infile):
     if infile.read(16) == b'SQLite format 3\x00':
         config = SqliteConfig()
     else:
-        config = YAMLConfig()
+        config = features.yaml_config.check(YAMLConfig)()
     infile.seek(0)
     config.read(infile)
     return config

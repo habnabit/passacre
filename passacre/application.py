@@ -9,7 +9,7 @@ from passacre.generator import hash_site
 from passacre.jsonmini import unparse as jdumps
 from passacre.schema import multibase_of_schema
 from passacre.util import reify, dotify, nested_get, jloads
-from passacre import __version__, yaml2sqlite
+from passacre import __version__, features, yaml2sqlite
 
 import atexit
 import collections
@@ -146,6 +146,7 @@ class Passacre(object):
         return self._prompt_password(confirm)
 
 
+    @features.agent.check
     def _run_agent(self, command, **args):
         from twisted.internet import endpoints
         from passacre.agent.main import run_amp_command
@@ -530,6 +531,7 @@ class Passacre(object):
     def agent_run_args(self, subparser):
         subparser.add_argument('port', help='the port to listen on')
 
+    @features.agent.check
     def agent_run_action(self, args):
         from passacre.agent.main import server_main
         server_main(self, args.port)
@@ -538,35 +540,27 @@ class Passacre(object):
         subparser.add_argument('-c', '--confirm', action='store_true',
                                help='confirm prompted password')
 
+    @features.agent.check
     def agent_unlock_action(self, args):
         from passacre.agent import commands
         password = self.prompt_password(args.confirm)
         self._run_agent(commands.Unlock, password=password)
 
+    @features.agent.check
     def agent_lock_action(self, args):
         from passacre.agent import commands
         self._run_agent(commands.Lock)
 
 
-    _features = [
-        ('YAML config', 'yaml', 'pyyaml'),
-        ('keccak generation', 'keccak', 'cykeccak'),
-        ('skein generation', 'skein', 'pyskein'),
-        ('password copying', 'xerox', 'xerox'),
-        ('yubikey support', 'ykpers', 'ykpers-cffi'),
-        ('passacre agent support', 'twisted.protocols.amp', 'Twisted'),
-    ]
-
     def info_action(self, args):
         print('passacre version ' + __version__)
-        for feature, module, package in self._features:
-            try:
-                __import__(module)
-            except ImportError:
-                outcome = 'NOT AVAILABLE (install %s)' % (package,)
-            else:
-                outcome = 'available'
-            print(feature, 'is', outcome)
+        print()
+        for feature in features.features:
+            outcome = 'usable' if feature.usable else 'NOT USABLE'
+            print('feature "%s": %s' % (feature.name, outcome))
+            for s in feature.usability_strings():
+                print(' ', s)
+            print()
 
 
     def build_subcommands(self, action_prefix, subparsers, subcommands):
