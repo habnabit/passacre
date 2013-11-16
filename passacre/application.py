@@ -146,6 +146,18 @@ class Passacre(object):
         return self._prompt_password(confirm)
 
 
+    def _run_agent(self, command, **args):
+        from twisted.internet import endpoints
+        from passacre.agent.main import run_amp_command
+
+        if 'PASSACRE_AGENT' not in os.environ:
+            raise ValueError("'PASSACRE_AGENT' is not set")
+        description = os.environ['PASSACRE_AGENT']
+        if description.startswith('/'):
+            description = 'unix:' + endpoints.quoteStringArgument(description)
+        return run_amp_command(description, command, args)
+
+
     def init_args(self, subparser):
         subparser.add_argument('path', nargs='?', default='~/.passacre.sqlite',
                                help='path of the config file to initialize (default: %(default)s)')
@@ -182,6 +194,9 @@ class Passacre(object):
                                help="don't write a newline after the password")
         subparser.add_argument('-c', '--confirm', action='store_true',
                                help='confirm prompted password')
+        subparser.add_argument('-s', '--save', action='store_true',
+                               help='save the site name to the site list (only works '
+                               'with passacre agent)')
         if self.xerox is not None:
             subparser.add_argument('-C', '--copy', action='store_true',
                                    help='put the generated password on the clipboard')
@@ -189,44 +204,24 @@ class Passacre(object):
                                    help='clear the clipboard after N seconds')
 
 
-    def _run_agent(self, d, command, **args):
-        from twisted.internet import endpoints
-        from passacre.agent.main import client_main
-
-        if 'PASSACRE_AGENT' not in os.environ:
-            raise ValueError("'PASSACRE_AGENT' is not set")
-        description = os.environ['PASSACRE_AGENT']
-        if description.startswith('/'):
-            description = 'unix:' + endpoints.quoteStringArgument(description)
-        client_main(d, description, command, args)
-
-
     def _generate_from_agent(self, args):
-        from twisted.internet import defer
         from passacre.agent import commands
-
-        d = defer.Deferred()
-        d.addCallback(lambda d: python_2_encode(d['password']))
-        d.addCallback(self._process_generated_password, args)
-        d.addErrback(self.errback)
-        try:
-            self._run_agent(d, commands.Generate, site=args.site, username=args.username)
-        except SystemExit as e:
-            return not e.code
-        else:
-            return True
+        results = self._run_agent(
+            commands.Generate, site=args.site, username=args.username, save_site=args.save)
+        password = python_2_encode(results['password'])
+        self._process_generated_password(password, args)
 
     @transform_args([
         ('override_config', jloads),
     ])
     def generate_action(self, args):
         "Generate a password."
-        if 'PASSACRE_AGENT' in os.environ:
-            if self._generate_from_agent(args):
-                return
-        password = self.prompt_password(args.confirm)
         if args.site is None:
             args.site = self.prompt('Site: ')
+        if 'PASSACRE_AGENT' in os.environ:
+            self._generate_from_agent(args)
+            return
+        password = self.prompt_password(args.confirm)
         password = self.config.generate_for_site(
             args.username, password, args.site, args.override_config)
         self._process_generated_password(password, args)
@@ -297,6 +292,15 @@ class Passacre(object):
         confirm_group.add_argument('-c', '--confirm', action='store_true',
                                    help='confirm prompted password')
 
+    def _fill_in_sites_from_agent(self, sites):
+        if 'PASSACRE_AGENT' not in os.environ:
+            return
+
+        from passacre.agent import commands
+        results = self._run_agent(commands.FetchSiteList)
+        for site in results['sites']:
+            sites.setdefault(site, {})
+
     def site_action(self, args):
         "Perform an action on a site in a config file."
 
@@ -310,6 +314,7 @@ class Passacre(object):
                     schema, ', '.join(sorted(sites_by_schema[schema], key=site_sort_key))))
             return
 
+        self._fill_in_sites_from_agent(sites)
         for site in sorted(sites, key=site_sort_key):
             site_config = sites[site]
             if 'schema-name' in site_config:
@@ -534,21 +539,13 @@ class Passacre(object):
                                help='confirm prompted password')
 
     def agent_unlock_action(self, args):
-        from twisted.internet import defer
         from passacre.agent import commands
-
         password = self.prompt_password(args.confirm)
-        d = defer.Deferred()
-        d.addErrback(self.errback)
-        self._run_agent(d, commands.Unlock, password=password)
+        self._run_agent(commands.Unlock, password=password)
 
     def agent_lock_action(self, args):
-        from twisted.internet import defer
         from passacre.agent import commands
-
-        d = defer.Deferred()
-        d.addErrback(self.errback)
-        self._run_agent(d, commands.Lock)
+        self._run_agent(commands.Lock)
 
 
     _features = [

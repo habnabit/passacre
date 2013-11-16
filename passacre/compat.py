@@ -26,6 +26,15 @@ else:  # pragma: nocover
     import argparse
 
 
+try:
+    from crochet import setup as crochet_setup, wait_for_reactor
+except ImportError:
+    def crochet_setup():
+        pass
+    def wait_for_reactor(f):
+        return f
+
+
 __all__ = [
-    'input', 'argparse', 'unichr', 'unicode', 'long',
+    'input', 'argparse', 'unichr', 'unicode', 'long', 'crochet_setup', 'wait_for_reactor',
 ]

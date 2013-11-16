@@ -3,6 +3,7 @@
 
 import json
 
+from passacre.compat import crochet_setup, wait_for_reactor
 from passacre import jsonmini
 
 
@@ -86,3 +87,11 @@ def jloads(s):
 
 def jdumps(val):
     return json.dumps(val, sort_keys=True)
+
+
+def lazily_wait_for_reactor(f):
+    f = wait_for_reactor(f)
+    def wrap(*a, **kw):
+        crochet_setup()
+        return f(*a, **kw)
+    return wrap
