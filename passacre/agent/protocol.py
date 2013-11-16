@@ -1,12 +1,11 @@
-import errno
 import json
 import os
 
 from twisted.internet import protocol
 from twisted.protocols import amp
+from twisted.python import log
 
 from passacre.agent import commands
-from passacre.application import is_likely_hashed_site
 
 
 try:
@@ -26,44 +25,35 @@ class PassacreAgentServerProtocol(amp.AMP):
         if self.factory.password is not None:
             raise commands.AgentUnlocked()
         self.factory.password = password
+        self.factory.load_sites()
         return {}
 
     @commands.Lock.responder
     def lock(self):
         if self.factory.password is None:
             raise commands.AgentLocked()
-        self.factory.password = self.factory.sites = None
+        self.factory.password = None
+        self.factory.sites = set()
         return {}
 
     @commands.Generate.responder
-    def generate(self, site, username=None, password=None):
+    def generate(self, site, username=None, password=None, save_site=False):
         if password is None:
             password = self.factory.password
         if password is None:
             raise commands.AgentLocked()
         generated = self.app.config.generate_for_site(
             username, password, site)
+        if save_site and self.factory.password is not None:
+            self.factory.sites.add(site)
+            self.factory.save_sites()
         return {'password': generated}
 
     @commands.FetchSiteList.responder
-    def fetch_site_list(self, force_disk_load=False):
-        if force_disk_load or self.factory.sites is None:
-            fobj = self.factory.sites_file()
-            try:
-                data = fobj.read()
-            except (OSError, IOError) as e:
-                if e.errno != errno.EEXIST:
-                    raise
-                else:
-                    self.factory.sites = []
-            else:
-                self.factory.sites = json.loads(data.decode())
-        return {'sites': self.factory.sites}
-
-    @commands.WriteSiteList.responder
-    def write_site_list(self, sites):
-        fobj = self.factory.sites_file()
-        fobj.write(json.dumps(sites).encode())
+    def fetch_site_list(self):
+        if self.factory.password is None:
+            raise commands.AgentLocked()
+        return {'sites': list(self.factory.sites)}
 
 
 class PassacreAgentServerFactory(protocol.Factory):
@@ -72,7 +62,7 @@ class PassacreAgentServerFactory(protocol.Factory):
     def __init__(self, app):
         self.app = app
         self.password = None
-        self.sites = None
+        self.sites = set()
 
     def build_box(self):
         if pencrypt is None:
@@ -85,6 +75,18 @@ class PassacreAgentServerFactory(protocol.Factory):
         return pencrypt.EncryptedFile(
             self.build_box(),
             os.path.expanduser('~/.config/passacre/sites'))
+
+    def load_sites(self):
+        try:
+            fobj = self.sites_file()
+            data = fobj.read()
+            self.sites.update(json.loads(data.decode()))
+        except Exception:
+            log.err(None, 'error loading sites file')
+
+    def save_sites(self):
+        fobj = self.sites_file()
+        fobj.write(json.dumps(list(self.sites)).encode())
 
     def buildProtocol(self, addr):
         return self.protocol(self, self.app)
