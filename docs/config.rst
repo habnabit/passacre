@@ -95,6 +95,14 @@ The number of iterations to use when hashing the site name. Defaults to the
 same value as ``iterations`` and has the same semantics.
 
 
+``site-list.auto-save``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+If this is set to ``true``, passacre acts as if ``passacre generate`` was
+always called with the ``-S`` flag. Calling ``passacre generate`` with the
+``-s`` flag still disables site list saving.
+
+
 Site options
 ------------
 
