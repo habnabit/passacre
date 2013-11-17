@@ -9,11 +9,10 @@ from passacre.generator import hash_site
 from passacre.jsonmini import unparse as jdumps
 from passacre.schema import multibase_of_schema
 from passacre.util import reify, dotify, nested_get, jloads, errormark
-from passacre import __version__, features, yaml2sqlite
+from passacre import __version__, completion, features, yaml2sqlite
 
 import atexit
 import collections
-import json
 from getpass import getpass
 import math
 import operator
@@ -56,7 +55,7 @@ def site_sort_key(site):
 
 def maybe_load_json(val):
     try:
-        return json.loads(val)
+        return jloads(val)
     except ValueError:
         return val
 
@@ -164,7 +163,8 @@ class Passacre(object):
         subparser.add_argument('path', nargs='?', default='~/.passacre.sqlite',
                                help='path of the config file to initialize (default: %(default)s)')
         subparser.add_argument('-y', '--from-yaml', type=argparse.FileType('rb'), metavar='YAML',
-                               help='optional input YAML config file to convert from')
+                               help='optional input YAML config file to convert from'
+        ).completer = completion.FilesCompleter()
 
     def init_action(self, args):
         import sqlite3
@@ -187,7 +187,8 @@ class Passacre(object):
 
     def generate_args(self, subparser):
         subparser.add_argument('site', nargs='?',
-                               help='site for which to generate a password')
+                               help='site for which to generate a password'
+        ).completer = completion.SitesCompleter()
         subparser.add_argument('-o', '--override-config', metavar='CONFIG',
                                help='a JSON dictionary of config values to override')
         subparser.add_argument('-u', '--username',
@@ -299,6 +300,8 @@ class Passacre(object):
     def site_args(self, subparser):
         subparser.add_argument('--by-schema', action='store_true',
                                help='list sites organized by schema')
+        subparser.add_argument('--omit-hashed', action='store_true',
+                               help="don't list hashed sites")
 
         hash_group = subparser.add_argument_group('for {add,remove,set-schema}')
         hash_group.add_argument('-a', '--hashed', action='store_true',
@@ -321,6 +324,9 @@ class Passacre(object):
         "Perform an action on a site in a config file."
 
         sites = self.config.get_all_sites()
+        if args.omit_hashed:
+            sites = dict((name, config) for name, config in sites.items()
+                         if not is_likely_hashed_site(name))
         if args.by_schema:
             sites_by_schema = collections.defaultdict(list)
             for site, site_config in sites.items():
@@ -347,9 +353,11 @@ class Passacre(object):
 
     def site_hash_args(self, subparser):
         subparser.add_argument('site', nargs='?',
-                               help='the site to hash')
+                               help='the site to hash'
+        ).completer = completion.SitesCompleter()
         subparser.add_argument('-m', '--method',
-                               help='which hash method to use')
+                               help='which hash method to use'
+        ).completer = completion.HashMethodsCompleter()
         subparser.add_argument('-n', '--no-newline', action='store_true',
                                help="don't write a newline after the hash")
         subparser.add_argument('-c', '--confirm', action='store_true',
@@ -374,7 +382,8 @@ class Passacre(object):
 
     def site_hash_all_args(self, subparser):
         subparser.add_argument('-m', '--method',
-                               help='which hash method to use')
+                               help='which hash method to use'
+        ).completer = completion.HashMethodsCompleter()
         subparser.add_argument('-c', '--confirm', action='store_true',
                                help='confirm prompted password')
 
@@ -394,7 +403,8 @@ class Passacre(object):
 
     def site_add_args(self, subparser):
         subparser.add_argument('site', help='the name of the site')
-        subparser.add_argument('schema', help='the schema to use')
+        subparser.add_argument('schema', help='the schema to use'
+        ).completer = completion.SchemataCompleter()
         subparser.add_argument('-N', '--new-schema', metavar='VALUE',
                                help='a schema value for the new schema')
 
@@ -411,7 +421,8 @@ class Passacre(object):
 
 
     def site_remove_args(self, subparser):
-        subparser.add_argument('site', help='the name of the site to remove')
+        subparser.add_argument('site', help='the name of the site to remove'
+        ).completer = completion.SitesCompleter()
 
     @needs_mutable_config
     def site_remove_action(self, args):
@@ -422,8 +433,10 @@ class Passacre(object):
 
 
     def site_set_schema_args(self, subparser):
-        subparser.add_argument('site', help='the name of the site to update')
-        subparser.add_argument('schema', help='the schema to use')
+        subparser.add_argument('site', help='the name of the site to update'
+        ).completer = completion.SitesCompleter()
+        subparser.add_argument('schema', help='the schema to use'
+        ).completer = completion.SchemataCompleter()
 
     @needs_mutable_config
     def site_set_schema_action(self, args):
@@ -433,7 +446,8 @@ class Passacre(object):
 
 
     def site_set_name_args(self, subparser):
-        subparser.add_argument('oldname', help='the name of the site to update')
+        subparser.add_argument('oldname', help='the name of the site to update'
+        ).completer = completion.SitesCompleter()
         subparser.add_argument('newname', help='the new name for the site')
 
     @needs_mutable_config
@@ -469,7 +483,8 @@ class Passacre(object):
 
 
     def schema_remove_args(self, subparser):
-        subparser.add_argument('name', help='the name of the schema to remove')
+        subparser.add_argument('name', help='the name of the schema to remove'
+        ).completer = completion.SchemataCompleter()
 
     @needs_mutable_config
     def schema_remove_action(self, args):
@@ -478,7 +493,8 @@ class Passacre(object):
 
 
     def schema_set_name_args(self, subparser):
-        subparser.add_argument('oldname', help='the schema to set the name of')
+        subparser.add_argument('oldname', help='the schema to set the name of'
+        ).completer = completion.SchemataCompleter()
         subparser.add_argument('newname', help='the new name of the schema')
 
     @needs_mutable_config
@@ -488,7 +504,8 @@ class Passacre(object):
 
 
     def schema_set_value_args(self, subparser):
-        subparser.add_argument('name', help='the name of the schema')
+        subparser.add_argument('name', help='the name of the schema'
+        ).completer = completion.SchemataCompleter()
         subparser.add_argument('value', help='the new value for the schema')
 
     @transform_args([
@@ -512,7 +529,8 @@ class Passacre(object):
 
     def config_args(self, subparser):
         subparser.add_argument('-s', '--site',
-                               help='the site to operate on or omitted for global config')
+                               help='the site to operate on or omitted for global config'
+        ).completer = completion.SitesCompleter()
         self._base_config_args(subparser)
 
     def config_action(self, args):
@@ -531,7 +549,8 @@ class Passacre(object):
         self.config.set_config(args.site, args.name, maybe_load_json(args.value))
 
     def site_config_args(self, subparser):
-        subparser.add_argument('site', help='the site to operate on')
+        subparser.add_argument('site', help='the site to operate on'
+        ).completer = completion.SitesCompleter()
         self._base_config_args(subparser)
 
     site_config_action = config_action

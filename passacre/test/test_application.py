@@ -384,6 +384,31 @@ schwab.com: schema_1
 still.further.example.com: schema_4
 """
 
+def test_site_yaml_no_hashed(app, capsys):
+    app.load_config(datadir.join('keccak.yaml').open('rb'))
+    out = read_out(capsys, app, 'site', '--omit-hashed')
+    assert out == """becu.org
+default
+example.com
+fhcrc.org
+fidelity.com
+further.example.com
+schwab.com
+still.further.example.com
+"""
+
+def test_site_sqlite_no_hashed(app, capsys):
+    out = read_out(capsys, app, 'site', '--omit-hashed')
+    assert out == """becu.org: schema_3
+default: schema_5
+example.com: schema_0
+fhcrc.org: schema_5
+fidelity.com: schema_6
+further.example.com: schema_2
+schwab.com: schema_1
+still.further.example.com: schema_4
+"""
+
 def test_site_sqlite_by_schema(app, capsys):
     out = read_out(capsys, app, 'site', '--by-schema')
     assert out == """schema_0: example.com

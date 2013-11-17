@@ -7,7 +7,7 @@ elements = (value:first (ws ',' value)*:rest -> [first] + rest) | -> []
 value = ws (string | number | array
            | 'true' -> True
            | 'false' -> False
-           | ('null' | '~') -> None
+           | ('null' | '%') -> None
            | identifier | object)
 identifier = <(letterOrDigit | '-' | '_')+> ^(identifier)
 nonControl = anything:x ?(unicodedata.category(x) != 'Cc') -> x
