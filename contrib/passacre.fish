@@ -32,6 +32,16 @@ function __fish_passacre_schemata
 end
 
     
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent lock ' -s h -l help -d 'show this help message and exit'
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent run ' -s h -l help -d 'show this help message and exit'
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent run '   -a '()'
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent run '   -d 'the port to listen on'
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent unlock ' -s h -l help -d 'show this help message and exit'
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent unlock ' -s c -l confirm -d 'confirm prompted password'
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent ' -s h -l help -d 'show this help message and exit'
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent' -a 'lock' -d 'lock the passacre agent'
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent' -a 'run' -d 'run the passacre agent'
+complete -f -c passacre -n '__fish_passacre_using_command passacre agent' -a 'unlock' -d 'unlock the passacre agent'
 complete -f -c passacre -n '__fish_passacre_using_command passacre config ' -s h -l help -d 'show this help message and exit'
 complete -f -c passacre -n '__fish_passacre_using_command passacre config ' -s s -l site -a '(__fish_passacre_sites)'
 complete -f -c passacre -n '__fish_passacre_using_command passacre config ' -s s -l site -d 'the site to operate on or omitted for global config'
@@ -52,6 +62,8 @@ complete -f -c passacre -n '__fish_passacre_using_command passacre generate ' -s
 complete -f -c passacre -n '__fish_passacre_using_command passacre generate ' -s u -l username -d 'username for the site'
 complete -f -c passacre -n '__fish_passacre_using_command passacre generate ' -s n -l no-newline -d "don't write a newline after the password"
 complete -f -c passacre -n '__fish_passacre_using_command passacre generate ' -s c -l confirm -d 'confirm prompted password'
+complete -f -c passacre -n '__fish_passacre_using_command passacre generate ' -s S -l save -d 'save the site name to the site list (only works with passacre agent)'
+complete -f -c passacre -n '__fish_passacre_using_command passacre generate ' -s s -l no-save -d 'do not save the site name to the site list'
 complete -f -c passacre -n '__fish_passacre_using_command passacre generate ' -s C -l copy -d 'put the generated password on the clipboard'
 complete -f -c passacre -n '__fish_passacre_using_command passacre generate ' -s w -l timeout -a '()'
 complete -f -c passacre -n '__fish_passacre_using_command passacre generate ' -s w -l timeout -d 'clear the clipboard after N seconds'
@@ -141,6 +153,7 @@ complete -f -c passacre -n '__fish_passacre_using_command passacre ' -s V -l ver
 complete -f -c passacre -n '__fish_passacre_using_command passacre ' -s v -l verbose -d 'increase output on errors'
 complete -f -c passacre -n '__fish_passacre_using_command passacre ' -s f -l config -a '()'
 complete -f -c passacre -n '__fish_passacre_using_command passacre ' -s f -l config -d 'specify a config file to use'
+complete -f -c passacre -n '__fish_passacre_using_command passacre' -a 'agent' -d 'commands for passacre-agent'
 complete -f -c passacre -n '__fish_passacre_using_command passacre' -a 'config' -d 'view/change global configuration'
 complete -f -c passacre -n '__fish_passacre_using_command passacre' -a 'entropy' -d "display each site's password entropy"
 complete -f -c passacre -n '__fish_passacre_using_command passacre' -a 'generate' -d 'generate a password'

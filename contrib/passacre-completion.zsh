@@ -1,5 +1,41 @@
 #compdef passacre
 
+_passacre_subcommand_agent () {
+    
+
+    if [[ $CURRENT = 1 ]]; then
+        local _passacre_commands
+        _passacre_commands=('lock:lock the passacre agent' 'run:run the passacre agent' 'unlock:unlock the passacre agent')
+        _describe 'subcommand' _passacre_commands
+    fi
+    case $line[1] in
+    
+
+        (lock)
+            _arguments -S \
+                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' \
+                && return 0
+            ;;
+        
+
+        (run)
+            _arguments -S \
+                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':port: ' \
+                && return 0
+            ;;
+        
+
+        (unlock)
+            _arguments -S \
+                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
+                && return 0
+            ;;
+        
+
+    esac
+}
+    
+
 _passacre_subcommand_schema () {
     
 
@@ -112,11 +148,18 @@ _passacre_subcommand () {
 
     if [[ $CURRENT = 1 ]]; then
         local _passacre_commands
-        _passacre_commands=('config:view/change global configuration' "entropy:display each site's password entropy" 'generate:generate a password' 'info:information about the passacre environment' 'init:initialize an sqlite config' 'schema:actions on schemata' 'site:actions on sites')
+        _passacre_commands=('agent:commands for passacre-agent' 'config:view/change global configuration' "entropy:display each site's password entropy" 'generate:generate a password' 'info:information about the passacre environment' 'init:initialize an sqlite config' 'schema:actions on schemata' 'site:actions on sites')
         _describe 'subcommand' _passacre_commands
     fi
     case $line[1] in
     
+
+        (agent)
+            _arguments -S \
+                '*::site cmd:_passacre_subcommand_agent' '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' \
+                && return 0
+            ;;
+        
 
         (config)
             _arguments -S \
@@ -134,7 +177,7 @@ _passacre_subcommand () {
 
         (generate)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':site:_passacre_sites' '(-o)--override-config=[a JSON dictionary of config values to override]:CONFIG: ' '(--override-config)-o=[a JSON dictionary of config values to override]:CONFIG: ' '(--username)-u=[username for the site]: : ' '(-u)--username=[username for the site]: : ' "(-n)--no-newline[don't write a newline after the password]" "(--no-newline)-n[don't write a newline after the password]" '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' '(--copy)-C[put the generated password on the clipboard]' '(-C)--copy[put the generated password on the clipboard]' '(--timeout)-w=[clear the clipboard after N seconds]:N: ' '(-w)--timeout=[clear the clipboard after N seconds]:N: ' \
+                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':site:_passacre_sites' '(-o)--override-config=[a JSON dictionary of config values to override]:CONFIG: ' '(--override-config)-o=[a JSON dictionary of config values to override]:CONFIG: ' '(--username)-u=[username for the site]: : ' '(-u)--username=[username for the site]: : ' "(-n)--no-newline[don't write a newline after the password]" "(--no-newline)-n[don't write a newline after the password]" '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' '(--save)-S[save the site name to the site list (only works with passacre agent)]' '(-S)--save[save the site name to the site list (only works with passacre agent)]' '(-s)--no-save[do not save the site name to the site list]' '(--no-save)-s[do not save the site name to the site list]' '(--copy)-C[put the generated password on the clipboard]' '(-C)--copy[put the generated password on the clipboard]' '(--timeout)-w=[clear the clipboard after N seconds]:N: ' '(-w)--timeout=[clear the clipboard after N seconds]:N: ' \
                 && return 0
             ;;
         
