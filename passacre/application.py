@@ -8,7 +8,7 @@ from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
 from passacre.jsonmini import unparse as jdumps
 from passacre.schema import multibase_of_schema
-from passacre.util import reify, dotify, nested_get, jloads
+from passacre.util import reify, dotify, nested_get, jloads, errormark
 from passacre import __version__, features, yaml2sqlite
 
 import atexit
@@ -147,6 +147,7 @@ class Passacre(object):
 
 
     @features.agent.check
+    @errormark('communicating with the passacre agent')
     def _run_agent(self, command, **args):
         from twisted.internet import endpoints
         from passacre.agent.main import run_amp_command
@@ -215,8 +216,12 @@ class Passacre(object):
         try:
             results = self._run_agent(
                 commands.Generate, site=args.site, username=args.username, save_site=args.save)
-        except commands.AgentLocked:
-            print('agent locked; falling back', file=sys.stderr)
+        except Exception:
+            try:
+                self.excepthook(*sys.exc_info())
+            except SystemExit:
+                pass
+            print('falling back on no agent', file=sys.stderr)
             return False
         password = python_2_encode(results['password'])
         self._process_generated_password(password, args)
