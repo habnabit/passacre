@@ -42,6 +42,7 @@ class PassacreAgentServerProtocol(amp.AMP):
             password = self.factory.password
         if password is None:
             raise commands.AgentLocked()
+        self.app.load_config()
         generated = self.app.config.generate_for_site(
             username, password, site)
         if save_site and self.factory.password is not None:
@@ -63,6 +64,7 @@ class PassacreAgentServerFactory(protocol.Factory):
         self.app = app
         self.password = None
         self.sites = set()
+        self.sites_file = None
 
     def build_box(self):
         if pencrypt is None:
@@ -71,22 +73,23 @@ class PassacreAgentServerFactory(protocol.Factory):
             raise commands.AgentLocked()
         return pencrypt.box_of_config_and_password(self.app.config, self.password)
 
-    def sites_file(self):
-        return pencrypt.EncryptedFile(
+    def make_sites_file(self):
+        if self.sites_file is not None:
+            return
+        self.sites_file = pencrypt.EncryptedFile(
             self.build_box(),
             os.path.expanduser('~/.config/passacre/sites'))
 
     def load_sites(self):
+        self.make_sites_file()
         try:
-            fobj = self.sites_file()
-            data = fobj.read()
+            data = self.sites_file.read()
             self.sites.update(json.loads(data.decode()))
         except Exception:
             log.err(None, 'error loading sites file')
 
     def save_sites(self):
-        fobj = self.sites_file()
-        fobj.write(json.dumps(list(self.sites)).encode())
+        self.sites_file.write(json.dumps(list(self.sites)).encode())
 
     def buildProtocol(self, addr):
         return self.protocol(self, self.app)
