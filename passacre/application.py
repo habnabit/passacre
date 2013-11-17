@@ -209,6 +209,9 @@ class Passacre(object):
 
     def _generate_from_agent(self, args):
         from passacre.agent import commands
+        if args.save is None:
+            site_list = self.config.global_config.get('site-list', {})
+            args.save = site_list.get('auto-save')
         try:
             results = self._run_agent(
                 commands.Generate, site=args.site, username=args.username, save_site=args.save)
