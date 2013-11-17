@@ -195,9 +195,11 @@ class Passacre(object):
                                help="don't write a newline after the password")
         subparser.add_argument('-c', '--confirm', action='store_true',
                                help='confirm prompted password')
-        subparser.add_argument('-s', '--save', action='store_true',
+        subparser.add_argument('-S', '--save', action='store_true', default=None,
                                help='save the site name to the site list (only works '
                                'with passacre agent)')
+        subparser.add_argument('-s', '--no-save', action='store_false', dest='save',
+                               help='do not save the site name to the site list')
         if self.xerox is not None:
             subparser.add_argument('-C', '--copy', action='store_true',
                                    help='put the generated password on the clipboard')
@@ -207,10 +209,15 @@ class Passacre(object):
 
     def _generate_from_agent(self, args):
         from passacre.agent import commands
-        results = self._run_agent(
-            commands.Generate, site=args.site, username=args.username, save_site=args.save)
+        try:
+            results = self._run_agent(
+                commands.Generate, site=args.site, username=args.username, save_site=args.save)
+        except commands.AgentLocked:
+            print('agent locked; falling back', file=sys.stderr)
+            return False
         password = python_2_encode(results['password'])
         self._process_generated_password(password, args)
+        return True
 
     @transform_args([
         ('override_config', jloads),
@@ -220,8 +227,8 @@ class Passacre(object):
         if args.site is None:
             args.site = self.prompt('Site: ')
         if 'PASSACRE_AGENT' in os.environ:
-            self._generate_from_agent(args)
-            return
+            if self._generate_from_agent(args):
+                return
         password = self.prompt_password(args.confirm)
         password = self.config.generate_for_site(
             args.username, password, args.site, args.override_config)
