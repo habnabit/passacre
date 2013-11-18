@@ -10,7 +10,7 @@ if sys.version_info < (3,):  # pragma: nocover
         return s.encode()
     def python_3_encode(s):
         return s
-else:
+else:  # pragma: nocover
     input = input
     unichr = chr
     unicode = str
@@ -28,7 +28,7 @@ else:  # pragma: nocover
 
 try:
     from crochet import setup as crochet_setup, wait_for_reactor
-except ImportError:
+except ImportError:  # pragma: nocover
     def crochet_setup():
         pass
     def wait_for_reactor(f):

@@ -643,10 +643,6 @@ class Passacre(object):
             command, ret = next_command, '%s_%s' % (ret, subcommand.replace('-', '_'))
         return ret
 
-    def errback(self, failure):
-        print('an error occurred communicating with the passacre agent', file=sys.stderr)
-        self.excepthook(failure.type, failure.value, failure.getTracebackObject())
-
     def excepthook(self, type_, value, tb):
         errormark = getattr(value, '_errormark', None)
         exitcode = 1
