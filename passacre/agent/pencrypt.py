@@ -49,8 +49,7 @@ class EncryptedFile(object):
             outfile.write(out.ciphertext)
 
 
-def box_of_config_and_password(config, password):
+def box_of_config_and_password(config, password, boxtype=secret.SecretBox):
     site_config = config.get_site('pencrypt', password)
     prng = generator.build_prng(None, password, 'pencrypt', site_config)
-    box = secret.SecretBox(pack_bytes(prng.getrandbits(256), 32))
-    return box
+    return boxtype(pack_bytes(prng.getrandbits(256), 32))
