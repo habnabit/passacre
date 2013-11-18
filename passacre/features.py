@@ -1,3 +1,6 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 class FeatureUnusable(Exception):
     def __init__(self, feature):
         self.feature = feature

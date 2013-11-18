@@ -1,3 +1,6 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 from __future__ import print_function
 
 from passacre import _argparse as argparse
