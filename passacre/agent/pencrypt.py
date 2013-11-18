@@ -3,9 +3,12 @@
 
 import os
 
-from nacl import secret
-from passacre import generator
+try:
+    from nacl.secret import SecretBox
+except ImportError:
+    SecretBox = None
 
+from passacre import generator
 from passacre.compat import iterbytes
 
 
@@ -52,7 +55,7 @@ class EncryptedFile(object):
             outfile.write(out.ciphertext)
 
 
-def box_of_config_and_password(config, password, boxtype=secret.SecretBox):
+def box_of_config_and_password(config, password, boxtype=SecretBox):
     site_config = config.get_site('pencrypt', password)
     prng = generator.build_prng(None, password, 'pencrypt', site_config)
     return boxtype(pack_bytes(prng.getrandbits(256), 32))

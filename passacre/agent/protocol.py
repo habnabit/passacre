@@ -8,13 +8,7 @@ from twisted.internet import protocol
 from twisted.protocols import amp
 from twisted.python import log
 
-from passacre.agent import commands
-
-
-try:
-    from passacre.agent import pencrypt
-except ImportError:
-    pencrypt = None
+from passacre.agent import commands, pencrypt
 
 
 class PassacreAgentServerProtocol(amp.AMP):
@@ -82,7 +76,7 @@ class PassacreAgentServerFactory(protocol.Factory):
             os.path.expanduser('~/.config/passacre/sites'))
 
     def load_sites(self):
-        if pencrypt is None:
+        if pencrypt.SecretBox is None:
             return
         self.make_sites_file()
         try:
