@@ -54,5 +54,6 @@ agent = Feature(
     'passacre agent support',
     ('twisted.protocols.amp', 'Twisted'),
     ('crochet', 'crochet'))
+site_list = Feature('site list saving', ('nacl', 'pynacl'))
 
 features = Feature.features
