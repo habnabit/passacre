@@ -1,3 +1,6 @@
+# Copyright (c) 2008-2012 Allen Short, Waldemar Kornewald
+# See COPYING for details.
+
 try:
     basestring
 except NameError:
