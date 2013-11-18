@@ -67,8 +67,6 @@ class PassacreAgentServerFactory(protocol.Factory):
         self.sites_file = None
 
     def build_box(self):
-        if pencrypt is None:
-            raise commands.SiteListUnavailable()
         if self.password is None:
             raise commands.AgentLocked()
         return pencrypt.box_of_config_and_password(self.app.config, self.password)
@@ -81,6 +79,8 @@ class PassacreAgentServerFactory(protocol.Factory):
             os.path.expanduser('~/.config/passacre/sites'))
 
     def load_sites(self):
+        if pencrypt is None:
+            return
         self.make_sites_file()
         try:
             data = self.sites_file.read()
