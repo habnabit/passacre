@@ -90,6 +90,7 @@ class Passacre(object):
     _prompt_password = staticmethod(prompt_password)
     sleep = staticmethod(time.sleep)
     _load_config = staticmethod(load_config)
+    environ = os.environ
 
     _config = _config_file = None
 
@@ -151,9 +152,9 @@ class Passacre(object):
         from twisted.internet import endpoints
         from passacre.agent.main import run_amp_command
 
-        if 'PASSACRE_AGENT' not in os.environ:
+        if 'PASSACRE_AGENT' not in self.environ:
             raise ValueError("'PASSACRE_AGENT' is not set")
-        description = os.environ['PASSACRE_AGENT']
+        description = self.environ['PASSACRE_AGENT']
         if description.startswith('/'):
             description = 'unix:' + endpoints.quoteStringArgument(description)
         return run_amp_command(description, command, args)
@@ -235,7 +236,7 @@ class Passacre(object):
         "Generate a password."
         if args.site is None:
             args.site = self.prompt('Site: ')
-        if 'PASSACRE_AGENT' in os.environ:
+        if 'PASSACRE_AGENT' in self.environ:
             if self._generate_from_agent(args):
                 return
         password = self.prompt_password(args.confirm)
@@ -312,7 +313,7 @@ class Passacre(object):
                                    help='confirm prompted password')
 
     def _fill_in_sites_from_agent(self, sites):
-        if 'PASSACRE_AGENT' not in os.environ:
+        if 'PASSACRE_AGENT' not in self.environ:
             return
 
         from passacre.agent import commands

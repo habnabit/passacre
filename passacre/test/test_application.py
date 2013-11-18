@@ -14,6 +14,12 @@ from passacre.test.util import excinfo_arg_0
 datadir = py.path.local(__file__).dirpath('data')
 
 
+def create_application():
+    app = application.Passacre()
+    app.environ = {}
+    return app
+
+
 def fake_open(path, mode):
     if 'fail' in path:
         raise IOError()
@@ -127,7 +133,7 @@ class ApplicationTestCaseMixin(object):
 
     def setUp(self):
         datadir.join(self.config_dir).chdir()
-        self.app = application.Passacre()
+        self.app = create_application()
         _load_config = self.app.load_config
         self.app.load_config = lambda f=None: _load_config(f, expanduser=fake_expanduser)
         self.confirmed_password = False
@@ -281,7 +287,7 @@ class SkeinSqliteTestCase(SkeinTestCaseMixin, SqliteTestCaseMixin, unittest.Test
 
 @pytest.fixture
 def app():
-    app = application.Passacre()
+    app = create_application()
     app.load_config(datadir.join('keccak.sqlite').open('rb'))
     return app
 
@@ -289,7 +295,7 @@ def app():
 def init_app(app, tmpdir):
     dbpath = tmpdir.join('test.db').strpath
     app.main(['init', dbpath])
-    return dbpath, application.Passacre()
+    return dbpath, create_application()
 
 def test_init_config(init_app, capsys):
     dbpath, app = init_app
@@ -309,11 +315,11 @@ def test_init_sites(init_app, capsys):
 
 @pytest.fixture
 def yaml2sqlite_app(tmpdir):
-    tmp_app = application.Passacre()
+    tmp_app = create_application()
     dbpath = tmpdir.join('test.db')
     tmp_app.main(
         ['init', '-y', datadir.join('keccak.yaml').strpath, dbpath.strpath])
-    app = application.Passacre()
+    app = create_application()
     app.load_config(dbpath.open('rb'))
     return app
 
