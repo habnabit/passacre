@@ -20,11 +20,13 @@ def server_main(*args):
     task.react(_twisted_server_main, args)
 
 
-@lazily_wait_for_reactor
-def run_amp_command(description, command, args):
-    from twisted.internet import reactor
+def _run_amp_command(description, command, args, reactor=None):
+    if reactor is None:
+        from twisted.internet import reactor
     endpoint = endpoints.clientFromString(reactor, description)
     amp = AMP()
     d = endpoints.connectProtocol(endpoint, amp)
     d.addCallback(lambda ign: amp.callRemote(command, **args))
     return d
+
+run_amp_command = lazily_wait_for_reactor(_run_amp_command)
