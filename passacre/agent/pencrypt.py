@@ -3,23 +3,27 @@ import os
 from nacl import secret
 from passacre import generator
 
+from passacre.compat import iterbytes
+
 
 def pack_bytes(x, pad):
-    ret = []
+    ret = bytearray()
     while x:
-        ret.append(chr(x % 256))
+        ret.append(x % 256)
         x //= 256
-    return ''.join(ret).ljust(pad, '\x00')
+    return bytes(ret).ljust(pad, b'\x00')
 
 
-def pack_nonce(nonce):
-    return pack_bytes(nonce, 12) + os.urandom(12)
+def pack_nonce(nonce, urandom=os.urandom):
+    if nonce >= 256 ** 12:
+        raise ValueError('nonce too large', nonce)
+    return pack_bytes(nonce, 12) + urandom(12)
 
 
 def unpack_nonce(nonce):
     ret = 0
-    for c in reversed(nonce[:12]):
-        ret = ord(c) | (ret << 8)
+    for c in iterbytes(reversed(nonce[:12])):
+        ret = c | (ret << 8)
     return ret
 
 
