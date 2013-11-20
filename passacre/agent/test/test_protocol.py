@@ -18,7 +18,7 @@ def proto(mutable_app, tmpdir):
         app.load_config(tmpdir.join('keccak.sqlite').open('rb'))
         return app
     fac = protocol.PassacreAgentServerFactory(make_app)
-    fac.site_list_path = datadir.join('site-list').strpath
+    fac.site_list_usable = False
     return fac.buildProtocol(None)
 
 

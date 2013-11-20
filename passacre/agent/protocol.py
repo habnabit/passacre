@@ -77,7 +77,7 @@ class PassacreAgentServerFactory(protocol.Factory):
             os.path.expanduser(self.site_list_path))
 
     def load_sites(self):
-        if self.site_list_usable:
+        if not self.site_list_usable:
             return
         self.make_sites_file()
         try:
