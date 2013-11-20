@@ -1,6 +1,7 @@
 import pytest
 
-from passacre.test.test_application import create_application, app, mutable_app, datadir
+from passacre.agent import pencrypt
+from passacre.test.test_application import create_application, app, mutable_app
 
 
 _shush_pyflakes = [app, mutable_app]
@@ -8,6 +9,7 @@ _shush_pyflakes = [app, mutable_app]
 
 protocol = pytest.importorskip('passacre.agent.protocol')
 commands = pytest.importorskip('passacre.agent.commands')
+secret = pytest.importorskip('nacl.secret')
 unittest = pytest.importorskip('twisted.trial.unittest')
 
 
@@ -71,5 +73,46 @@ def test_generate_after_global_config_update(mutable_app, tmpdir):
         'password': 'abey abeltree abhorring abeyant'}
 
 
+@pytest.fixture
+def site_list(tmpdir, proto):
+    site_list = tmpdir.join('sites')
+    proto.factory.site_list_usable = True
+    proto.factory.site_list_path = site_list.strpath
+    return site_list
+
+@pytest.fixture
+def box(proto):
+    box = secret.SecretBox('\x00' * 32)
+    proto.box_of_config_and_password = lambda *a: box
+    return box
+
+def test_loading_sites(box, site_list, proto):
+    ef = pencrypt.EncryptedFile(box, site_list.strpath)
+    ef.write('["list1.example.com", "list2.example.com"]')
+    proto.unlock('passacre')
+    assert proto.factory.sites == set(['list1.example.com', 'list2.example.com'])
+
+def test_saving_sites(box, site_list, proto):
+    ef = pencrypt.EncryptedFile(box, site_list.strpath)
+    proto.unlock('passacre')
+    proto.generate('list1.example.com', save_site=True)
+    assert ef.read() == '["list1.example.com"]'
+
+def test_saving_sites_fails_on_decryption_failures(box, site_list, proto):
+    with site_list.open('wb') as outfile:
+        outfile.write('\x00' * 64)
+    proto.unlock('passacre')
+    pytest.raises(commands.SiteListFailedDecryption,
+                  proto.generate, 'list1.example.com', save_site=True)
+
+
 class LoggingTests(unittest.TestCase):
-    pass
+    @pytest.fixture(autouse=True)
+    def init_proto(self, proto):
+        self.proto = proto
+
+    def test_errors_get_logged(self):
+        self.proto.factory.site_list_usable = True
+        self.proto.factory.site_list_path = 'non/extant/path'
+        self.proto.unlock('passacre')
+        assert len(self.flushLoggedErrors(IOError)) == 1

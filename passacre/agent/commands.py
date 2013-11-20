@@ -12,6 +12,10 @@ class AgentUnlocked(Exception):
     pass
 
 
+class SiteListFailedDecryption(Exception):
+    pass
+
+
 class Unlock(amp.Command):
     arguments = [
         ('password', amp.Unicode()),
@@ -36,7 +40,10 @@ class Generate(amp.Command):
     response = [
         ('password', amp.Unicode()),
     ]
-    errors = {AgentLocked: 'AGENT_LOCKED'}
+    errors = {
+        AgentLocked: 'AGENT_LOCKED',
+        SiteListFailedDecryption: 'SITE_LIST_FAILED_DECRYPTION',
+    }
 
 
 class FetchSiteList(amp.Command):
