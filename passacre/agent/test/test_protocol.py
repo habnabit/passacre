@@ -33,9 +33,17 @@ def test_lock_while_locked(proto):
 def test_fetch_site_list_while_locked(proto):
     pytest.raises(commands.AgentLocked, proto.fetch_site_list)
 
+def test_build_box_locked(proto):
+    pytest.raises(commands.AgentLocked, proto.build_box)
+
 def test_unlock_while_unlocked(proto):
     proto.unlock('passacre')
     pytest.raises(commands.AgentUnlocked, proto.unlock, 'passacre')
+
+def test_lock(proto):
+    proto.unlock('passacre')
+    proto.lock()
+    pytest.raises(commands.AgentLocked, proto.lock)
 
 def test_generate(proto):
     proto.unlock('passacre')
@@ -92,10 +100,22 @@ def test_loading_sites(box, site_list, proto):
     proto.unlock('passacre')
     assert proto.factory.sites == set(['list1.example.com', 'list2.example.com'])
 
+def test_fetching_sites(box, site_list, proto):
+    ef = pencrypt.EncryptedFile(box, site_list.strpath)
+    ef.write('["list1.example.com"]')
+    proto.unlock('passacre')
+    assert proto.fetch_site_list() == {'sites': ['list1.example.com']}
+
 def test_saving_sites(box, site_list, proto):
     ef = pencrypt.EncryptedFile(box, site_list.strpath)
     proto.unlock('passacre')
     proto.generate('list1.example.com', save_site=True)
+    assert ef.read() == '["list1.example.com"]'
+
+def test_saving_sites_fails_silently_with_locked_agent(box, site_list, proto):
+    ef = pencrypt.EncryptedFile(box, site_list.strpath)
+    ef.write('["list1.example.com"]')
+    proto.generate('list2.example.com', password='passacre', save_site=True)
     assert ef.read() == '["list1.example.com"]'
 
 def test_saving_sites_fails_on_decryption_failures(box, site_list, proto):
@@ -104,6 +124,13 @@ def test_saving_sites_fails_on_decryption_failures(box, site_list, proto):
     proto.unlock('passacre')
     pytest.raises(commands.SiteListFailedDecryption,
                   proto.generate, 'list1.example.com', save_site=True)
+
+def test_lock_clears_sites(box, site_list, proto):
+    ef = pencrypt.EncryptedFile(box, site_list.strpath)
+    ef.write('["list1.example.com"]')
+    proto.unlock('passacre')
+    proto.lock()
+    assert proto.factory.sites == set()
 
 
 class LoggingTests(unittest.TestCase):
