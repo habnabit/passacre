@@ -3,8 +3,8 @@
 Password schemata
 =================
 
-Schemata are represented as nested lists with the following grammar. ``items``
-is the root production.
+Schemata are represented as nested lists with the following grammar.
+``items`` is the root production.
 
 .. raw:: html
 
@@ -25,21 +25,20 @@ is the root production.
 Definitions
 -----------
 
-+----------------+---------------------------------------------------+
-|Name            |Meaning                                            |
-+================+===================================================+
-|"word"          |the literal string ``"word"``                      |
-+----------------+---------------------------------------------------+
-|delimiter       |a string which will be used between every item in  |
-|                |this counted group                                 |
-+----------------+---------------------------------------------------+
-|count           |an integer of the number of times to repeat the    |
-|                |items in this group                                |
-+----------------+---------------------------------------------------+
-|character class |one of ``printable``, ``alphanumeric``, ``digit``, |
-|                |``letter``, ``uppercase``, ``lowercase``, or       |
-|                |``symbols`` corresponding to different ranges of   |
-|                |ASCII characters                                   |
-+----------------+---------------------------------------------------+
-|characters      |a string representing a set of characters          |
-+----------------+---------------------------------------------------+
++----------------+------------------------------------------------------------+
+|Name            |Meaning                                                     |
++================+============================================================+
+|"word"          |the literal string ``"word"``                               |
++----------------+------------------------------------------------------------+
+|delimiter       |a string which will be used between every item in this      |
+|                |counted group                                               |
++----------------+------------------------------------------------------------+
+|count           |an integer of the number of times to repeat the items in    |
+|                |this group                                                  |
++----------------+------------------------------------------------------------+
+|character class |one of ``printable``, ``alphanumeric``, ``digit``,          |
+|                |``letter``, ``uppercase``, ``lowercase``, or ``symbols``    |
+|                |corresponding to different ranges of ASCII characters       |
++----------------+------------------------------------------------------------+
+|characters      |a string representing a set of characters                   |
++----------------+------------------------------------------------------------+
