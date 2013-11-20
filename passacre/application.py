@@ -146,18 +146,25 @@ class Passacre(object):
         return self._prompt_password(confirm)
 
 
+    try:
+        from passacre.agent.main import run_amp_command as _run_amp_command
+    except ImportError:
+        pass
+    else:
+        _run_amp_command = staticmethod(_run_amp_command)
+
+
     @features.agent.check
     @errormark('communicating with the passacre agent')
     def _run_agent(self, command, **args):
         from twisted.internet import endpoints
-        from passacre.agent.main import run_amp_command
 
         if 'PASSACRE_AGENT' not in self.environ:
             raise ValueError("'PASSACRE_AGENT' is not set")
         description = self.environ['PASSACRE_AGENT']
         if description.startswith('/'):
             description = 'unix:' + endpoints.quoteStringArgument(description)
-        return run_amp_command(description, command, args)
+        return self._run_amp_command(description, command, args)
 
 
     def init_args(self, subparser):

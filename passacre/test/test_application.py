@@ -661,3 +661,34 @@ def test_nonextant_words_warns(nonextant_words_app):
     app = nonextant_words_app
     with pytest.raises(ValueError):
         app.main(['generate', 'example.com'])
+
+
+class FakeRunAmpCommand(object):
+    def __init__(self):
+        self.commands = []
+
+    def __call__(self, description, command, args):
+        self.commands.append((description, command, args))
+
+
+@pytest.fixture
+def amp_command_app(app):
+    app._run_amp_command = FakeRunAmpCommand()
+    return app
+
+def test_requires_environment(amp_command_app):
+    app = amp_command_app
+    pytest.raises(ValueError, app._run_agent, None)
+
+def test_implicit_unix_socket(amp_command_app):
+    app = amp_command_app
+    app.environ['PASSACRE_AGENT'] = '/spam/eggs'
+    app._run_agent(None)
+    assert app._run_amp_command.commands == [('unix:/spam/eggs', None, {})]
+
+def test_keyword_args_passed_through(amp_command_app):
+    app = amp_command_app
+    app.environ['PASSACRE_AGENT'] = 'tcp:localhost:9000'
+    app._run_agent(None, spam='eggs', eggs='spam')
+    assert app._run_amp_command.commands == [
+        ('tcp:localhost:9000', None, {'spam': 'eggs', 'eggs': 'spam'})]
