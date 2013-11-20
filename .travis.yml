@@ -11,5 +11,5 @@ install:
   - "bash .travis.install"
   # to get vcversioner to generate _version.py
   - "python setup.py build"
-script: "coverage run $(which py.test) passacre"
+script: "coverage run $(which py.test) -rs passacre"
 after_success: "coveralls"
