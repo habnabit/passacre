@@ -287,6 +287,7 @@ class SkeinSqliteTestCase(SkeinTestCaseMixin, SqliteTestCaseMixin, unittest.Test
 
 @pytest.fixture
 def app():
+    datadir.chdir()
     app = create_application()
     app.load_config(datadir.join('keccak.sqlite').open('rb'))
     return app
@@ -676,16 +677,19 @@ def amp_command_app(app):
     app._run_amp_command = FakeRunAmpCommand()
     return app
 
+@pytest.mark.skipif("sys.version_info > (3,)")
 def test_requires_environment(amp_command_app):
     app = amp_command_app
     pytest.raises(ValueError, app._run_agent, None)
 
+@pytest.mark.skipif("sys.version_info > (3,)")
 def test_implicit_unix_socket(amp_command_app):
     app = amp_command_app
     app.environ['PASSACRE_AGENT'] = '/spam/eggs'
     app._run_agent(None)
     assert app._run_amp_command.commands == [('unix:/spam/eggs', None, {})]
 
+@pytest.mark.skipif("sys.version_info > (3,)")
 def test_keyword_args_passed_through(amp_command_app):
     app = amp_command_app
     app.environ['PASSACRE_AGENT'] = 'tcp:localhost:9000'

@@ -11,9 +11,9 @@ from passacre.agent.protocol import PassacreAgentServerFactory
 from passacre.util import lazily_wait_for_reactor
 
 
-def _twisted_server_main(reactor, app, description):
+def _twisted_server_main(reactor, app_factory, description):
     endpoint = endpoints.serverFromString(reactor, description)
-    d = endpoint.listen(PassacreAgentServerFactory(app))
+    d = endpoint.listen(PassacreAgentServerFactory(app_factory))
     d.addCallback(lambda ign: defer.Deferred())
     return d
 

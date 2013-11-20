@@ -3,12 +3,17 @@
 
 from __future__ import unicode_literals
 
+from binascii import unhexlify
 from collections import namedtuple
 
 import pytest
 
 from passacre.agent import pencrypt
 from passacre.compat import iterbytes
+from passacre.test.test_application import app
+
+
+_shush_pyflakes = [app]
 
 
 Ciphertext = namedtuple('Ciphertext', 'nonce ciphertext')
@@ -101,3 +106,8 @@ def test_encrypted_file_write(tmpdir):
         assert infile.read(12) == b'\x01' + b'\x00' * 11
         infile.read(12)
         assert infile.read() == b'12#/'
+
+
+def test_box_of_config_and_password(app):
+    key = pencrypt.box_of_config_and_password(app.config, 'passacre', lambda key: key)
+    assert key == unhexlify('011a21657b5b0fea99bb0892bf32b89de713b40025e985f7cc64e0f524fa2ef7')

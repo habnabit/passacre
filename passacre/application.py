@@ -576,7 +576,7 @@ class Passacre(object):
     @features.agent.check
     def agent_run_action(self, args):
         from passacre.agent.main import server_main
-        server_main(self, args.port)
+        server_main(type(self), args.port)
 
     def agent_unlock_args(self, subparser):
         subparser.add_argument('-c', '--confirm', action='store_true',

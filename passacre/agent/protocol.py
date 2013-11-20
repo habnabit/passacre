@@ -39,7 +39,6 @@ class PassacreAgentServerProtocol(amp.AMP):
             password = self.factory.password
         if password is None:
             raise commands.AgentLocked()
-        self.app.load_config()
         generated = self.app.config.generate_for_site(
             username, password, site)
         if save_site and self.factory.password is not None:
@@ -56,9 +55,11 @@ class PassacreAgentServerProtocol(amp.AMP):
 
 class PassacreAgentServerFactory(protocol.Factory):
     protocol = PassacreAgentServerProtocol
+    site_list_path = '~/.config/passacre/sites'
+    site_list_usable = pencrypt.SecretBox is not None
 
-    def __init__(self, app):
-        self.app = app
+    def __init__(self, app_factory):
+        self.app_factory = app_factory
         self.password = None
         self.sites = set()
         self.sites_file = None
@@ -73,10 +74,10 @@ class PassacreAgentServerFactory(protocol.Factory):
             return
         self.sites_file = pencrypt.EncryptedFile(
             self.build_box(),
-            os.path.expanduser('~/.config/passacre/sites'))
+            os.path.expanduser(self.site_list_path))
 
     def load_sites(self):
-        if pencrypt.SecretBox is None:
+        if self.site_list_usable:
             return
         self.make_sites_file()
         try:
@@ -89,4 +90,4 @@ class PassacreAgentServerFactory(protocol.Factory):
         self.sites_file.write(json.dumps(list(self.sites)).encode())
 
     def buildProtocol(self, addr):
-        return self.protocol(self, self.app)
+        return self.protocol(self, self.app_factory())
