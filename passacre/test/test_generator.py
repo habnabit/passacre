@@ -4,9 +4,10 @@
 import pytest
 
 from passacre import generator
+from passacre.test.test_application import skip_without_skein
 
 
-@pytest.mark.skipif("sys.version_info < (3,)")
+@skip_without_skein
 def test_patched_skein():
     import skein
     r1 = generator._patch_skein_random(skein.Random(b'123'))

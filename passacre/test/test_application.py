@@ -7,7 +7,7 @@ import pytest
 import py.path
 import unittest
 
-from passacre import application
+from passacre import application, features
 from passacre.test.util import excinfo_arg_0
 
 
@@ -122,6 +122,10 @@ class FakeAtexit(object):
             f(*a, **kw)
 
 
+skip_without_skein = pytest.mark.skipif(
+    'not features.skein.usable', reason='skein not usable')
+
+
 class ApplicationTestCaseMixin(object):
     config_dir = None
     hashed_site = None
@@ -233,7 +237,7 @@ example.com                                             26.58
         out = read_out(self.capsys, self.app, 'site', 'hash', 'hashed.example.com', '-m', 'keccak')
         assert out == 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4\n'
 
-    @pytest.mark.skipif("sys.version_info < (3,)")
+    @skip_without_skein
     def test_site_hash_overridden_method_skein(self):
         out = read_out(self.capsys, self.app, 'site', 'hash', 'hashed.example.com', '-m', 'skein')
         assert out == 'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L\n'
@@ -273,7 +277,7 @@ class KeccakSqliteTestCase(KeccakTestCaseMixin, SqliteTestCaseMixin, unittest.Te
     config_dir = 'keccak-sqlite'
 
 
-@pytest.mark.skipif("sys.version_info < (3,)")
+@skip_without_skein
 class SkeinTestCaseMixin(ApplicationTestCaseMixin):
     hashed_site = 'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L'
     hashed_password = 'abactor abattoir abashedly abaca'
@@ -677,19 +681,22 @@ def amp_command_app(app):
     app._run_amp_command = FakeRunAmpCommand()
     return app
 
-@pytest.mark.skipif("sys.version_info > (3,)")
+skip_without_agent = pytest.mark.skipif(
+    'not features.agent.usable', reason='agent not usable')
+
+@skip_without_agent
 def test_requires_environment(amp_command_app):
     app = amp_command_app
     pytest.raises(ValueError, app._run_agent, None)
 
-@pytest.mark.skipif("sys.version_info > (3,)")
+@skip_without_agent
 def test_implicit_unix_socket(amp_command_app):
     app = amp_command_app
     app.environ['PASSACRE_AGENT'] = '/spam/eggs'
     app._run_agent(None)
     assert app._run_amp_command.commands == [('unix:/spam/eggs', None, {})]
 
-@pytest.mark.skipif("sys.version_info > (3,)")
+@skip_without_agent
 def test_keyword_args_passed_through(amp_command_app):
     app = amp_command_app
     app.environ['PASSACRE_AGENT'] = 'tcp:localhost:9000'
