@@ -663,6 +663,12 @@ def test_always_confirm_site_config(always_confirm_app):
     app.main(['config', '-a', '-s', 'hashed.example.com'])
     assert app._confirmed_password
 
+def test_always_confirm_agent_unlock(always_confirm_app):
+    app = always_confirm_app
+    app._run_agent = lambda *a, **kw: {}
+    app.main(['agent', 'unlock'])
+    assert app._confirmed_password
+
 
 @pytest.fixture
 def nonextant_words_app(app, tmpdir):
@@ -725,3 +731,26 @@ def test_agent_success(capsys, app):
 PASSACRE_AGENT: tcp:localhost:9000
 passacre version test (gdeadbeef)
 """
+
+def test_agent_lock(mutable_app):
+    app = mutable_app
+    called = []
+    def run_agent(command):
+        assert command == commands.Lock
+        called.append(True)
+        return {}
+    app._run_agent = run_agent
+    app.main(['agent', 'lock'])
+    assert called
+
+def test_agent_unlock(mutable_app):
+    app = mutable_app
+    called = []
+    def run_agent(command, password):
+        assert command == commands.Unlock
+        assert password == 'passacre'
+        called.append(True)
+        return {}
+    app._run_agent = run_agent
+    app.main(['agent', 'unlock'])
+    assert called
