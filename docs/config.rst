@@ -168,6 +168,8 @@ This is set with ``passacre schema`` for sqlite.
 See the section on :ref:`password schemata <schemata>` for details of its format.
 
 
+.. _yubikey-slot:
+
 ``yubikey-slot``
 ~~~~~~~~~~~~~~~~
 
