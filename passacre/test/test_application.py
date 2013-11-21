@@ -11,6 +11,12 @@ from passacre import application, features
 from passacre.test.util import excinfo_arg_0
 
 
+try:
+    from passacre.agent import commands
+except:
+    commands = None
+
+
 datadir = py.path.local(__file__).dirpath('data')
 
 
@@ -703,3 +709,19 @@ def test_keyword_args_passed_through(amp_command_app):
     app._run_agent(None, spam='eggs', eggs='spam')
     assert app._run_amp_command.commands == [
         ('tcp:localhost:9000', None, {'spam': 'eggs', 'eggs': 'spam'})]
+
+
+def test_no_agent(capsys, app):
+    assert read_out(capsys, app, 'agent') == 'no PASSACRE_AGENT set\n'
+
+@skip_without_agent
+def test_agent_success(capsys, app):
+    app.environ['PASSACRE_AGENT'] = 'tcp:localhost:9000'
+    def run_agent(command):
+        assert command == commands.Version
+        return {'version': 'test', 'sha': 'gdeadbeef'}
+    app._run_agent = run_agent
+    assert read_out(capsys, app, 'agent') == """\
+PASSACRE_AGENT: tcp:localhost:9000
+passacre version test (gdeadbeef)
+"""

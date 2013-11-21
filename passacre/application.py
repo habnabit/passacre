@@ -564,11 +564,14 @@ class Passacre(object):
     site_config_action = config_action
 
 
-    def agent_args(self, subparser):
-        pass
-
     def agent_action(self, args):
-        pass
+        from passacre.agent import commands
+        if 'PASSACRE_AGENT' not in self.environ:
+            print('no PASSACRE_AGENT set')
+            return
+        print('PASSACRE_AGENT: %(PASSACRE_AGENT)s' % self.environ)
+        results = self._run_agent(commands.Version)
+        print('passacre version %(version)s (%(sha)s)' % results)
 
     def agent_run_args(self, subparser):
         subparser.add_argument('port', help='the port to listen on')

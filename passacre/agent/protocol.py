@@ -9,6 +9,7 @@ from twisted.protocols import amp
 from twisted.python import log
 
 from passacre.agent import commands, pencrypt
+from passacre import __version__, __sha__
 
 
 try:
@@ -58,6 +59,10 @@ class PassacreAgentServerProtocol(amp.AMP):
         if self.factory.password is None:
             raise commands.AgentLocked()
         return {'sites': list(self.factory.sites)}
+
+    @commands.Version.responder
+    def version(self):
+        return dict(version=__version__, sha=__sha__)
 
 
     box_of_config_and_password = staticmethod(pencrypt.box_of_config_and_password)

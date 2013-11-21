@@ -54,3 +54,11 @@ class FetchSiteList(amp.Command):
     errors = {
         AgentLocked: 'AGENT_LOCKED',
     }
+
+
+class Version(amp.Command):
+    arguments = []
+    response = [
+        ('version', amp.Unicode()),
+        ('sha', amp.Unicode()),
+    ]
