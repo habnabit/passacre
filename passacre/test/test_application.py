@@ -5,10 +5,15 @@ from __future__ import unicode_literals
 
 import pytest
 import py.path
+import sys
+import traceback
 import unittest
 
 from passacre import application, features
 from passacre.test.util import excinfo_arg_0
+
+
+_shush_pyflakes = [features]
 
 
 try:
@@ -754,3 +759,52 @@ def test_agent_unlock(mutable_app):
     app._run_agent = run_agent
     app.main(['agent', 'unlock'])
     assert called
+
+
+class FakeError(Exception):
+    pass
+
+def test_terse_excepthook(capsys, app):
+    app.verbose = False
+    try:
+        raise FakeError('example')
+    except:
+        with pytest.raises(SystemExit) as excinfo:
+            app.excepthook(*sys.exc_info())
+    out, err = capsys.readouterr()
+    assert not out
+    assert err == '(pass -v for the full traceback)\nFakeError: example\n'
+    assert excinfo_arg_0(excinfo) == 1
+
+def test_terse_errormark(capsys, app):
+    app.verbose = False
+    exc = FakeError('example')
+    exc._errormark = 'testing this code {0} {spam}', 8, ('foo', 'bar'), {'spam': 'eggs'}
+    try:
+        raise exc
+    except:
+        with pytest.raises(SystemExit) as excinfo:
+            app.excepthook(*sys.exc_info())
+    out, err = capsys.readouterr()
+    assert not out
+    assert err == """an error occurred testing this code foo eggs
+(pass -v for the full traceback)
+FakeError: example
+"""
+    assert excinfo_arg_0(excinfo) == 8
+
+def test_verbose_errormark(capsys, app):
+    app.verbose = True
+    exc = FakeError('example')
+    exc._errormark = 'testing this code {0} {spam}', 8, ('foo', 'bar'), {'spam': 'eggs'}
+    try:
+        raise exc
+    except:
+        exc_info = sys.exc_info()
+    with pytest.raises(SystemExit) as excinfo:
+        app.excepthook(*exc_info)
+    tb_string = ''.join(traceback.format_exception(*exc_info))
+    out, err = capsys.readouterr()
+    assert not out
+    assert err == 'an error occurred testing this code foo eggs\n' + tb_string
+    assert excinfo_arg_0(excinfo) == 8
