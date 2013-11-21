@@ -14,3 +14,4 @@ Contents:
    commands
    schema
    config
+   features
