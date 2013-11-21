@@ -13,9 +13,10 @@ in order::
 sqlite is the recommended configuration format.
 A new sqlite config will be initialized by default at ``~/.passacre.sqlite`` with the ``passacre init`` command.
 
-Dotted names are specified in YAML as nested mappings.
+Where sqlite uses dotted names,
+YAML uses nested mappings.
 For example,
-for specifing ``z`` for the ``x.y`` key::
+to specify ``z`` for the ``x.y`` key in YAML::
 
   x:
     y: z
@@ -32,7 +33,10 @@ or with the ``passacre config`` command for sqlite.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Either ``true`` or ``false`` (the default).
-Toggles whether passwords will always be confirmed when prompted.
+If set to ``true``,
+any time the user is prompted to enter their password,
+a confirmation prompt will ask for the password a second time.
+This helps ensure the correct password was entered.
 
 
 ``method``
@@ -40,11 +44,16 @@ Toggles whether passwords will always be confirmed when prompted.
 
 Either ``keccak`` (the default) or ``skein``.
 Controls which hash algorithm is used to generate passwords.
+This is just a matter of personal preference and
+neither one is better.
+Can safely be ignored if you don't understand or
+don't care.
+
 The ``keccak`` method is available on python 2 and python 3
 and requires the `cykeccak`_ package.
 The ``skein`` method is only available on python 3 and requires the `pyskein`_ package.
 
-Any sites which don't specify their own ``method`` will use the global ``method``.
+Any sites which don't specify their own ``method`` in the configuration file will use the global ``method``.
 The global ``method`` is also used for hashing site names.
 
 
@@ -52,6 +61,9 @@ The global ``method`` is also used for hashing site names.
 ~~~~~~~~~~~~~~
 
 The base number of iterations to use for password generation.
+It is safe to leave this alone
+if you don't know what to do with it.
+
 One iteration corresponds with adding another 1024 null bytes to the input to be hashed.
 The default is 1000, though it can be comfortably be set higher.
 As `pyskein`_ is a bit faster than `cykeccak`_ as a pseudo-random number generator,
@@ -72,17 +84,24 @@ there is no ``words-file`` and generating passwords containing words will fail.
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Either ``true``, ``false``, or ``'always'``.
-This controls whether passacre will try to hash the site name to look up site-specific configuration.
-``true`` means that passacre will first try looking for configuration keyed on the unhashed site name,
-then try keyed on the hashed site name before falling back on the default.
-``false`` means that passacre will never try hashing the site name.
-``'always'`` means that passacre will only hash the site name
+When looking up a site's configuration information,
+this controls whether or not
+passacre should try to
+find an entry for the site name or
+instead hash the site name and find an entry for the resultant hash.
+
+``true`` means that passacre will first try looking for configuration information on the unhashed site name,
+then try on the hashed site name.
+If no entry is found for either,
+passacre will use the default configuration.
+``false`` means that passacre will never try to use the hashed site name.
+``'always'`` means that passacre will only try to use the hashed site name
 and never try looking up an unhashed site name.
 
 Additionally,
 ``'always'`` is respected by ``passacre site`` and ``passacre config``
-when adding, removing, or modifying site configuration:
-passacre will act as if the ``--hashed`` flag was always passed.
+when adding, removing, or modifying site configurations;
+passacre will act as if the ``--hashed`` flag is always passed.
 
 
 ``site-hashing.method``
@@ -90,6 +109,7 @@ passacre will act as if the ``--hashed`` flag was always passed.
 
 The method to use for hashing site names.
 Defaults to the same value as ``method`` and has the same semantics.
+Safe to disregard if you either don't understand or don't care.
 
 
 ``site-hashing.iterations``
