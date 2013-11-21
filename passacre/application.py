@@ -564,6 +564,7 @@ class Passacre(object):
     site_config_action = config_action
 
 
+    @features.agent.check
     def agent_action(self, args):
         from passacre.agent import commands
         if 'PASSACRE_AGENT' not in self.environ:

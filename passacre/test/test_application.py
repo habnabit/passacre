@@ -668,12 +668,6 @@ def test_always_confirm_site_config(always_confirm_app):
     app.main(['config', '-a', '-s', 'hashed.example.com'])
     assert app._confirmed_password
 
-def test_always_confirm_agent_unlock(always_confirm_app):
-    app = always_confirm_app
-    app._run_agent = lambda *a, **kw: {}
-    app.main(['agent', 'unlock'])
-    assert app._confirmed_password
-
 
 @pytest.fixture
 def nonextant_words_app(app, tmpdir):
@@ -722,6 +716,7 @@ def test_keyword_args_passed_through(amp_command_app):
         ('tcp:localhost:9000', None, {'spam': 'eggs', 'eggs': 'spam'})]
 
 
+@skip_without_agent
 def test_no_agent(capsys, app):
     assert read_out(capsys, app, 'agent') == 'no PASSACRE_AGENT set\n'
 
@@ -737,6 +732,7 @@ PASSACRE_AGENT: tcp:localhost:9000
 passacre version test (gdeadbeef)
 """
 
+@skip_without_agent
 def test_agent_lock(mutable_app):
     app = mutable_app
     called = []
@@ -748,6 +744,7 @@ def test_agent_lock(mutable_app):
     app.main(['agent', 'lock'])
     assert called
 
+@skip_without_agent
 def test_agent_unlock(mutable_app):
     app = mutable_app
     called = []
@@ -759,6 +756,13 @@ def test_agent_unlock(mutable_app):
     app._run_agent = run_agent
     app.main(['agent', 'unlock'])
     assert called
+
+@skip_without_agent
+def test_always_confirm_agent_unlock(always_confirm_app):
+    app = always_confirm_app
+    app._run_agent = lambda *a, **kw: {}
+    app.main(['agent', 'unlock'])
+    assert app._confirmed_password
 
 
 class FakeError(Exception):
