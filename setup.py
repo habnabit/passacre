@@ -20,12 +20,14 @@ with open('README.rst', 'r') as infile:
 extras_require = {
     'yaml': ['PyYAML'],
     'clipboard': ['xerox'],
-    'keccak_generation': ['cykeccak>=0.13.2'],
+    'keccak': ['cykeccak>=0.13.2'],
     'yubikey': ['ykpers-cffi'],
+    'agent': ['Twisted', 'crochet'],
+    'site_list': ['pynacl'],
 }
 
 if sys.version_info > (3,):
-    extras_require['skein_generation'] = ['pyskein>=0.7']
+    extras_require['skein'] = ['pyskein>=0.7']
 
 setup(
     name='passacre',
@@ -51,7 +53,7 @@ setup(
     license='ISC',
 
     version=version.version,
-    packages=['passacre', 'passacre.agent', 'passacre.test'],
+    packages=['passacre', 'passacre.agent', 'passacre.test', 'passacre.agent.test'],
     package_data={
         'passacre': ['schema.sql'],
         'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',
