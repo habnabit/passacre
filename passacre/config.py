@@ -5,20 +5,12 @@ from __future__ import unicode_literals, print_function
 
 from passacre.schema import multibase_of_schema
 from passacre.util import nested_set, jloads, jdumps, errormark
-from passacre import features, generator, signing_uuid
+from passacre import features, generator
 
-import binascii
 import collections
 import json
 import os
 import sys
-
-
-if sys.version_info > (3,):  # pragma: nocover
-    def hexlify(s):
-        return binascii.hexlify(s).decode()
-else:  # pragma: nocover
-    hexlify = binascii.hexlify
 
 
 @errormark('verifying schema: {0!r}')
@@ -107,20 +99,13 @@ class ConfigBase(object):
                 if v is None:
                     del config[k]
             self.fill_out_config(config)
-        if config.get('yubikey-slot'):
-            features.yubikey.check()
-            from ykpers import YubiKey
-            yk = YubiKey.open_first_key()
-            response = yk.hmac_challenge_response(
-                signing_uuid.bytes, slot=config['yubikey-slot'])
-            password = hexlify(response) + ':' + password
         return generator.generate(username, password, site, config)
 
 
 class YAMLConfig(ConfigBase):
+    @features.yaml.check
     def read(self, infile):
         "Load site configuration from a YAML file object."
-        features.yaml.check()
         import yaml
         parsed = yaml.load(infile)
         sites = parsed.pop('sites', {})

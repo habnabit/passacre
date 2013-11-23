@@ -1,6 +1,7 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+import binascii
 import functools
 import sys
 
@@ -15,6 +16,7 @@ if sys.version_info < (3,):  # pragma: nocover
     def python_3_encode(s):
         return s
     iterbytes = functools.partial(map, ord)
+    hexlify = binascii.hexlify
 else:  # pragma: nocover
     input = input
     unichr = chr
@@ -25,6 +27,8 @@ else:  # pragma: nocover
     def python_3_encode(s):
         return s.encode()
     iterbytes = iter
+    def hexlify(s):
+        return binascii.hexlify(s).decode()
 
 if sys.version_info < (3, 3):  # pragma: nocover
     import passacre._argparse as argparse
@@ -42,5 +46,6 @@ except ImportError:  # pragma: nocover
 
 
 __all__ = [
-    'input', 'argparse', 'unichr', 'unicode', 'long', 'crochet_setup', 'wait_for_reactor', 'iterbytes',
+    'input', 'argparse', 'unichr', 'unicode', 'long', 'crochet_setup', 'wait_for_reactor',
+    'iterbytes', 'hexlify',
 ]

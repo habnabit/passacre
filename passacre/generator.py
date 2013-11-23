@@ -6,9 +6,9 @@ from __future__ import unicode_literals
 import math
 import string
 
-from passacre.compat import python_3_encode
+from passacre.compat import python_3_encode, hexlify
 from passacre.multibase import MultiBase
-from passacre import features
+from passacre import features, signing_uuid
 
 _some_nulls = b'\x00' * 1024
 _site_multibase = MultiBase([string.ascii_letters + string.digits + '-_'] * 48)
@@ -55,8 +55,20 @@ def _patch_skein_random(prng):
     return prng
 
 
+@features.yubikey.check
+def extend_password_with_yubikey(password, options, YubiKey=None):
+    if YubiKey is None:
+        from ykpers import YubiKey
+    yk = YubiKey.open_first_key()
+    response = yk.hmac_challenge_response(
+        signing_uuid.bytes, slot=options['yubikey-slot'])
+    return hexlify(response) + ':' + password
+
+
 # XXX: refactor into a class per method?
 def build_prng(username, password, site, options):
+    if options.get('yubikey-slot'):
+        password = extend_password_with_yubikey(password, options)
     method = options['method']
     iterations = options['iterations']
     seed = (
