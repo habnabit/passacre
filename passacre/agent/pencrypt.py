@@ -56,6 +56,6 @@ class EncryptedFile(object):
 
 
 def box_of_config_and_password(config, password, boxtype=SecretBox):
-    site_config = config.get_site('pencrypt', password)
-    prng = generator.build_prng(None, password, 'pencrypt', site_config)
+    site_config = config.get_site('site-list', password)
+    prng = generator.build_prng(None, password, 'site-list', site_config)
     return boxtype(pack_bytes(prng.getrandbits(256), 32))
