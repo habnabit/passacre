@@ -30,7 +30,11 @@ class PassacreAgentServerProtocol(amp.AMP):
         if self.factory.password is not None:
             raise commands.AgentUnlocked()
         self.factory.password = password
-        self.load_sites()
+        try:
+            self.load_sites()
+        except Exception:
+            self.factory.password = None
+            raise
         return {}
 
     @commands.Lock.responder
@@ -81,9 +85,16 @@ class PassacreAgentServerProtocol(amp.AMP):
         if not self.factory.site_list_usable:
             return
         sites_file = self.make_sites_file()
+        crypto_failure = None
+        if CryptoError is not None:
+            site_list = self.app.config.global_config.get('site-list', {})
+            if site_list.get('required-for-unlock'):
+                crypto_failure = CryptoError
         try:
             data = sites_file.read()
             self.factory.sites.update(json.loads(data.decode()))
+        except crypto_failure:
+            raise commands.SiteListFailedDecryption()
         except Exception:
             log.err(None, 'error loading sites file')
 

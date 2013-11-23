@@ -128,6 +128,13 @@ def test_saving_sites_fails_on_decryption_failures(box, site_list, proto):
     pytest.raises(commands.SiteListFailedDecryption,
                   proto.generate, 'list1.example.com', save_site=True)
 
+def test_unlock_site_list_decryption_failure_can_propagate(box, site_list, proto):
+    with site_list.open('wb') as outfile:
+        outfile.write('\x00' * 64)
+    proto.app.config.global_config.update({'site-list': {'required-for-unlock': True}})
+    pytest.raises(commands.SiteListFailedDecryption, proto.unlock, 'passacre')
+    pytest.raises(commands.AgentLocked, proto.generate, 'example.com')
+
 def test_lock_clears_sites(box, site_list, proto):
     ef = pencrypt.EncryptedFile(box, site_list.strpath)
     ef.write('["list1.example.com"]')
