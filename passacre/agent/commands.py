@@ -21,13 +21,18 @@ class Unlock(amp.Command):
         ('password', amp.Unicode()),
     ]
     response = []
-    errors = {AgentUnlocked: 'AGENT_UNLOCKED'}
+    errors = {
+        AgentUnlocked: 'AGENT_UNLOCKED',
+        SiteListFailedDecryption: 'SITE_LIST_FAILED_DECRYPTION',
+    }
 
 
 class Lock(amp.Command):
     arguments = []
     response = []
-    errors = {AgentLocked: 'AGENT_LOCKED'}
+    errors = {
+        AgentLocked: 'AGENT_LOCKED',
+    }
 
 
 class Generate(amp.Command):
