@@ -28,7 +28,7 @@ class PassacreAgentServerProtocol(amp.AMP):
     @commands.Unlock.responder
     def unlock(self, password):
         if self.factory.password is not None:
-            raise commands.AgentUnlocked()
+            raise commands.AgentUnlocked(901, 'the agent is already unlocked')
         self.factory.password = password
         try:
             self.load_sites()
@@ -40,7 +40,7 @@ class PassacreAgentServerProtocol(amp.AMP):
     @commands.Lock.responder
     def lock(self):
         if self.factory.password is None:
-            raise commands.AgentLocked()
+            raise commands.AgentLocked(900, 'the agent is already locked')
         self.factory.password = None
         self.factory.sites = set()
         return {}
@@ -50,7 +50,7 @@ class PassacreAgentServerProtocol(amp.AMP):
         if password is None:
             password = self.factory.password
         if password is None:
-            raise commands.AgentLocked()
+            raise commands.AgentLocked(900, 'the agent is currently locked')
         generated = self.app.config.generate_for_site(
             username, password, site)
         if save_site and self.factory.password is not None:
@@ -61,7 +61,7 @@ class PassacreAgentServerProtocol(amp.AMP):
     @commands.FetchSiteList.responder
     def fetch_site_list(self):
         if self.factory.password is None:
-            raise commands.AgentLocked()
+            raise commands.AgentLocked(900, 'the agent is currently locked')
         return {'sites': list(self.factory.sites)}
 
     @commands.Version.responder
@@ -73,7 +73,7 @@ class PassacreAgentServerProtocol(amp.AMP):
 
     def build_box(self):
         if self.factory.password is None:
-            raise commands.AgentLocked()
+            raise commands.AgentLocked(900, 'the agent is currently locked')
         return self.box_of_config_and_password(self.app.config, self.factory.password)
 
     def make_sites_file(self):
@@ -94,7 +94,7 @@ class PassacreAgentServerProtocol(amp.AMP):
             data = sites_file.read()
             self.factory.sites.update(json.loads(data.decode()))
         except crypto_failure:
-            raise commands.SiteListFailedDecryption()
+            raise commands.SiteListFailedDecryption(902, 'the site list could not be decrypted')
         except Exception:
             log.err(None, 'error loading sites file')
 
@@ -105,7 +105,7 @@ class PassacreAgentServerProtocol(amp.AMP):
         except IOError:
             pass
         except CryptoError:
-            raise commands.SiteListFailedDecryption()
+            raise commands.SiteListFailedDecryption(902, 'the site list could not be decrypted')
         sites_file.write(json.dumps(list(self.factory.sites)).encode())
 
 

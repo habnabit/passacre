@@ -4,15 +4,15 @@
 from twisted.protocols import amp
 
 
-class AgentLocked(Exception):
+class AgentLocked(amp.RemoteAmpError):
     pass
 
 
-class AgentUnlocked(Exception):
+class AgentUnlocked(amp.RemoteAmpError):
     pass
 
 
-class SiteListFailedDecryption(Exception):
+class SiteListFailedDecryption(amp.RemoteAmpError):
     pass
 
 
