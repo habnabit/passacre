@@ -3,8 +3,11 @@
 
 import pytest
 
-from passacre import generator, signing_uuid
+from passacre import features, generator, signing_uuid
 from passacre.test.test_application import skip_without_skein
+
+
+_shush_pyflakes = [features]
 
 
 @skip_without_skein
@@ -34,9 +37,12 @@ class FakeYubiKey(object):
     def hmac_challenge_response(self, challenge, slot):
         self.challenge = challenge
         self.slot = slot
-        return 'spam ' * 4
+        return b'spam ' * 4
 
+skip_without_yubikey = pytest.mark.skipif(
+    'not features.yubikey.usable', reason='ykpers not usable')
 
+@skip_without_yubikey
 def test_extend_password_with_yubikey():
     yk = FakeYubiKey()
     password = generator.extend_password_with_yubikey('spam', {'yubikey-slot': 1}, YubiKey=yk)
