@@ -13,6 +13,7 @@ _shush_pyflakes = [app, mutable_app]
 protocol = pytest.importorskip('passacre.agent.protocol')
 commands = pytest.importorskip('passacre.agent.commands')
 secret = pytest.importorskip('nacl.secret')
+amp = pytest.importorskip('twisted.protocols.amp')
 unittest = pytest.importorskip('twisted.trial.unittest')
 
 
@@ -27,26 +28,32 @@ def proto(mutable_app, tmpdir):
     return fac.buildProtocol(None)
 
 
+def raises_amp_error(amp_error, f, *a, **kw):
+    with pytest.raises(amp.RemoteAmpError) as excinfo:
+        f(*a, **kw)
+    assert excinfo.value.errorCode == amp_error.errorCode
+
+
 def test_generate_while_locked(proto):
-    pytest.raises(commands.AgentLocked, proto.generate, 'example.com')
+    raises_amp_error(commands.AgentLocked, proto.generate, 'example.com')
 
 def test_lock_while_locked(proto):
-    pytest.raises(commands.AgentLocked, proto.lock)
+    raises_amp_error(commands.AgentLocked, proto.lock)
 
 def test_fetch_site_list_while_locked(proto):
-    pytest.raises(commands.AgentLocked, proto.fetch_site_list)
+    raises_amp_error(commands.AgentLocked, proto.fetch_site_list)
 
 def test_build_box_locked(proto):
-    pytest.raises(commands.AgentLocked, proto.build_box)
+    raises_amp_error(commands.AgentLocked, proto.build_box)
 
 def test_unlock_while_unlocked(proto):
     proto.unlock('passacre')
-    pytest.raises(commands.AgentUnlocked, proto.unlock, 'passacre')
+    raises_amp_error(commands.AgentUnlocked, proto.unlock, 'passacre')
 
 def test_lock(proto):
     proto.unlock('passacre')
     proto.lock()
-    pytest.raises(commands.AgentLocked, proto.lock)
+    raises_amp_error(commands.AgentLocked, proto.lock)
 
 def test_generate(proto):
     proto.unlock('passacre')
@@ -125,15 +132,15 @@ def test_saving_sites_fails_on_decryption_failures(box, site_list, proto):
     with site_list.open('wb') as outfile:
         outfile.write('\x00' * 64)
     proto.unlock('passacre')
-    pytest.raises(commands.SiteListFailedDecryption,
-                  proto.generate, 'list1.example.com', save_site=True)
+    raises_amp_error(commands.SiteListFailedDecryption,
+                     proto.generate, 'list1.example.com', save_site=True)
 
 def test_unlock_site_list_decryption_failure_can_propagate(box, site_list, proto):
     with site_list.open('wb') as outfile:
         outfile.write('\x00' * 64)
     proto.app.config.global_config.update({'site-list': {'required-for-unlock': True}})
-    pytest.raises(commands.SiteListFailedDecryption, proto.unlock, 'passacre')
-    pytest.raises(commands.AgentLocked, proto.generate, 'example.com')
+    raises_amp_error(commands.SiteListFailedDecryption, proto.unlock, 'passacre')
+    raises_amp_error(commands.AgentLocked, proto.generate, 'example.com')
 
 def test_lock_clears_sites(box, site_list, proto):
     ef = pencrypt.EncryptedFile(box, site_list.strpath)

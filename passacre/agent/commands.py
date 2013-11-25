@@ -4,16 +4,16 @@
 from twisted.protocols import amp
 
 
-class AgentLocked(amp.RemoteAmpError):
-    pass
+class AgentLocked(Exception):
+    errorCode = 'AGENT_LOCKED'
 
 
-class AgentUnlocked(amp.RemoteAmpError):
-    pass
+class AgentUnlocked(Exception):
+    errorCode = 'AGENT_UNLOCKED'
 
 
-class SiteListFailedDecryption(amp.RemoteAmpError):
-    pass
+class SiteListFailedDecryption(Exception):
+    errorCode = 'SITE_LIST_FAILED_DECRYPTION'
 
 
 class Unlock(amp.Command):
