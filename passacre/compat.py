@@ -30,10 +30,8 @@ else:  # pragma: nocover
     def hexlify(s):
         return binascii.hexlify(s).decode()
 
-if sys.version_info < (3, 3):  # pragma: nocover
-    import passacre._argparse as argparse
-else:  # pragma: nocover
-    import argparse
+
+import passacre._argparse as argparse
 
 
 try:
