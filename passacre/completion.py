@@ -76,7 +76,7 @@ def zsh_arguments_for(arguments):
         option_strings = []
         if len(arg.option_strings) > 1:
             options = set(arg.option_strings)
-            for option in options:
+            for option in sorted(options):
                 rest = options - set([option])
                 option_string = '(%s)%s' % (' '.join(rest), option)
                 option_strings.append(option_string)
@@ -98,7 +98,7 @@ def _zsh_completion_for(parser, name=''):
 
     for action in parser._actions:
         if isinstance(action, argparse._SubParsersAction):
-            for subaction_name, subaction in action.choices.iteritems():
+            for subaction_name, subaction in sorted(action.choices.items()):
                 pseudo_action = next(pa for pa in action._choices_actions if pa.dest == subaction_name)
                 full_subaction_name = name + '_' + subaction_name.replace('-', '_')
                 subcommands.append((
@@ -177,7 +177,7 @@ _passacre_hash_methods () {
 
 
 _passacre "$@"
-    """ % (' '.join(zsh_arguments_for(arguments)),))
+""" % (' '.join(zsh_arguments_for(arguments)),))
 
 
 def _fish_completion_for(parser, name='passacre'):
@@ -186,7 +186,7 @@ def _fish_completion_for(parser, name='passacre'):
 
     for action in parser._actions:
         if isinstance(action, argparse._SubParsersAction):
-            for subaction_name, subaction in action.choices.iteritems():
+            for subaction_name, subaction in sorted(action.choices.items()):
                 pseudo_action = next(pa for pa in action._choices_actions if pa.dest == subaction_name)
                 full_subaction_name = name + ' ' + subaction_name
                 subcommands.append((subaction_name, pseudo_action.help))
