@@ -122,6 +122,13 @@ def test_saving_sites(box, site_list, proto):
     proto.generate('list1.example.com', save_site=True)
     assert ef.read() == '["list1.example.com"]'
 
+def test_saving_sites_does_not_clobber(box, site_list, proto):
+    ef = pencrypt.EncryptedFile(box, site_list.strpath)
+    proto.unlock('passacre')
+    ef.write('["list1.example.com"]')
+    proto.generate('list2.example.com', save_site=True)
+    assert ef.read() == '["list1.example.com", "list2.example.com"]'
+
 def test_saving_sites_fails_silently_with_locked_agent(box, site_list, proto):
     ef = pencrypt.EncryptedFile(box, site_list.strpath)
     ef.write('["list1.example.com"]')

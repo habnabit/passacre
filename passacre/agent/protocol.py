@@ -85,14 +85,14 @@ class PassacreAgentServerProtocol(amp.AMP):
             self.build_box(),
             os.path.expanduser(self.factory.site_list_path))
 
-    def load_sites(self):
+    def load_sites(self, fail_without_decryption=False):
         if not self.factory.site_list_usable:
             return
         sites_file = self.make_sites_file()
         crypto_failure = None
         if CryptoError is not None:
             site_list = self.app.config.global_config.get('site-list', {})
-            if site_list.get('required-for-unlock'):
+            if site_list.get('required-for-unlock') or fail_without_decryption:
                 crypto_failure = CryptoError
         try:
             data = sites_file.read()
@@ -101,16 +101,11 @@ class PassacreAgentServerProtocol(amp.AMP):
             raise_error(commands.SiteListFailedDecryption, 'the site list could not be decrypted')
         except Exception:
             log.err(None, 'error loading sites file')
+        return sites_file
 
     def save_sites(self):
-        sites_file = self.make_sites_file()
-        try:
-            sites_file.read()
-        except IOError:
-            pass
-        except CryptoError:
-            raise_error(commands.SiteListFailedDecryption, 'the site list could not be decrypted')
-        sites_file.write(json.dumps(list(self.factory.sites)).encode())
+        sites_file = self.load_sites(fail_without_decryption=True)
+        sites_file.write(json.dumps(sorted(self.factory.sites)).encode())
 
 
 class PassacreAgentServerFactory(protocol.Factory):
