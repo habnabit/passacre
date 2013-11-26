@@ -72,23 +72,30 @@ class PassacreAgentServerProtocol(amp.AMP):
     def version(self):
         return dict(version=__version__, sha=__sha__)
 
+    @commands.InitSiteList.responder
+    def init_site_list(self, password):
+        self.save_sites(password=password)
+        return {}
+
 
     box_of_config_and_password = staticmethod(pencrypt.box_of_config_and_password)
 
-    def build_box(self):
-        if self.factory.password is None:
+    def build_box(self, password=None):
+        if password is None:
+            password = self.factory.password
+        if password is None:
             raise_error(commands.AgentLocked, 'the agent is currently locked')
-        return self.box_of_config_and_password(self.app.config, self.factory.password)
+        return self.box_of_config_and_password(self.app.config, password)
 
-    def make_sites_file(self):
+    def make_sites_file(self, password=None):
         return pencrypt.EncryptedFile(
-            self.build_box(),
+            self.build_box(password),
             os.path.expanduser(self.factory.site_list_path))
 
-    def load_sites(self, fail_without_decryption=False):
+    def load_sites(self, fail_without_decryption=False, password=None):
         if not self.factory.site_list_usable:
             return
-        sites_file = self.make_sites_file()
+        sites_file = self.make_sites_file(password)
         crypto_failure = None
         if CryptoError is not None:
             site_list = self.app.config.global_config.get('site-list', {})
@@ -103,8 +110,8 @@ class PassacreAgentServerProtocol(amp.AMP):
             log.err(None, 'error loading sites file')
         return sites_file
 
-    def save_sites(self):
-        sites_file = self.load_sites(fail_without_decryption=True)
+    def save_sites(self, password=None):
+        sites_file = self.load_sites(fail_without_decryption=True, password=password)
         sites_file.write(json.dumps(sorted(self.factory.sites)).encode())
 
 

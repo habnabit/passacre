@@ -67,3 +67,12 @@ class Version(amp.Command):
         ('version', amp.Unicode()),
         ('sha', amp.Unicode()),
     ]
+
+
+class InitSiteList(amp.Command):
+    arguments = [
+        ('password', amp.Unicode()),
+    ]
+    response = []
+    errors = {
+    }

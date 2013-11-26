@@ -119,6 +119,7 @@ class Passacre(object):
             'run': "run the passacre agent",
             'lock': "lock the passacre agent",
             'unlock': "unlock the passacre agent",
+            'init-site-list': "create an empty site list file",
         }),
     }
 
@@ -596,6 +597,16 @@ class Passacre(object):
     def agent_lock_action(self, args):
         from passacre.agent import commands
         self._run_agent(commands.Lock)
+
+    def agent_init_site_list_args(self, subparser):
+        subparser.add_argument('-c', '--confirm', action='store_true',
+                               help='confirm prompted password')
+
+    @features.agent.check
+    def agent_init_site_list_action(self, args):
+        from passacre.agent import commands
+        password = self.prompt_password(args.confirm)
+        self._run_agent(commands.InitSiteList, password=password)
 
 
     def info_action(self, args):

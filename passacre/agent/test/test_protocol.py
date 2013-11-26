@@ -156,6 +156,17 @@ def test_lock_clears_sites(box, site_list, proto):
     proto.lock()
     assert proto.factory.sites == set()
 
+def test_init_site_list(box, site_list, proto):
+    ef = pencrypt.EncryptedFile(box, site_list.strpath)
+    proto.init_site_list('passacre')
+    assert ef.read() == '[]'
+
+def test_init_site_list_does_not_clobber(box, site_list, proto):
+    ef = pencrypt.EncryptedFile(box, site_list.strpath)
+    ef.write('["list1.example.com"]')
+    proto.init_site_list('passacre')
+    assert ef.read() == '["list1.example.com"]'
+
 
 class LoggingTests(unittest.TestCase):
     @pytest.fixture(autouse=True)
