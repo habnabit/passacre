@@ -142,7 +142,7 @@ def test_saving_sites_fails_silently_with_locked_agent(box, site_list, proto):
     proto.generate('list2.example.com', password='passacre', save_site=True)
     assert ef.read() == '["list1.example.com"]'
 
-def test_saving_sites_fails_on_decryption_failures(box, site_list, proto):
+def test_saving_sites_fails_on_decryption_failures(site_list, proto):
     with site_list.open('wb') as outfile:
         outfile.write('\x00' * 64)
     proto.unlock('passacre')
@@ -156,45 +156,45 @@ def test_lock_clears_sites(box, site_list, proto):
     proto.lock()
     assert proto.factory.sites == set()
 
-def test_initialize_site_list(box, site_list, proto):
+def test_initialize_site_list(box, auth_file, site_list, proto):
     ef = pencrypt.EncryptedFile(box, site_list.strpath)
     proto.initialize('passacre')
     assert ef.read() == '[]'
 
-def test_initialize_auth_file(box, auth_file, proto):
+def test_initialize_auth_file(box, auth_file, site_list, proto):
     ef = pencrypt.EncryptedFile(box, auth_file.strpath)
     proto.initialize('passacre')
     assert ef.read() == 'ok'
 
-def test_initialize_does_not_clobber_site_list(box, site_list, proto):
+def test_initialize_does_not_clobber_site_list(box, auth_file, site_list, proto):
     ef = pencrypt.EncryptedFile(box, site_list.strpath)
     ef.write('["list1.example.com"]')
     proto.initialize('passacre')
     assert ef.read() == '["list1.example.com"]'
 
-def test_initialize_does_not_clobber_auth_file(box, auth_file, proto):
+def test_initialize_does_not_clobber_auth_file(box, auth_file, site_list, proto):
     ef = pencrypt.EncryptedFile(box, auth_file.strpath)
     ef.write('ok')
     proto.initialize('passacre')
     assert ef.read() == 'ok'
 
-def test_initialize_reraises_other_than_ENOENT(box, auth_file, proto):
+def test_initialize_reraises_other_than_ENOENT(auth_file, site_list, proto):
     with auth_file.open('wb') as outfile:
         outfile.write('\x00' * 64)
     auth_file.chmod(0)
     pytest.raises(IOError, proto.initialize, 'passacre')
 
-def test_initialize_checks_authorization_file_encryption(box, auth_file, proto):
+def test_initialize_checks_authorization_file_encryption(auth_file, site_list, proto):
     with auth_file.open('wb') as outfile:
         outfile.write('\x00' * 64)
     raises_amp_error(commands.AgentUnauthorized, proto.initialize, 'passacre')
 
-def test_initialize_checks_authorization_file_contents(box, auth_file, proto):
+def test_initialize_checks_authorization_file_contents(box, auth_file, site_list, proto):
     ef = pencrypt.EncryptedFile(box, auth_file.strpath)
     ef.write('no-kay')
     raises_amp_error(commands.AgentUnauthorized, proto.initialize, 'passacre')
 
-def test_unlock_checks_authorization_file_encryption(box, auth_file, proto):
+def test_unlock_checks_authorization_file_encryption(auth_file, proto):
     with auth_file.open('wb') as outfile:
         outfile.write('\x00' * 64)
     proto.app.config.global_config.update({'agent': {'require-authorization': True}})
@@ -206,7 +206,7 @@ def test_unlock_checks_authorization_file_contents(box, auth_file, proto):
     proto.app.config.global_config.update({'agent': {'require-authorization': True}})
     raises_amp_error(commands.AgentUnauthorized, proto.unlock, 'passacre')
 
-def test_unlock_only_optionally_checks_authorization_file(box, auth_file, proto):
+def test_unlock_only_optionally_checks_authorization_file(auth_file, proto):
     with auth_file.open('wb') as outfile:
         outfile.write('\x00' * 64)
     proto.app.config.global_config.update({'agent': {'require-authorization': False}})
