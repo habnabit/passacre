@@ -55,7 +55,7 @@ class EncryptedFile(object):
             outfile.write(out.ciphertext)
 
 
-def box_of_config_and_password(config, password, boxtype=SecretBox):
-    site_config = config.get_site('site-list', password)
-    prng = generator.build_prng(None, password, 'site-list', site_config)
+def box_of_config_and_password(site, config, password, boxtype=SecretBox):
+    site_config = config.get_site(site, password)
+    prng = generator.build_prng(None, password, site, site_config)
     return boxtype(pack_bytes(prng.getrandbits(256), 32))

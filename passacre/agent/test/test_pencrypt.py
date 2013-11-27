@@ -109,11 +109,11 @@ def test_encrypted_file_write(tmpdir):
 
 
 def test_box_of_config_and_password(app):
-    key = pencrypt.box_of_config_and_password(app.config, 'passacre', lambda key: key)
+    key = pencrypt.box_of_config_and_password('site-list', app.config, 'passacre', lambda key: key)
     assert key == unhexlify(b'2f586223a731c3dc95596e38293c27f8c7f3bb8ce2c15b1c7672f971c93dc44e')
 
 def test_customizing_box_parameters(mutable_app):
     app = mutable_app
     app.main(['site', 'config', 'site-list', 'increment', '2'])
-    key = pencrypt.box_of_config_and_password(app.config, 'passacre', lambda key: key)
+    key = pencrypt.box_of_config_and_password('site-list', app.config, 'passacre', lambda key: key)
     assert key == unhexlify(b'9ccd7715851f09c2f7e2e0b57ab53ec0499408d4314696b4ae6d092e03252420')

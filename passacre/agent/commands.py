@@ -12,6 +12,10 @@ class AgentUnlocked(Exception):
     errorCode = 'AGENT_UNLOCKED'
 
 
+class AgentUnauthorized(Exception):
+    errorCode = 'AGENT_UNAUTHORIZED'
+
+
 class SiteListFailedDecryption(Exception):
     errorCode = 'SITE_LIST_FAILED_DECRYPTION'
 
@@ -23,7 +27,7 @@ class Unlock(amp.Command):
     response = []
     errors = {
         AgentUnlocked: 'AGENT_UNLOCKED',
-        SiteListFailedDecryption: 'SITE_LIST_FAILED_DECRYPTION',
+        AgentUnauthorized: 'AGENT_UNAUTHORIZED',
     }
 
 
@@ -69,10 +73,12 @@ class Version(amp.Command):
     ]
 
 
-class InitSiteList(amp.Command):
+class Initialize(amp.Command):
     arguments = [
         ('password', amp.Unicode()),
     ]
     response = []
     errors = {
+        AgentUnauthorized: 'AGENT_UNAUTHORIZED',
+        SiteListFailedDecryption: 'SITE_LIST_FAILED_DECRYPTION',
     }
