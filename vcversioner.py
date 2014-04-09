@@ -34,11 +34,16 @@ def print(*a, **kw):
     _print('vcversioner:', *a, **kw)
 
 
+def _fix_path(p):
+    "Translate ``/``s into the right path separator."
+    return p.replace('/', os.sep)
+
+
 def find_version(include_dev_version=True, root='%(pwd)s',
                  version_file='%(root)s/version.txt', version_module_paths=(),
                  git_args=('git', '--git-dir', '%(root)s/.git', 'describe',
                            '--tags', '--long'),
-                 Popen=subprocess.Popen):
+                 Popen=subprocess.Popen, open=open):
     """Find an appropriate version number from version control.
 
     It's much more convenient to be able to use your version control system's
@@ -89,6 +94,8 @@ def find_version(include_dev_version=True, root='%(pwd)s',
 
     :param Popen: Defaults to ``subprocess.Popen``. This is for testing.
 
+    :param open: Defaults to ``open``. This is for testing.
+
     *root*, *version_file*, and *git_args* each support some substitutions:
 
     ``%(root)s``
@@ -98,13 +105,16 @@ def find_version(include_dev_version=True, root='%(pwd)s',
     ``%(pwd)s``
       The current working directory.
 
+    ``/`` will automatically be translated into the correct path separator for
+    the current platform, such as ``:`` or ``\``.
+
     """
 
     substitutions = {'pwd': os.getcwd()}
     substitutions['root'] = root % substitutions
-    git_args = [arg % substitutions for arg in git_args]
+    git_args = [_fix_path(arg % substitutions) for arg in git_args]
     if version_file is not None:
-        version_file %= substitutions
+        version_file = _fix_path(version_file % substitutions)
 
     # try to pull the version from git, or (perhaps) fall back on a
     # previously-saved version.
