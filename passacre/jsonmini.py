@@ -15,7 +15,7 @@ jsonmini_parser = createParserClass(
 
 
 def parse(s):
-    grammar = jsonmini_parser(s)
+    grammar = jsonmini_parser(unicode(s))
     try:
         ret, err = grammar.apply('top')
     except ParseError as e:
