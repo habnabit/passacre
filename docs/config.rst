@@ -188,6 +188,8 @@ Generating a password for a site will then issue a challenge of the UUID ``dd34b
 and prepend the response to the input password being used for generation.
 
 
+.. _JSON-mini:
+
 JSON-mini
 ---------
 
