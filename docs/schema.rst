@@ -87,3 +87,11 @@ there are multiple nested ``item``\ s in the ``item`` ``[" ", 4, "word", "digit"
 These two items will be concatenated together before being delimited by spaces.
 For example,
 this might produce the string ``spam1 spam2 eggs3 spam4``.
+
+One way of expressing a 12-character password that requires at least one letter and one digit is::
+
+  [["uppercase", "lowercase"], "digit", [10, "alphanumeric"]]
+
+This series of ``items`` has three ``item``\ s in it:
+``["uppercase", "lowercase"]``, ``"digit"``, and ``[10, "alphanumeric"]``.
+For example, this might produce the string ``a1spam9EGGS9``.
