@@ -42,3 +42,48 @@ Definitions
 +----------------+------------------------------------------------------------+
 |characters      |a string representing a set of characters                   |
 +----------------+------------------------------------------------------------+
+
+
+Examples
+--------
+
+A basic password of 12 alphanumeric characters would be represented like so::
+
+  [[12, "alphanumeric"]]
+
+In this example, there is one ``item`` in the ``items`` list,
+and that item is ``[12, "alphanumeric"]``.
+The string ``"alphanumeric"`` is a character class.
+
+Another simple example is four space-delimited words::
+
+  [[" ", 4, "word"]]
+
+Again, there is one ``item``.
+Normally there is no delimiter between repeated elements,
+but an ``item`` where the first element is a string indicates that its contents should be delimited with the first element as a delimiter.
+The string ``"word"`` is itself a special ``item`` which indicates that something should be selected from the word list.
+
+A slightly more complex example is 12 hexadecimal digits::
+
+  [[12, ["digit", "abcdef"]]]
+
+And again, there is one ``item``.
+The list ``["digit", "abcdef"]`` is a ``character-sets`` with two ``character-set``\ s in it:
+``"digit"`` is a character class ``character-set``,
+and ``"abcdef"``,
+since it does not match any character class name,
+matches the literal characters.
+
+Another more complex example is a series of four words,
+separated by spaces,
+and with each word followed by a single digit::
+
+  [[" ", 4, "word", "digit"]]
+
+Here,
+there are multiple nested ``item``\ s in the ``item`` ``[" ", 4, "word", "digit"]``:
+``"word"`` and ``"digit"``.
+These two items will be concatenated together before being delimited by spaces.
+For example,
+this might produce the string ``spam1 spam2 eggs3 spam4``.
