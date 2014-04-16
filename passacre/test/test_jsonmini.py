@@ -23,7 +23,6 @@ def test_bare_non_ascii():
     assert parse('\xff') == '\xff'
 
 def test_bare_object():
-    #import pdb; pdb.set_trace()
     assert parse('spam: eggs') == {'spam': 'eggs'}
 
 def test_bare_non_ascii_object():
