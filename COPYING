@@ -181,3 +181,51 @@ Copyright (c) 2008-2011 Agendaless Consulting and Contributors.
     TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
     THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
     SUCH DAMAGE.
+
+
+libpassacre/keccak
+==================
+
+The Keccak sponge function, designed by Guido Bertoni, Joan Daemen, Michaël
+Peeters and Gilles Van Assche. For more information, feedback or questions,
+please refer to our website: http://keccak.noekeon.org/
+
+Implementation by the designers, hereby denoted as "the implementer".
+
+To the extent possible under law, the implementer has waived all copyright and
+related or neighboring rights to the source code in this file.
+http://creativecommons.org/publicdomain/zero/1.0/
+
+
+Parts of libpassacre/skein
+==========================
+
+Implementation of the Skein hash function.
+
+Source code author: Doug Whiting, 2008.
+
+This algorithm and source code is released to the public domain.
+
+
+Other parts of libpassacre/skein
+================================
+
+Copyright (c) 2010 Werner Dittmann
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
