@@ -9,10 +9,10 @@ from passacre import features, generator, signing_uuid
 _shush_pyflakes = [features]
 
 
-def test_invalid_prng_method():
+def test_invalid_generator_method():
     options = {'method': 'invalid', 'iterations': 12}
     with pytest.raises(ValueError):
-        generator.build_prng(None, 'passacre', 'example.com', options)
+        generator.build_generator(None, 'passacre', 'example.com', options)
 
 
 class FakeYubiKey(object):

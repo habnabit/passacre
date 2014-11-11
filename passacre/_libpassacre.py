@@ -50,6 +50,8 @@ else:
 
 class Generator(object):
     def __init__(self, algorithm):
+        if algorithm not in _ALGORITHMS:
+            raise ValueError('unknown algorithm', algorithm)
         size = C.passacre_gen_size()
         self._algorithm = algorithm
         self._buf = ffi.new('unsigned char []', size)
