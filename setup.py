@@ -1,11 +1,18 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-import sys
 import vcversioner
 
 # may god have mercy on my soul
 from setuptools import setup
+
+ext_modules = []
+try:
+    import _libpassacre
+except ImportError:
+    pass
+else:
+    ext_modules.append(_libpassacre.ffi.verifier.get_extension())
 
 
 version = vcversioner.find_version(
@@ -20,14 +27,13 @@ with open('README.rst', 'r') as infile:
 extras_require = {
     'yaml': ['PyYAML'],
     'clipboard': ['xerox'],
-    'keccak': ['cykeccak>=0.13.2'],
+    'keccak': [],
+    'skein': [],
     'yubikey': ['ykpers-cffi'],
     'agent': ['Twisted', 'crochet'],
     'site_list': ['pynacl'],
 }
 
-if sys.version_info > (3,):
-    extras_require['skein'] = ['pyskein>=0.7']
 
 setup(
     name='passacre',
@@ -59,6 +65,9 @@ setup(
         'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',
                           'data/*/words', 'data/*/.passacre.*', 'data/json/*'],
     },
+    ext_modules=ext_modules,
+    ext_package='passacre',
+    setup_requires=['cffi'],
     extras_require=extras_require,
     entry_points={
         'console_scripts': ['passacre = passacre.application:main'],

@@ -8,7 +8,6 @@ import pytest
 import unittest
 
 from passacre import config
-from passacre.test.test_application import skip_without_skein
 
 
 datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
@@ -112,7 +111,6 @@ class KeccakSqliteTestCase(KeccakTestCaseMixin, unittest.TestCase):
     config_file = 'keccak.sqlite'
 
 
-@skip_without_skein
 class SkeinTestCaseMixin(ConfigTestCaseMixin):
     method = 'skein'
     expected_passwords = {

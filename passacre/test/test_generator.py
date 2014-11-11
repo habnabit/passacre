@@ -4,25 +4,10 @@
 import pytest
 
 from passacre import features, generator, signing_uuid
-from passacre.test.test_application import skip_without_skein
 
 
 _shush_pyflakes = [features]
 
-
-@skip_without_skein
-def test_patched_skein():
-    import skein
-    r1 = generator._patch_skein_random(skein.Random(b'123'))
-    s1 = r1.read(2)
-    r1.getrandbits(32)
-    s2 = r1.read(2)
-    r2 = skein.Random(b'123')
-    assert s1 + s2 != r2.read(4)
-    with pytest.raises(ValueError):
-        r1.getrandbits(0)
-    with pytest.raises(ValueError):
-        r1.getrandbits(-1)
 
 def test_invalid_prng_method():
     options = {'method': 'invalid', 'iterations': 12}
