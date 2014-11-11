@@ -1,3 +1,6 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 cmake_minimum_required(VERSION 2.8)
 project(passacre)
 set(CMAKE_C_VISIBILITY_PRESET hidden)

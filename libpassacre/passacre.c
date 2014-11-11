@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) Aaron Gallagher <_@habnab.it>
+ * See COPYING for details.
+ */
+
 #include <errno.h>
 #include <string.h>
 #include "passacre.h"
