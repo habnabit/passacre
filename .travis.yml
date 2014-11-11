@@ -14,4 +14,4 @@ before_install:
   - "sudo apt-get install cmake"
 install:
   - "pip install tox"
-script: "tox"
+script: "tox -- -rs"
