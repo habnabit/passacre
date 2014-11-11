@@ -1,8 +1,6 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-from __future__ import unicode_literals
-
 import pytest
 import py.path
 import sys

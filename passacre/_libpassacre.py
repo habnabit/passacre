@@ -59,8 +59,6 @@ class Generator(object):
         C.passacre_gen_init(self._context, _ALGORITHMS[algorithm])
 
     def absorb(self, b):
-        if isinstance(b, unicode):
-            b = b.encode('ascii')
         C.passacre_gen_absorb(self._context, b, len(b))
 
     def absorb_null_rounds(self, rounds):
