@@ -8,6 +8,10 @@ env:
   - TOXENV=py33
   - TOXENV=py34
 
+before_install:
+  - "sudo add-apt-repository --yes ppa:kalakris/cmake"
+  - "sudo apt-get update"
+  - "sudo apt-get install cmake"
 install:
   - "pip install tox"
 script: "tox"
