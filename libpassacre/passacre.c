@@ -120,6 +120,8 @@ passacre_gen_squeeze(struct passacre_gen_state *state, unsigned char *output, si
 
     case PASSACRE_SKEIN: {
         uint8_t input[64] = {0}, state_output[64];
+        size_t i, half = n_bytes / 2, last_index = n_bytes - 1;
+        unsigned char tmp, *output_start = output;
         struct _skein_prng_state *prng = &state->hasher.skein_prng;
         if (just_started) {
             uint8_t hash[64];
@@ -146,6 +148,12 @@ passacre_gen_squeeze(struct passacre_gen_state *state, unsigned char *output, si
             prng->bytes_remaining -= to_copy;
             n_bytes -= to_copy;
             output += to_copy;
+        }
+        /* reverse the bytes returned */
+        for (i = 0; i < half; ++i) {
+            tmp = output_start[i];
+            output_start[i] = output_start[last_index - i];
+            output_start[last_index - i] = tmp;
         }
         break;
     }

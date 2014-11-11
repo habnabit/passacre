@@ -35,23 +35,17 @@ if not os.environ.get('LIBPASSACRE_NO_VERIFY'):
         'skein': C.PASSACRE_SKEIN,
     }
 
-_ALGORITHM_ENDIANNESS = {
-    'keccak': 'big',
-    'skein': 'little',
-}
-
 
 if sys.version_info < (3,):  # pragma: nocover
-    def int_of_bytes(b, endianness):
+    def int_of_bytes(b):
         ret = 0
-        it = b if endianness == 'big' else reversed(b)
-        for c in it:
+        for c in b:
             ret = (ret << 8) | ord(c)
         return ret
 
 else:
-    def int_of_bytes(b, endianness):
-        return int.from_bytes(b, endianness)
+    def int_of_bytes(b):
+        return int.from_bytes(b, 'big')
 
 
 class Generator(object):
@@ -61,7 +55,6 @@ class Generator(object):
         self._buf = ffi.new('unsigned char []', size)
         self._context = ffi.cast('struct passacre_gen_state *', self._buf)
         C.passacre_gen_init(self._context, _ALGORITHMS[algorithm])
-        self._endianness = _ALGORITHM_ENDIANNESS[algorithm]
 
     def absorb(self, b):
         if isinstance(b, unicode):
@@ -77,11 +70,10 @@ class Generator(object):
         return ffi.buffer(output)[:]
 
     def squeeze_for_multibase(self, mb):
-        endianness = self._endianness
         required_bytes = int(math.ceil(
             math.log(mb.max_encodable_value + 1, 256)))
         while True:
-            value = int_of_bytes(self.squeeze(required_bytes), endianness)
+            value = int_of_bytes(self.squeeze(required_bytes))
             if value <= mb.max_encodable_value:
                 break
         return mb.encode(value)
