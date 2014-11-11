@@ -6,4 +6,5 @@
 /passacre/_version.py
 *.egg*
 /.coverage
-/htmlcov
+/htmlcov*
+/.tox

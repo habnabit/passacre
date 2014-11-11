@@ -1,4 +1,5 @@
 import math
+import os
 import sys
 
 import cffi
@@ -23,16 +24,16 @@ int passacre_gen_squeeze(struct passacre_gen_state *, unsigned char *, size_t);
 
 """)
 
-C = ffi.verify(
-    include_dirs=['libpassacre'], library_dirs=['libpassacre'],
-    libraries=['passacre'], ext_package='passacre',
-    source='#include "passacre.h"')
+preamble = '#include "passacre.h"'
+if not os.environ.get('LIBPASSACRE_NO_VERIFY'):
+    C = ffi.verify(
+        preamble, ext_package='passacre', modulename='_libpassacre_c',
+        libraries=['passacre'])
 
-
-_ALGORITHMS = {
-    'keccak': C.PASSACRE_KECCAK,
-    'skein': C.PASSACRE_SKEIN,
-}
+    _ALGORITHMS = {
+        'keccak': C.PASSACRE_KECCAK,
+        'skein': C.PASSACRE_SKEIN,
+    }
 
 _ALGORITHM_ENDIANNESS = {
     'keccak': 'big',

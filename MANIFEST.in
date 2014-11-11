@@ -1,1 +1,4 @@
 include COPYING version.txt passacre.yaml.example
+include _libpassacre.py libpassacre/CMakeLists.txt libpassacre/passacre.*
+graft libpassacre/keccak
+graft libpassacre/skein

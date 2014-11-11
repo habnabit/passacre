@@ -13,7 +13,7 @@ else ()
 endif ()
 
 add_definitions(-ggdb -O2)
-add_library(passacre SHARED
+add_library(passacre
             keccak/KeccakSponge.c ${KECCAKF}
             skein/skein.c skein/skeinBlockNo3F.c
             skein/threefish256Block.c skein/threefish512Block.c skein/threefish1024Block.c
@@ -23,4 +23,5 @@ generate_export_header(passacre)
 
 install(FILES passacre.h passacre_export.h DESTINATION include)
 install(TARGETS passacre
-        LIBRARY DESTINATION lib)
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
