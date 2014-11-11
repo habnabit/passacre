@@ -19,6 +19,7 @@ add_library(passacre
             skein/threefish256Block.c skein/threefish512Block.c skein/threefish1024Block.c
             skein/skeinApi.c skein/threefishApi.c
             passacre.c)
+set_target_properties(passacre PROPERTIES POSITION_INDEPENDENT_CODE ON)
 generate_export_header(passacre)
 
 install(FILES passacre.h passacre_export.h DESTINATION include)
