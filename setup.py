@@ -72,8 +72,6 @@ extras_require = {
     'keccak': [],
     'skein': [],
     'yubikey': ['ykpers-cffi'],
-    'agent': ['Twisted', 'crochet'],
-    'site_list': ['pynacl'],
 }
 
 extras_require['all'] = [req for reqs in extras_require.values() for req in reqs]
@@ -106,7 +104,7 @@ setup(
     vcversioner={
         'version_module_paths': ['passacre/_version.py'],
     },
-    packages=['passacre', 'passacre.agent', 'passacre.test', 'passacre.agent.test'],
+    packages=['passacre', 'passacre.test'],
     package_data={
         'passacre': ['schema.sql'],
         'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',

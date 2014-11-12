@@ -3,7 +3,6 @@ source = passacre
 omit =
     passacre/_[a-z]*
     passacre/test/*
-    passacre/agent/test/*
     passacre/__main__.py
 
 [report]

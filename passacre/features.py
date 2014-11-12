@@ -51,10 +51,5 @@ class Feature(object):
 yaml = Feature('YAML configuration', ('yaml', 'pyyaml'))
 copying = Feature('password copying', ('xerox', 'xerox'))
 yubikey = Feature('yubikey support', ('ykpers', 'ykpers-cffi'))
-agent = Feature(
-    'passacre agent support',
-    ('twisted.protocols.amp', 'Twisted'),
-    ('crochet', 'crochet'))
-site_list = Feature('site list saving', ('nacl', 'pynacl'))
 
 features = Feature.features

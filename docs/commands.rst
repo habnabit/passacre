@@ -65,11 +65,3 @@ Operate on schemata.
 .. program-output:: passacre site --help
 
 Operate on sites.
-
-
-``passacre agent``
----------------------
-
-.. program-output:: passacre agent --help
-
-Operate on passacre-agent.

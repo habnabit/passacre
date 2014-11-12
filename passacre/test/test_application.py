@@ -14,12 +14,6 @@ from passacre.test.util import excinfo_arg_0
 _shush_pyflakes = [features]
 
 
-try:
-    from passacre.agent import commands
-except:
-    commands = None
-
-
 datadir = py.path.local(__file__).dirpath('data')
 
 
@@ -683,78 +677,6 @@ class FakeRunAmpCommand(object):
 def amp_command_app(app):
     app._run_amp_command = FakeRunAmpCommand()
     return app
-
-skip_without_agent = pytest.mark.skipif(
-    'not features.agent.usable', reason='agent not usable')
-
-@skip_without_agent
-def test_requires_environment(amp_command_app):
-    app = amp_command_app
-    pytest.raises(ValueError, app._run_agent, None)
-
-@skip_without_agent
-def test_implicit_unix_socket(amp_command_app):
-    app = amp_command_app
-    app.environ['PASSACRE_AGENT'] = '/spam/eggs'
-    app._run_agent(None)
-    assert app._run_amp_command.commands == [('unix:/spam/eggs', None, {})]
-
-@skip_without_agent
-def test_keyword_args_passed_through(amp_command_app):
-    app = amp_command_app
-    app.environ['PASSACRE_AGENT'] = 'tcp:localhost:9000'
-    app._run_agent(None, spam='eggs', eggs='spam')
-    assert app._run_amp_command.commands == [
-        ('tcp:localhost:9000', None, {'spam': 'eggs', 'eggs': 'spam'})]
-
-
-@skip_without_agent
-def test_no_agent(capsys, app):
-    assert read_out(capsys, app, 'agent') == 'no PASSACRE_AGENT set\n'
-
-@skip_without_agent
-def test_agent_success(capsys, app):
-    app.environ['PASSACRE_AGENT'] = 'tcp:localhost:9000'
-    def run_agent(command):
-        assert command == commands.Version
-        return {'version': 'test', 'sha': 'gdeadbeef'}
-    app._run_agent = run_agent
-    assert read_out(capsys, app, 'agent') == """\
-PASSACRE_AGENT: tcp:localhost:9000
-passacre version test (gdeadbeef)
-"""
-
-@skip_without_agent
-def test_agent_lock(mutable_app):
-    app = mutable_app
-    called = []
-    def run_agent(command):
-        assert command == commands.Lock
-        called.append(True)
-        return {}
-    app._run_agent = run_agent
-    app.main(['agent', 'lock'])
-    assert called
-
-@skip_without_agent
-def test_agent_unlock(mutable_app):
-    app = mutable_app
-    called = []
-    def run_agent(command, password):
-        assert command == commands.Unlock
-        assert password == 'passacre'
-        called.append(True)
-        return {}
-    app._run_agent = run_agent
-    app.main(['agent', 'unlock'])
-    assert called
-
-@skip_without_agent
-def test_always_confirm_agent_unlock(always_confirm_app):
-    app = always_confirm_app
-    app._run_agent = lambda *a, **kw: {}
-    app.main(['agent', 'unlock'])
-    assert app._confirmed_password
 
 
 class FakeError(Exception):

@@ -51,30 +51,6 @@ The :ref:`yubikey-slot` site configuration option can be specified to involve a 
 This feature requires the |ykpers-cffi|_ module.
 
 
-``agent``
----------
-
-An agent for caching credentials for generating passwords.
-The idea is that a running passacre-agent will hold in memory the password used for generating other passwords,
-and passacre can communicate with it to request generation of a password.
-
-This feature requires the `AMP`_ module from `Twisted`_
-(i.e. ``twisted.protocols.amp``)
-and the |crochet|_ module.
-
-
-``site_list``
--------------
-
-A cached list of sites.
-passacre can persist an encrypted list of the sites for which a password has been generated.
-This is useful for keeping track of what the hashed sites in a config file are.
-If specified to ``passacre-generate``,
-passacre-agent will save a site name to the site list after generating a password.
-
-This feature requires the |pynacl|_ module.
-
-
 .. |cykeccak| replace:: ``cykeccak``
 .. _cykeccak: https://pypi.python.org/pypi/cykeccak
 .. |pyskein| replace:: ``pyskein``
@@ -85,9 +61,3 @@ This feature requires the |pynacl|_ module.
 .. _xerox: https://pypi.python.org/pypi/xerox
 .. |ykpers-cffi| replace:: ``ykpers-cffi``
 .. _ykpers-cffi: https://pypi.python.org/pypi/ykpers-cffi
-.. _AMP: http://amp-protocol.net
-.. _Twisted: http://twistedmatrix.net
-.. |crochet| replace:: ``crochet``
-.. _crochet: https://pypi.python.org/pypi/crochet
-.. |pynacl| replace:: ``pynacl``
-.. _pynacl: https://pypi.python.org/pypi/pynacl
