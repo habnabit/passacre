@@ -22,8 +22,6 @@ extras_require = {
     'clipboard': ['xerox'],
     'keccak': ['cykeccak>=0.13.2'],
     'yubikey': ['ykpers-cffi'],
-    'agent': ['Twisted', 'crochet'],
-    'site_list': ['pynacl'],
 }
 
 if sys.version_info > (3,):
@@ -53,7 +51,7 @@ setup(
     license='ISC',
 
     version=version.version,
-    packages=['passacre', 'passacre.agent', 'passacre.test', 'passacre.agent.test'],
+    packages=['passacre', 'passacre.test'],
     package_data={
         'passacre': ['schema.sql'],
         'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',

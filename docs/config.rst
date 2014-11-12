@@ -119,23 +119,6 @@ The number of iterations to use when hashing the site name.
 Defaults to the same value as ``iterations`` and has the same semantics.
 
 
-``site-list.auto-save``
-~~~~~~~~~~~~~~~~~~~~~~~
-
-If this is set to ``true``,
-passacre acts as if ``passacre generate`` was always called with the ``-S`` flag.
-Calling ``passacre generate`` with the ``-s`` flag still disables site list saving.
-
-
-``site-list.required-for-unlock``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If this is set to ``true``,
-the site list must be able to be decrypted in order to unlock passacre-agent.
-If the site list can't be read because it isn't present,
-the agent is still unlocked.
-
-
 Site options
 ------------
 

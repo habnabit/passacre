@@ -1,41 +1,5 @@
 #compdef passacre
 
-_passacre_subcommand_agent () {
-    
-
-    if [[ $CURRENT = 1 ]]; then
-        local _passacre_commands
-        _passacre_commands=('lock:lock the passacre agent' 'run:run the passacre agent' 'unlock:unlock the passacre agent')
-        _describe 'subcommand' _passacre_commands
-    fi
-    case $line[1] in
-    
-
-        (lock)
-            _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' \
-                && return 0
-            ;;
-        
-
-        (run)
-            _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':port: ' \
-                && return 0
-            ;;
-        
-
-        (unlock)
-            _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
-                && return 0
-            ;;
-        
-
-    esac
-}
-    
-
 _passacre_subcommand_schema () {
     
 
@@ -49,28 +13,28 @@ _passacre_subcommand_schema () {
 
         (add)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':name: ' ':value: ' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':name: ' ':value: ' \
                 && return 0
             ;;
         
 
         (remove)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':name:_passacre_schemata' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':name:_passacre_schemata' \
                 && return 0
             ;;
         
 
         (set-name)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':oldname:_passacre_schemata' ':newname: ' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':oldname:_passacre_schemata' ':newname: ' \
                 && return 0
             ;;
         
 
         (set-value)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':name:_passacre_schemata' ':value: ' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':name:_passacre_schemata' ':value: ' \
                 && return 0
             ;;
         
@@ -92,49 +56,49 @@ _passacre_subcommand_site () {
 
         (add)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':site: ' ':schema:_passacre_schemata' '(--new-schema)-N=[a schema value for the new schema]:VALUE: ' '(-N)--new-schema=[a schema value for the new schema]:VALUE: ' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':site: ' ':schema:_passacre_schemata' '(-N)--new-schema=[a schema value for the new schema]:VALUE: ' '(--new-schema)-N=[a schema value for the new schema]:VALUE: ' \
                 && return 0
             ;;
         
 
         (config)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':site:_passacre_sites' '(-a)--hashed[hash the site name]' '(--hashed)-a[hash the site name]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' ':name: ' ':value: ' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':site:_passacre_sites' '(-a)--hashed[hash the site name]' '(--hashed)-a[hash the site name]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' ':name: ' ':value: ' \
                 && return 0
             ;;
         
 
         (hash)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':site:_passacre_sites' '(--method)-m=[which hash method to use]: :_passacre_hash_methods' '(-m)--method=[which hash method to use]: :_passacre_hash_methods' "(-n)--no-newline[don't write a newline after the hash]" "(--no-newline)-n[don't write a newline after the hash]" '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':site:_passacre_sites' '(-m)--method=[which hash method to use]: :_passacre_hash_methods' '(--method)-m=[which hash method to use]: :_passacre_hash_methods' "(-n)--no-newline[don't write a newline after the hash]" "(--no-newline)-n[don't write a newline after the hash]" '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
                 && return 0
             ;;
         
 
         (hash-all)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' '(--method)-m=[which hash method to use]: :_passacre_hash_methods' '(-m)--method=[which hash method to use]: :_passacre_hash_methods' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' '(-m)--method=[which hash method to use]: :_passacre_hash_methods' '(--method)-m=[which hash method to use]: :_passacre_hash_methods' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
                 && return 0
             ;;
         
 
         (remove)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':site:_passacre_sites' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':site:_passacre_sites' \
                 && return 0
             ;;
         
 
         (set-name)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':oldname:_passacre_sites' ':newname: ' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':oldname:_passacre_sites' ':newname: ' \
                 && return 0
             ;;
         
 
         (set-schema)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':site:_passacre_sites' ':schema:_passacre_schemata' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':site:_passacre_sites' ':schema:_passacre_schemata' \
                 && return 0
             ;;
         
@@ -148,64 +112,57 @@ _passacre_subcommand () {
 
     if [[ $CURRENT = 1 ]]; then
         local _passacre_commands
-        _passacre_commands=('agent:commands for passacre-agent' 'config:view/change global configuration' "entropy:display each site's password entropy" 'generate:generate a password' 'info:information about the passacre environment' 'init:initialize an sqlite config' 'schema:actions on schemata' 'site:actions on sites')
+        _passacre_commands=('config:view/change global configuration' "entropy:display each site's password entropy" 'generate:generate a password' 'info:information about the passacre environment' 'init:initialize an sqlite config' 'schema:actions on schemata' 'site:actions on sites')
         _describe 'subcommand' _passacre_commands
     fi
     case $line[1] in
     
 
-        (agent)
-            _arguments -S \
-                '*::site cmd:_passacre_subcommand_agent' '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' \
-                && return 0
-            ;;
-        
-
         (config)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' '(-s)--site=[the site to operate on or omitted for global config]: :_passacre_sites' '(--site)-s=[the site to operate on or omitted for global config]: :_passacre_sites' '(-a)--hashed[hash the site name]' '(--hashed)-a[hash the site name]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' ':name: ' ':value: ' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' '(-s)--site=[the site to operate on or omitted for global config]: :_passacre_sites' '(--site)-s=[the site to operate on or omitted for global config]: :_passacre_sites' '(-a)--hashed[hash the site name]' '(--hashed)-a[hash the site name]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' ':name: ' ':value: ' \
                 && return 0
             ;;
         
 
         (entropy)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' '--schema[show entropy by schema instead of by site]' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' '--schema[show entropy by schema instead of by site]' \
                 && return 0
             ;;
         
 
         (generate)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':site:_passacre_sites' '(-o)--override-config=[a JSON dictionary of config values to override]:CONFIG: ' '(--override-config)-o=[a JSON dictionary of config values to override]:CONFIG: ' '(--username)-u=[username for the site]: : ' '(-u)--username=[username for the site]: : ' "(-n)--no-newline[don't write a newline after the password]" "(--no-newline)-n[don't write a newline after the password]" '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' '(--save)-S[save the site name to the site list (only works with passacre agent)]' '(-S)--save[save the site name to the site list (only works with passacre agent)]' '(-s)--no-save[do not save the site name to the site list]' '(--no-save)-s[do not save the site name to the site list]' '(--copy)-C[put the generated password on the clipboard]' '(-C)--copy[put the generated password on the clipboard]' '(--timeout)-w=[clear the clipboard after N seconds]:N: ' '(-w)--timeout=[clear the clipboard after N seconds]:N: ' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':site:_passacre_sites' '(-o)--override-config=[a JSON dictionary of config values to override]:CONFIG: ' '(--override-config)-o=[a JSON dictionary of config values to override]:CONFIG: ' '(-u)--username=[username for the site]: : ' '(--username)-u=[username for the site]: : ' "(-n)--no-newline[don't write a newline after the password]" "(--no-newline)-n[don't write a newline after the password]" '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
                 && return 0
             ;;
         
 
         (info)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' \
                 && return 0
             ;;
         
 
         (init)
             _arguments -S \
-                 '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' ':path: ' '(-y)--from-yaml=[optional input YAML config file to convert from]:YAML:_files' '(--from-yaml)-y=[optional input YAML config file to convert from]:YAML:_files' \
+                 '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' ':path: ' '(-y)--from-yaml=[optional input YAML config file to convert from]:YAML:_files' '(--from-yaml)-y=[optional input YAML config file to convert from]:YAML:_files' \
                 && return 0
             ;;
         
 
         (schema)
             _arguments -S \
-                '*::site cmd:_passacre_subcommand_schema' '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' \
+                '*::site cmd:_passacre_subcommand_schema' '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' \
                 && return 0
             ;;
         
 
         (site)
             _arguments -S \
-                '*::site cmd:_passacre_subcommand_site' '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' '--by-schema[list sites organized by schema]' "--omit-hashed[don't list hashed sites]" '(-a)--hashed[hash the site name]' '(--hashed)-a[hash the site name]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
+                '*::site cmd:_passacre_subcommand_site' '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' '--by-schema[list sites organized by schema]' "--omit-hashed[don't list hashed sites]" '(-a)--hashed[hash the site name]' '(--hashed)-a[hash the site name]' '(-c)--confirm[confirm prompted password]' '(--confirm)-c[confirm prompted password]' \
                 && return 0
             ;;
         
@@ -217,7 +174,7 @@ _passacre_subcommand () {
 _passacre () {
     _arguments -S \
         '*::cmd:_passacre_subcommand' \
-        '(--help)-h[show this help message and exit]' '(-h)--help[show this help message and exit]' "(--version)-V[show program's version number and exit]" "(-V)--version[show program's version number and exit]" '(--verbose)-v[increase output on errors]' '(-v)--verbose[increase output on errors]' '(-f)--config=[specify a config file to use]: : ' '(--config)-f=[specify a config file to use]: : ' \
+        '(-h)--help[show this help message and exit]' '(--help)-h[show this help message and exit]' "(-V)--version[show program's version number and exit]" "(--version)-V[show program's version number and exit]" '(-v)--verbose[increase output on errors]' '(--verbose)-v[increase output on errors]' '(-f)--config=[specify a config file to use]: : ' '(--config)-f=[specify a config file to use]: : ' \
         && return 0
 }
 
@@ -244,4 +201,4 @@ _passacre_hash_methods () {
 
 
 _passacre "$@"
-    
+

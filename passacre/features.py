@@ -53,10 +53,5 @@ keccak = Feature('keccak password generation', ('keccak', 'cykeccak'))
 skein = Feature('skein password generation', ('skein', 'pyskein'))
 copying = Feature('password copying', ('xerox', 'xerox'))
 yubikey = Feature('yubikey support', ('ykpers', 'ykpers-cffi'))
-agent = Feature(
-    'passacre agent support',
-    ('twisted.protocols.amp', 'Twisted'),
-    ('crochet', 'crochet'))
-site_list = Feature('site list saving', ('nacl', 'pynacl'))
 
 features = Feature.features

@@ -115,12 +115,6 @@ class Passacre(object):
         }),
         'config': "view/change global configuration",
         'info': "information about the passacre environment",
-        'agent': ("commands for passacre-agent", {
-            'run': "run the passacre agent",
-            'lock': "lock the passacre agent",
-            'unlock': "unlock the passacre agent",
-            'init': "initialize authorization and site list files",
-        }),
     }
 
     @reify
@@ -145,27 +139,6 @@ class Passacre(object):
         if self.config.global_config.get('always-confirm-passwords'):
             confirm = True
         return self._prompt_password(confirm)
-
-
-    try:
-        from passacre.agent.main import run_amp_command as _run_amp_command
-    except ImportError:
-        pass
-    else:
-        _run_amp_command = staticmethod(_run_amp_command)
-
-
-    @features.agent.check
-    @errormark('communicating with the passacre agent')
-    def _run_agent(self, command, **args):
-        from twisted.internet import endpoints
-
-        if 'PASSACRE_AGENT' not in self.environ:
-            raise ValueError("'PASSACRE_AGENT' is not set")
-        description = self.environ['PASSACRE_AGENT']
-        if description.startswith('/'):
-            description = 'unix:' + endpoints.quoteStringArgument(description)
-        return self._run_amp_command(description, command, args)
 
 
     def init_args(self, subparser):
@@ -206,36 +179,12 @@ class Passacre(object):
                                help="don't write a newline after the password")
         subparser.add_argument('-c', '--confirm', action='store_true',
                                help='confirm prompted password')
-        subparser.add_argument('-S', '--save', action='store_true', default=None,
-                               help='save the site name to the site list (only works '
-                               'with passacre agent)')
-        subparser.add_argument('-s', '--no-save', action='store_false', dest='save',
-                               help='do not save the site name to the site list')
         if self.xerox is not None:
             subparser.add_argument('-C', '--copy', action='store_true',
                                    help='put the generated password on the clipboard')
             subparser.add_argument('-w', '--timeout', type=int, metavar='N',
                                    help='clear the clipboard after N seconds')
 
-
-    def _generate_from_agent(self, args):
-        from passacre.agent import commands
-        if args.save is None:
-            site_list = self.config.global_config.get('site-list', {})
-            args.save = site_list.get('auto-save')
-        try:
-            results = self._run_agent(
-                commands.Generate, site=args.site, username=args.username, save_site=args.save)
-        except Exception:
-            try:
-                self.excepthook(*sys.exc_info())
-            except SystemExit:
-                pass
-            print('falling back on no agent', file=sys.stderr)
-            return False
-        password = python_2_encode(results['password'])
-        self._process_generated_password(password, args)
-        return True
 
     @transform_args([
         ('override_config', jloads),
@@ -244,9 +193,6 @@ class Passacre(object):
         "Generate a password."
         if args.site is None:
             args.site = self.prompt('Site: ')
-        if 'PASSACRE_AGENT' in self.environ:
-            if self._generate_from_agent(args):
-                return
         password = self.prompt_password(args.confirm)
         password = self.config.generate_for_site(
             args.username, password, args.site, args.override_config)
@@ -320,15 +266,6 @@ class Passacre(object):
         confirm_group.add_argument('-c', '--confirm', action='store_true',
                                    help='confirm prompted password')
 
-    def _fill_in_sites_from_agent(self, sites):
-        if 'PASSACRE_AGENT' not in self.environ:
-            return
-
-        from passacre.agent import commands
-        results = self._run_agent(commands.FetchSiteList)
-        for site in results['sites']:
-            sites.setdefault(site, {})
-
     def site_action(self, args):
         "Perform an action on a site in a config file."
 
@@ -345,7 +282,6 @@ class Passacre(object):
                     schema, ', '.join(sorted(sites_by_schema[schema], key=site_sort_key))))
             return
 
-        self._fill_in_sites_from_agent(sites)
         for site in sorted(sites, key=site_sort_key):
             site_config = sites[site]
             if 'schema-name' in site_config:
@@ -563,50 +499,6 @@ class Passacre(object):
         self._base_config_args(subparser)
 
     site_config_action = config_action
-
-
-    @features.agent.check
-    def agent_action(self, args):
-        from passacre.agent import commands
-        if 'PASSACRE_AGENT' not in self.environ:
-            print('no PASSACRE_AGENT set')
-            return
-        print('PASSACRE_AGENT: %(PASSACRE_AGENT)s' % self.environ)
-        results = self._run_agent(commands.Version)
-        print('passacre version %(version)s (%(sha)s)' % results)
-
-    def agent_run_args(self, subparser):
-        subparser.add_argument('port', help='the port to listen on')
-
-    @features.agent.check
-    def agent_run_action(self, args):
-        from passacre.agent.main import server_main
-        server_main(type(self), args.port)
-
-    def agent_unlock_args(self, subparser):
-        subparser.add_argument('-c', '--confirm', action='store_true',
-                               help='confirm prompted password')
-
-    @features.agent.check
-    def agent_unlock_action(self, args):
-        from passacre.agent import commands
-        password = self.prompt_password(args.confirm)
-        self._run_agent(commands.Unlock, password=password)
-
-    @features.agent.check
-    def agent_lock_action(self, args):
-        from passacre.agent import commands
-        self._run_agent(commands.Lock)
-
-    def agent_init_args(self, subparser):
-        subparser.add_argument('-c', '--confirm', action='store_true',
-                               help='confirm prompted password')
-
-    @features.agent.check
-    def agent_init_action(self, args):
-        from passacre.agent import commands
-        password = self.prompt_password(args.confirm)
-        self._run_agent(commands.Initialize, password=password)
 
 
     def info_action(self, args):
