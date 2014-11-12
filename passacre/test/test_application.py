@@ -1,8 +1,6 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-from __future__ import unicode_literals
-
 import pytest
 import py.path
 import sys
@@ -127,10 +125,6 @@ class FakeAtexit(object):
             f(*a, **kw)
 
 
-skip_without_skein = pytest.mark.skipif(
-    'not features.skein.usable', reason='skein not usable')
-
-
 class ApplicationTestCaseMixin(object):
     config_dir = None
     hashed_site = None
@@ -242,7 +236,6 @@ example.com                                             26.58
         out = read_out(self.capsys, self.app, 'site', 'hash', 'hashed.example.com', '-m', 'keccak')
         assert out == 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4\n'
 
-    @skip_without_skein
     def test_site_hash_overridden_method_skein(self):
         out = read_out(self.capsys, self.app, 'site', 'hash', 'hashed.example.com', '-m', 'skein')
         assert out == 'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L\n'
@@ -282,7 +275,6 @@ class KeccakSqliteTestCase(KeccakTestCaseMixin, SqliteTestCaseMixin, unittest.Te
     config_dir = 'keccak-sqlite'
 
 
-@skip_without_skein
 class SkeinTestCaseMixin(ApplicationTestCaseMixin):
     hashed_site = 'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L'
     hashed_password = 'abactor abattoir abashedly abaca'

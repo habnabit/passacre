@@ -1,7 +1,0 @@
-#!/bin/bash
-
-PYTHON_VERSION=$(python --version 2>&1)
-
-if [[ "$PYTHON_VERSION" > "Python 3" ]]; then
-    pip install pyskein
-fi
