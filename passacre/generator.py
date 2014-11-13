@@ -49,13 +49,11 @@ def build_generator(username, password, site, options):
         password = extend_password_with_yubikey(password, options)
     method = options['method']
     iterations = options['iterations']
+    if username is not None:
+        username = python_3_encode(username)
     g = Generator(method)
-    if username:
-        g.absorb(python_3_encode(username))
-        g.absorb(b':')
-    g.absorb(python_3_encode(password))
-    g.absorb(b':')
-    g.absorb(site.encode('idna'))
+    g.absorb_username_password_site(
+        username, python_3_encode(password), site.encode('idna'))
     g.absorb_null_rounds(iterations)
     return g
 

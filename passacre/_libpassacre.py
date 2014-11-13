@@ -18,7 +18,7 @@ struct passacre_gen_state;
 
 size_t passacre_gen_size(void);
 int passacre_gen_init(struct passacre_gen_state *, enum passacre_gen_algorithm);
-int passacre_gen_absorb(struct passacre_gen_state *, unsigned char *, size_t);
+int passacre_gen_absorb_username_password_site(struct passacre_gen_state *, const unsigned char *, size_t, const unsigned char *, size_t, const unsigned char *, size_t);
 int passacre_gen_absorb_null_rounds(struct passacre_gen_state *, size_t);
 int passacre_gen_squeeze(struct passacre_gen_state *, unsigned char *, size_t);
 
@@ -48,6 +48,10 @@ else:
         return int.from_bytes(b, 'big')
 
 
+class GeneratorError(Exception):
+    pass
+
+
 class Generator(object):
     def __init__(self, algorithm):
         if algorithm not in _ALGORITHMS:
@@ -56,17 +60,29 @@ class Generator(object):
         self._algorithm = algorithm
         self._buf = ffi.new('unsigned char []', size)
         self._context = ffi.cast('struct passacre_gen_state *', self._buf)
-        C.passacre_gen_init(self._context, _ALGORITHMS[algorithm])
+        self._check(C.passacre_gen_init, _ALGORITHMS[algorithm])
 
-    def absorb(self, b):
-        C.passacre_gen_absorb(self._context, b, len(b))
+    def _check(self, func, *args):
+        result = func(self._context, *args)
+        if result:
+            raise GeneratorError(-result)
+
+    def absorb_username_password_site(self, username, password, site):
+        if username is None:
+            username = ffi.NULL
+            username_length = 0
+        else:
+            username_length = len(username)
+        self._check(
+            C.passacre_gen_absorb_username_password_site,
+            username, username_length, password, len(password), site, len(site))
 
     def absorb_null_rounds(self, rounds):
-        C.passacre_gen_absorb_null_rounds(self._context, rounds)
+        self._check(C.passacre_gen_absorb_null_rounds, rounds)
 
     def squeeze(self, n_bytes):
         output = ffi.new('unsigned char[]', n_bytes)
-        C.passacre_gen_squeeze(self._context, output, n_bytes)
+        self._check(C.passacre_gen_squeeze, output, n_bytes)
         return ffi.buffer(output)[:]
 
     def squeeze_for_multibase(self, mb):

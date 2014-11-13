@@ -66,8 +66,8 @@ passacre_gen_init(struct passacre_gen_state *state, enum passacre_gen_algorithm 
 }
 
 
-int
-passacre_gen_absorb(struct passacre_gen_state *state, unsigned char *input, size_t n_bytes)
+static int
+passacre_gen_absorb(struct passacre_gen_state *state, const unsigned char *input, size_t n_bytes)
 {
     if (state->finished_absorbing) {
         return -EINVAL;
@@ -89,6 +89,38 @@ passacre_gen_absorb(struct passacre_gen_state *state, unsigned char *input, size
         return -EINVAL;
     }
 
+    return 0;
+}
+
+
+static const unsigned char PASSACRE_DELIMITER[1] = ":";
+
+
+int
+passacre_gen_absorb_username_password_site(
+    struct passacre_gen_state *state,
+    const unsigned char *username, size_t username_length,
+    const unsigned char *password, size_t password_length,
+    const unsigned char *site, size_t site_length)
+{
+    int result;
+    if (username) {
+        if ((result = passacre_gen_absorb(state, username, username_length))) {
+            return result;
+        }
+        if ((result = passacre_gen_absorb(state, PASSACRE_DELIMITER, sizeof PASSACRE_DELIMITER))) {
+            return result;
+        }
+    }
+    if ((result = passacre_gen_absorb(state, password, password_length))) {
+        return result;
+    }
+    if ((result = passacre_gen_absorb(state, PASSACRE_DELIMITER, sizeof PASSACRE_DELIMITER))) {
+        return result;
+    }
+    if ((result = passacre_gen_absorb(state, site, site_length))) {
+        return result;
+    }
     return 0;
 }
 

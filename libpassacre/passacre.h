@@ -30,7 +30,9 @@ struct passacre_gen_state;
 
 PASSACRE_EXPORT size_t passacre_gen_size(void);
 PASSACRE_EXPORT int passacre_gen_init(struct passacre_gen_state *, enum passacre_gen_algorithm);
-PASSACRE_EXPORT int passacre_gen_absorb(struct passacre_gen_state *, unsigned char *, size_t);
+PASSACRE_EXPORT int passacre_gen_absorb_username_password_site(
+    struct passacre_gen_state *, const unsigned char *, size_t,
+    const unsigned char *, size_t, const unsigned char *, size_t);
 PASSACRE_EXPORT int passacre_gen_absorb_null_rounds(struct passacre_gen_state *, size_t);
 PASSACRE_EXPORT int passacre_gen_squeeze(struct passacre_gen_state *, unsigned char *, size_t);
 
