@@ -2,7 +2,16 @@
 # See COPYING for details.
 
 cmake_minimum_required(VERSION 2.8)
-project(passacre)
+project(libpassacre)
+
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../version.txt" RAW_VERSION)
+string(REPLACE "-" ";" SPLIT_VERSION "${RAW_VERSION}")
+list(GET SPLIT_VERSION 0 VERSION)
+list(GET SPLIT_VERSION 1 VERSION_COMMITS)
+if ("${VERSION_COMMITS}" GREATER 0)
+  set(VERSION "${VERSION}.post${VERSION_COMMITS}")
+endif ()
+
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 include(GenerateExportHeader)
@@ -13,6 +22,15 @@ elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set(KECCAKF "keccak/KeccakF-1600-opt32.c")
 else ()
   message(FATAL_ERROR "I don't know how to pick which Keccak implementation to use!")
+endif ()
+
+include(FindPkgConfig QUIET)
+if (PKG_CONFIG_FOUND)
+  foreach (LIB ${CMAKE_C_IMPLICIT_LINK_LIBRARIES} ${PLATFORM_LIBS})
+    set(PRIVATE_LIBS "${PRIVATE_LIBS} -l${LIB}")
+  endforeach ()
+  configure_file(libpassacre.pc.in libpassacre.pc @ONLY)
+  install(FILES libpassacre.pc DESTINATION lib/pkgconfig)
 endif ()
 
 add_definitions(-ggdb -O2)
