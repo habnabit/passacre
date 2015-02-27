@@ -1,39 +1,25 @@
 import math
-import os
 import sys
 
-import cffi
+from cffi.verifier import Verifier
+
+from _libpassacre import ffi, preamble
 
 
-ffi = cffi.FFI()
-ffi.cdef("""
+ffi.verifier = Verifier(
+    ffi, preamble, ext_package='passacre', modulename='_libpassacre_c')
 
-enum passacre_gen_algorithm {
-    PASSACRE_KECCAK,
-    PASSACRE_SKEIN,
-    ...
-};
 
-struct passacre_gen_state;
+def _no_compilation(*a, **kw):
+    raise RuntimeError('cffi implicit compilation attempted')
 
-size_t passacre_gen_size(void);
-int passacre_gen_init(struct passacre_gen_state *, enum passacre_gen_algorithm);
-int passacre_gen_absorb_username_password_site(struct passacre_gen_state *, const unsigned char *, size_t, const unsigned char *, size_t, const unsigned char *, size_t);
-int passacre_gen_absorb_null_rounds(struct passacre_gen_state *, size_t);
-int passacre_gen_squeeze(struct passacre_gen_state *, unsigned char *, size_t);
+ffi.verifier.compile_module = ffi.verifier._compile_module = _no_compilation
+C = ffi.verifier.load_library()
 
-""")
-
-preamble = '#include "passacre.h"'
-if not os.environ.get('LIBPASSACRE_NO_VERIFY'):
-    C = ffi.verify(
-        preamble, ext_package='passacre', modulename='_libpassacre_c',
-        libraries=['passacre'])
-
-    _ALGORITHMS = {
-        'keccak': C.PASSACRE_KECCAK,
-        'skein': C.PASSACRE_SKEIN,
-    }
+_ALGORITHMS = {
+    'keccak': C.PASSACRE_KECCAK,
+    'skein': C.PASSACRE_SKEIN,
+}
 
 
 if sys.version_info < (3,):  # pragma: nocover

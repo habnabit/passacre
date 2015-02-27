@@ -1,12 +1,9 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-from __future__ import unicode_literals
-
-import math
 import string
 
-from passacre._libpassacre import Generator
+from passacre._libpassacre_impl import Generator
 from passacre.compat import python_3_encode, hexlify
 from passacre.multibase import MultiBase
 from passacre import features, signing_uuid

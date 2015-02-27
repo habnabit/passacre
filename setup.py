@@ -13,23 +13,8 @@ import traceback
 # may god have mercy on my soul
 from setuptools import setup
 
-os.environ.setdefault('LIBPASSACRE_NO_VERIFY', '1')
 here = os.path.dirname(os.path.abspath(__file__))
 libpassacre_build_dir = os.path.join(here, 'libpassacre')
-ext_modules = []
-try:
-    from cffi.verifier import Verifier
-    import _libpassacre
-except ImportError:
-    print('** WARNING: not building libpassacre extension: **', file=sys.stderr)
-    traceback.print_exc()
-    print('** END WARNING **', file=sys.stderr)
-else:
-    verifier = Verifier(
-        _libpassacre.ffi, _libpassacre.preamble, modulename='_libpassacre_c',
-        include_dirs=[libpassacre_build_dir],
-        extra_objects=[os.path.join(libpassacre_build_dir, 'libpassacre.a')])
-    ext_modules.append(verifier.get_extension())
 
 
 with open('README.rst', 'r') as infile:
@@ -64,6 +49,16 @@ class build(_build):
     sub_commands = [
         ('build_libpassacre', lambda self: True),
     ] + _build.sub_commands
+
+    def finalize_options(self):
+        from cffi.verifier import Verifier
+        import _libpassacre
+        verifier = Verifier(
+            _libpassacre.ffi, _libpassacre.preamble, modulename='_libpassacre_c',
+            include_dirs=[libpassacre_build_dir],
+            extra_objects=[os.path.join(libpassacre_build_dir, 'libpassacre.a')])
+        self.distribution.ext_modules = [verifier.get_extension()]
+        _build.finalize_options(self)
 
 
 extras_require = {
@@ -104,16 +99,16 @@ setup(
     vcversioner={
         'version_module_paths': ['passacre/_version.py'],
     },
+    py_modules=['_libpassacre'],
     packages=['passacre', 'passacre.test'],
     package_data={
         'passacre': ['schema.sql'],
         'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',
                           'data/*/words', 'data/*/.passacre.*', 'data/json/*'],
     },
-    ext_modules=ext_modules,
     ext_package='passacre',
-    setup_requires=['vcversioner'],
-    install_requires=['cffi', 'pycparser'],
+    setup_requires=['vcversioner', 'cffi'],
+    install_requires=['cffi'],
     extras_require=extras_require,
     entry_points={
         'console_scripts': ['passacre = passacre.application:main'],
