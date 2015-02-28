@@ -1,12 +1,11 @@
-.. passacre documentation master file, created by
-   sphinx-quickstart on Wed Jul 31 23:06:27 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+========
+passacre
+========
 
-Welcome to passacre's documentation!
-====================================
+The code is available on github: https://github.com/habnabit/passacre
 
-Contents:
+.. include:: ../README.rst
+   :start-line: 9
 
 .. toctree::
    :maxdepth: 2
