@@ -144,7 +144,6 @@ int
 passacre_gen_squeeze(struct passacre_gen_state *state, unsigned char *output, size_t n_bytes)
 {
     int just_started = 0;
-    uint8_t tweak[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3f};
     if (!state->finished_absorbing) {
         state->finished_absorbing = just_started = 1;
     }
@@ -157,6 +156,7 @@ passacre_gen_squeeze(struct passacre_gen_state *state, unsigned char *output, si
 
     case PASSACRE_SKEIN: {
         uint8_t input[64] = {0}, state_output[64];
+        uint8_t tweak[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3f};
         size_t i, half = n_bytes / 2, last_index = n_bytes - 1;
         unsigned char tmp, *output_start = output;
         struct _skein_prng_state *prng = &state->hasher.skein_prng;
