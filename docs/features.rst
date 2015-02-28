@@ -4,25 +4,6 @@ Features
 ========
 
 
-``keccak``
-----------
-
-Generation of passwords using the Keccak sponge function.
-This is the default password generation method,
-and either this feature or ``skein`` must be usable for password generation.
-
-This feature requires the |cykeccak|_ module.
-
-
-``skein``
----------
-
-Generation of passwords using the Skein hash function.
-Either this feature or ``keccak`` must be usable for password generation.
-
-This feature requires the |pyskein|_ module.
-
-
 ``yaml``
 --------
 
@@ -51,10 +32,6 @@ The :ref:`yubikey-slot` site configuration option can be specified to involve a 
 This feature requires the |ykpers-cffi|_ module.
 
 
-.. |cykeccak| replace:: ``cykeccak``
-.. _cykeccak: https://pypi.python.org/pypi/cykeccak
-.. |pyskein| replace:: ``pyskein``
-.. _pyskein: https://pypi.python.org/pypi/pyskein
 .. |pyyaml| replace:: ``pyyaml``
 .. _pyyaml: https://pypi.python.org/pypi/pyyaml
 .. |xerox| replace:: ``xerox``

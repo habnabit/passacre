@@ -49,13 +49,13 @@ neither one is better.
 Can safely be ignored if you don't understand or
 don't care.
 
-The ``keccak`` method is available on python 2 and python 3
-and requires the `cykeccak`_ package.
-The ``skein`` method is only available on python 3 and requires the `pyskein`_ package.
+Both methods are available by default in passacre on either python 2 or python 3.
 
 Any sites which don't specify their own ``method`` in the configuration file will use the global ``method``.
 The global ``method`` is also used for hashing site names.
 
+
+.. _iterations:
 
 ``iterations``
 ~~~~~~~~~~~~~~
@@ -66,7 +66,7 @@ if you don't know what to do with it.
 
 One iteration corresponds with adding another 1024 null bytes to the input to be hashed.
 The default is 1000, though it can be comfortably be set higher.
-As `pyskein`_ is a bit faster than `cykeccak`_ as a pseudo-random number generator,
+As Skein/Threefish is a bit faster than Keccak as a pseudo-random number generator,
 this value should probably be set higher if ``skein`` is selected as the default ``method``.
 
 
@@ -79,6 +79,8 @@ This is used for generating passwords using the special ``word`` name in the sch
 By default,
 there is no ``words-file`` and generating passwords containing words will fail.
 
+
+.. _site-hashing:
 
 ``site-hashing.enabled``
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -140,6 +142,8 @@ The number of iterations to use when hashing passwords for this site.
 Defaults to the same value as ``iterations`` and has the same semantics.
 
 
+.. _increment:
+
 ``increment``
 ~~~~~~~~~~~~~
 
@@ -191,7 +195,5 @@ but with the following changes:
 3. ``null`` can also be written as ``%``.
 
 
-.. _cykeccak: https://crate.io/packages/cykeccak/
-.. _pyskein: https://crate.io/packages/pyskein/
 .. _YubiKey: http://www.yubico.com/
 .. _JSON: http://json.org/

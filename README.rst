@@ -10,31 +10,29 @@ passacre
 passacre = password massacre
 (i.e. what happens when you use the same password on every site)
 
-hi!!
+Passacre is a method of repeatably deriving a different secure password for every site you use.
 
-I really love supergenpass, but the implementation leaves some things to be desired.
-feverish (and possibly delirious),
-I hacked up a little proof-of-concept thing.
+The way this works is that passacre takes the site's name, your username, and your master password
+and runs them through a cryptographically secure hash function
+(either the Keccak sponge function from SHA-3 or Skein/Threefish)
+to produce a password unique to that site.
+Given the same inputs
+(site name, username, and master password),
+this process will always produce the same password.
+This means that your site passwords never need to be persisted,
+and since they're always ephemeral,
+you don't have a file containing your passwords that's vulnerable to theft.
 
-the gist of it is that passacre uses the Keccak sponge function
-to repeatably derive a value from your master password and a site name,
-and then encodes that value using a password schema
-(since different sites have different (and terrible) password requirements).
+Minimal documentation is available `on readthedocs <https://passacre.readthedocs.org/en/latest/>`_.
 
-also, it's ISC-licensed!
+Here's how to use it for now::
 
-every user-facing part of this sucks right now, but it's a work-in-progress.
-
-minimal documentation available `on readthedocs <https://passacre.readthedocs.org/en/latest/>`_.
-
-here's how to use it for now::
-
-  # for keccak generation
-  pip install 'passacre[keccak]'
-  # for skein generation (python 3 only)
-  pip install 'passacre[skein]'
-  # to be able to copy passwords, add the 'clipboard' variant too:
-  pip install 'passacre[cli,clipboard,keccak]'
+  # for both keccak and skein generation:
+  pip install 'passacre'
+  # to be able to copy passwords, add the 'clipboard' extra:
+  pip install 'passacre[clipboard]'
+  # for YubiKey two-factor authentication, add the 'yubikey' extra:
+  pip install 'passacre[yubikey]'
   # then set it up:
   mkdir -p ~/.config/passacre
   passacre init ~/.config/passacre/passacre.sqlite

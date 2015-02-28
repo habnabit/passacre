@@ -14,13 +14,7 @@
 import os
 import sys
 
-
-try:
-    import vcversioner
-except ImportError:
-    sys.stderr.write("couldn't import vcversioner; groping around for it\n")
-    sys.path.insert(0, os.path.abspath('..'))
-    import vcversioner
+import vcversioner
 
 
 # hack for readthedocs.
