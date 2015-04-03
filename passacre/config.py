@@ -7,6 +7,7 @@ from passacre.schema import multibase_of_schema
 from passacre.util import nested_set, jloads, jdumps, errormark
 from passacre import features, generator
 from tempfile import NamedTemporaryFile
+from six.moves.urllib.parse import urljoin
 
 import collections
 import json
@@ -315,16 +316,16 @@ class SqliteTahoeConfig(SqliteConfig):
     def __init__(self):
         try:
             with open(os.path.expanduser("~/.tahoe/node.url")) as f:
-                self.tahoe = f.readline().strip()
-                self.tahoe += "uri/" if self.tahoe.endswith("/") else "/uri/"
+                base = f.readline().strip()
+                self.tahoe = urljoin(base, '/uri/')
         except IOError:
             self.tahoe = "http://localhost:3456/uri/"
         super(SqliteConfig, self).__init__()
 
     def read(self, uri):
-        '''Load site configuration from Tahoe-LAFS gateway'''
+        """Load site configuration from Tahoe-LAFS gateway"""
         import requests
-        self._db_uri = "{}{}".format(self.tahoe, uri.readline().strip())
+        self._db_uri = self.tahoe + uri.readline().strip()
         self._db_raw = NamedTemporaryFile(prefix='passacre')
         db_request = requests.get(self._db_uri)
         db_request.raise_for_status()
@@ -334,7 +335,7 @@ class SqliteTahoeConfig(SqliteConfig):
         super(SqliteTahoeConfig, self).read(self._db_raw)
 
     def save(self):
-        "Store site configuration back into Tahoe-LAFS"
+        """Store site configuration back into Tahoe-LAFS"""
         import requests
         super(SqliteTahoeConfig, self).save()
         self._db_raw.flush()
