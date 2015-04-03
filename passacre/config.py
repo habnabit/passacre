@@ -311,7 +311,7 @@ class SqliteTahoeConfig(SqliteConfig):
     @features.tahoe.check
     def __init__(self):
         try:
-            with open("~/.tahoe/node.url") as f:
+            with open(os.path.expanduser("~/.tahoe/node.url")) as f:
                 self.tahoe = f.readline().strip()
                 self.tahoe += "uri/" if self.tahoe.endswith("/") else "/uri/"
         except IOError:
@@ -336,7 +336,7 @@ def load(infile):
     magic = infile.read(16)
     if magic == b'SQLite format 3\x00':
         config = SqliteConfig()
-    elif magic.startswith('URI:MDMF:') or magic.startswith('URI:SSK:'):
+    elif magic.startswith((b'URI:MDMF:', b'URI:SSK:')):
         config = SqliteTahoeConfig()
     else:
         config = YAMLConfig()
