@@ -322,7 +322,7 @@ class SqliteTahoeConfig(SqliteConfig):
         super(SqliteConfig, self).__init__()
 
     def read(self, uri):
-        "Load site configuration from Tahoe-LAFS gateway"
+        '''Load site configuration from Tahoe-LAFS gateway'''
         import requests
         self._db_uri = "{}{}".format(self.tahoe, uri.readline().strip())
         self._db_raw = NamedTemporaryFile(prefix='passacre')
@@ -339,7 +339,7 @@ class SqliteTahoeConfig(SqliteConfig):
         super(SqliteTahoeConfig, self).save()
         self._db_raw.flush()
         self._db_raw.seek(0)
-        requests.put(self._db_uri, data=self._db_raw.read()).raise_for_status()
+        requests.put(self._db_uri, data=self._db_raw).raise_for_status()
 
 def load(infile):
     magic = infile.read(16)
