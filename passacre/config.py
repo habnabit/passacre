@@ -192,26 +192,26 @@ class SqliteConfig(ConfigBase):
         curs.execute(
             'INSERT INTO sites (site_name, schema_id) VALUES (?, ?)',
             (name, schema_id))
-        self._db.commit()
+        self.save()
 
     def set_site_schema(self, name, schema_id):
         curs = self._db.cursor()
         curs.execute(
             'UPDATE sites SET schema_id = ? WHERE site_name = ?',
             (schema_id, name))
-        self._db.commit()
+        self.save()
 
     def remove_site(self, name):
         curs = self._db.cursor()
         curs.execute('DELETE FROM sites WHERE site_name = ?', (name,))
         curs.execute('DELETE FROM config_values WHERE site_name = ?', (name,))
-        self._db.commit()
+        self.save()
 
     def rename_site(self, name, newname):
         curs = self._db.cursor()
         curs.execute('UPDATE OR REPLACE sites SET site_name = ? WHERE site_name = ?', (newname, name))
         curs.execute('UPDATE OR REPLACE config_values SET site_name = ? WHERE site_name = ?', (newname, name))
-        self._db.commit()
+        self.save()
 
     def get_all_sites(self):
         curs = self._db.cursor()
@@ -251,7 +251,7 @@ class SqliteConfig(ConfigBase):
         curs.execute(
             'INSERT INTO schemata (name, value) VALUES (?, ?)',
             (name, jdumps(value)))
-        self._db.commit()
+        self.save()
 
     def remove_schema(self, schema_id):
         curs = self._db.cursor()
@@ -261,12 +261,12 @@ class SqliteConfig(ConfigBase):
             raise ValueError(
                 "can't delete this schema; at least one site is using it: %r" % (sites,))
         curs.execute('DELETE FROM schemata WHERE schema_id = ?', (schema_id,))
-        self._db.commit()
+        self.save()
 
     def set_schema_name(self, schema_id, newname):
         curs = self._db.cursor()
         curs.execute('UPDATE schemata SET name = ? WHERE schema_id = ?', (newname, schema_id))
-        self._db.commit()
+        self.save()
 
     def set_schema_value(self, schema_id, value):
         verify_multibase_schema(value)
@@ -274,7 +274,7 @@ class SqliteConfig(ConfigBase):
         curs.execute(
             'UPDATE schemata SET value = ? WHERE schema_id = ?',
             (jdumps(value), schema_id))
-        self._db.commit()
+        self.save()
 
     def get_config(self, site, name):
         curs = self._db.cursor()
@@ -305,6 +305,9 @@ class SqliteConfig(ConfigBase):
             curs.execute(
                 'INSERT INTO config_values (site_name, name, value) VALUES (?, ?, ?)',
                 (site, name, jdumps(new_value)))
+        self.save()
+
+    def save(self):
         self._db.commit()
 
 class SqliteTahoeConfig(SqliteConfig):
@@ -331,6 +334,13 @@ class SqliteTahoeConfig(SqliteConfig):
         self._db_raw.file.seek(0)
         super(SqliteTahoeConfig, self).read(self._db_raw)
 
+    def save(self):
+        "Store site configuration back into Tahoe-LAFS"
+        import requests
+        super(SqliteTahoeConfig, self).save()
+        self._db_raw.flush()
+        self._db_raw.seek(0)
+        requests.put(self._db_uri, data=self._db_raw.read()).raise_for_status()
 
 def load(infile):
     magic = infile.read(16)
