@@ -6,6 +6,7 @@ from __future__ import unicode_literals, print_function
 from passacre.schema import multibase_of_schema
 from passacre.util import nested_set, jloads, jdumps, errormark
 from passacre import features, generator
+from tempfile import NamedTemporaryFile
 
 import collections
 import json
@@ -148,6 +149,9 @@ class SqliteConfig(ConfigBase):
     def read(self, infile):
         import sqlite3
         self._db = sqlite3.connect(infile.name)
+        self._config()
+
+    def _config(self):
         curs = self._db.cursor()
 
         curs.execute(
@@ -303,10 +307,37 @@ class SqliteConfig(ConfigBase):
                 (site, name, jdumps(new_value)))
         self._db.commit()
 
+class SqliteTahoeConfig(SqliteConfig):
+    @features.tahoe.check
+    def __init__(self):
+        try:
+            with open("~/.tahoe/node.url") as f:
+                self.tahoe = f.readline().strip()
+                self.tahoe += "uri/" if self.tahoe.endswith("/") else "/uri/"
+        except IOError:
+            self.tahoe = "http://localhost:3456/uri/"
+        super(SqliteConfig, self).__init__()
+
+    def read(self, uri):
+        "Load site configuration from Tahoe-LAFS gateway"
+        import requests
+        import sqlite3
+        self._db_uri = "{}{}".format(self.tahoe, uri.readline().strip())
+        self._db_raw = NamedTemporaryFile(prefix='passacre')
+        db_request = requests.get(self._db_uri)
+        db_request.raise_for_status()
+        self._db_raw.write(db_request.content)
+        self._db_raw.file.flush()
+        self._db_raw.file.seek(0)
+        super(SqliteTahoeConfig, self).read(self._db_raw)
+
 
 def load(infile):
-    if infile.read(16) == b'SQLite format 3\x00':
+    magic = infile.read(16)
+    if magic == b'SQLite format 3\x00':
         config = SqliteConfig()
+    elif magic.startswith('URI:MDMF:') or magic.startswith('URI:SSK:'):
+        config = SqliteTahoeConfig()
     else:
         config = YAMLConfig()
     infile.seek(0)
