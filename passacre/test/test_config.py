@@ -178,6 +178,13 @@ class SqliteTahoeTestCase(SkeinTestCaseMixin):
                       content_type='application/octet-stream')
         super(SqliteTahoeTestCase, self).setUp()
 
+    @responses.activate
+    def test_config_saving(self):
+        responses.add(responses.PUT, 'http://localhost:3456/uri/URI:MDMF:not-really:tahoe',
+                      body='URI:MDMF:not-really:tahoe',
+                      content_type='application/octet-stream')
+        self.config.save()
+
 def test_no_words_file():
     # using sqlite for lazy-loading of site data, otherwise the `load` call
     # will fail too.
