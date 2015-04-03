@@ -172,7 +172,7 @@ class SqliteTahoeTestCase(SkeinTestCaseMixin):
     config_file = 'tahoe.sqlite'
     @responses.activate
     def setUp(self):
-        os.chdir(self.datadir)
+        os.chdir(datadir)
         responses.add(responses.GET, 'http://localhost:3456/uri/URI:MDMF:not-really:tahoe',
                       body=open('skein.sqlite', 'rb').read(),
                       content_type='application/octet-stream')
