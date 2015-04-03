@@ -5,6 +5,7 @@ import itertools
 import os
 
 import pytest
+import responses
 
 from passacre import config
 
@@ -167,6 +168,15 @@ class TestSkeinYAML(SkeinTestCaseMixin):
 class TestSkeinSqlite(SkeinTestCaseMixin):
     config_file = 'skein.sqlite'
 
+class SqliteTahoeTestCase(SkeinTestCaseMixin):
+    config_file = 'tahoe.sqlite'
+    @responses.activate
+    def setUp(self):
+        os.chdir(self.datadir)
+        responses.add(responses.GET, 'http://localhost:3456/uri/URI:MDMF:not-really:tahoe',
+                      body=open('skein.sqlite', 'rb').read(),
+                      content_type='application/octet-stream')
+        super(SqliteTahoeTestCase, self).setUp()
 
 def test_no_words_file():
     # using sqlite for lazy-loading of site data, otherwise the `load` call
