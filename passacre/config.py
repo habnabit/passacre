@@ -324,7 +324,6 @@ class SqliteTahoeConfig(SqliteConfig):
     def read(self, uri):
         "Load site configuration from Tahoe-LAFS gateway"
         import requests
-        import sqlite3
         self._db_uri = "{}{}".format(self.tahoe, uri.readline().strip())
         self._db_raw = NamedTemporaryFile(prefix='passacre')
         db_request = requests.get(self._db_uri)
