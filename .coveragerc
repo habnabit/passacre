@@ -1,9 +1,8 @@
 [run]
-source = passacre
 omit =
-    passacre/_[a-z]*
-    passacre/test/*
-    passacre/__main__.py
+    *passacre/_[a-z]*
+    *passacre/test/*
+    *passacre/__main__.py
 
 [report]
 exclude_lines =
