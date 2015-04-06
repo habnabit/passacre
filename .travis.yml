@@ -13,5 +13,7 @@ before_install:
   - "sudo apt-get update"
   - "sudo apt-get install cmake"
 install:
-  - "pip install tox"
-script: "tox -- -rs"
+  - "pip install tox coveralls"
+script:
+  - "tox -- -rs"
+  - "coveralls"
