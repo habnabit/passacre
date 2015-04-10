@@ -1,6 +1,10 @@
-.. image:: https://travis-ci.org/habnabit/passacre.png
+.. image:: https://img.shields.io/travis/habnabit/passacre/master.svg?style=flat-square
 
-.. image:: https://coveralls.io/repos/habnabit/passacre/badge.png?branch=master
+.. image:: https://img.shields.io/coveralls/habnabit/passacre/master.svg?style=flat-square
+
+.. image:: https://img.shields.io/pypi/v/passacre.svg?style=flat-square
+
+.. image:: https://img.shields.io/pypi/l/passacre.svg?style=flat-square
 
 
 ========
