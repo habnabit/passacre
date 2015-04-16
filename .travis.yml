@@ -43,6 +43,6 @@ before_install:
   - "sudo apt-get update"
   - "sudo apt-get install cmake"
 install:
-  - "pip install --user tox"
+  - "pip install tox"
 script:
-  - "$HOME/.local/bin/tox -- -rs"
+  - "tox -- -rs"
