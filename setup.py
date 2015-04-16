@@ -3,7 +3,6 @@
 
 from __future__ import print_function
 
-from distutils.command.build import build as _build
 from distutils.core import Command
 import os
 import subprocess
@@ -11,6 +10,7 @@ import sys
 import traceback
 
 # may god have mercy on my soul
+from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools import setup
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -45,10 +45,15 @@ class build_libpassacre(Command):
             print('** END WARNING **', file=sys.stderr)
 
 
-class build(_build):
+class build_ext(_build_ext):
     sub_commands = [
         ('build_libpassacre', lambda self: True),
-    ] + _build.sub_commands
+    ]
+
+    def run(self):
+        for cmd_name in self.get_sub_commands():
+            self.run_command(cmd_name)
+        _build_ext.run(self)
 
     def finalize_options(self):
         from cffi.verifier import Verifier
@@ -58,7 +63,7 @@ class build(_build):
             include_dirs=[libpassacre_build_dir],
             extra_objects=[os.path.join(libpassacre_build_dir, 'libpassacre.a')])
         self.distribution.ext_modules = [verifier.get_extension()]
-        _build.finalize_options(self)
+        _build_ext.finalize_options(self)
 
 
 extras_require = {
@@ -113,6 +118,6 @@ setup(
     entry_points={
         'console_scripts': ['passacre = passacre.application:main'],
     },
-    cmdclass={'build': build, 'build_libpassacre': build_libpassacre},
+    cmdclass={'build_ext': build_ext, 'build_libpassacre': build_libpassacre},
     zip_safe=False,
 )
