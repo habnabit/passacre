@@ -7,4 +7,9 @@
 *.egg*
 /.coverage
 /htmlcov*
+/gcovr*
 /.tox
+
+*.so
+# gcov, gcno, gcda
+*.gc[ond][voa]
