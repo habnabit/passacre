@@ -1,6 +1,9 @@
 language: python
 python:
   - "2.7"
+compiler:
+  - clang
+  - gcc
 env:
   - TOXENV=py26,coveralls
   - TOXENV=py27,coveralls
@@ -8,6 +11,11 @@ env:
   - TOXENV=py33,coveralls
   - TOXENV=py34,coveralls
   - TOXENV=gcovr,cpp-coveralls
+
+matrix:
+  exclude:
+    - compiler: gcc
+      env: TOXENV=gcovr,cpp-coveralls
 
 before_install:
   - "sudo add-apt-repository --yes ppa:kalakris/cmake"
