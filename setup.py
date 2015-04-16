@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 
+from distutils.command.build import build as _build
 from distutils.core import Command
 import os
 import subprocess
@@ -55,6 +56,8 @@ class build_ext(_build_ext):
             self.run_command(cmd_name)
         _build_ext.run(self)
 
+
+class build(_build):
     def finalize_options(self):
         from cffi.verifier import Verifier
         import _libpassacre
@@ -63,7 +66,7 @@ class build_ext(_build_ext):
             include_dirs=[libpassacre_build_dir],
             extra_objects=[os.path.join(libpassacre_build_dir, 'libpassacre.a')])
         self.distribution.ext_modules = [verifier.get_extension()]
-        _build_ext.finalize_options(self)
+        _build.finalize_options(self)
 
 
 extras_require = {
@@ -118,6 +121,10 @@ setup(
     entry_points={
         'console_scripts': ['passacre = passacre.application:main'],
     },
-    cmdclass={'build_ext': build_ext, 'build_libpassacre': build_libpassacre},
+    cmdclass={
+        'build_ext': build_ext,
+        'build_libpassacre': build_libpassacre,
+        'build': build,
+    },
     zip_safe=False,
 )
