@@ -348,6 +348,8 @@ fhcrc.org: 32-printable
 fidelity.com: schema_4
 further.example.com: schema_3
 schwab.com: 8-alphanumeric
+scrypt.example.com: 32-printable
+scrypt2.example.com: 32-printable
 still.further.example.com: schema_0
 """
 
@@ -376,6 +378,8 @@ fhcrc.org
 fidelity.com
 further.example.com
 schwab.com
+scrypt.example.com
+scrypt2.example.com
 still.further.example.com
 """
 
@@ -389,6 +393,8 @@ fhcrc.org: schema_5
 fidelity.com: schema_6
 further.example.com: schema_2
 schwab.com: schema_1
+scrypt.example.com
+scrypt2.example.com
 still.further.example.com: schema_4
 """
 
@@ -402,6 +408,8 @@ fhcrc.org
 fidelity.com
 further.example.com
 schwab.com
+scrypt.example.com
+scrypt2.example.com
 still.further.example.com
 """
 
@@ -414,6 +422,8 @@ fhcrc.org: schema_5
 fidelity.com: schema_6
 further.example.com: schema_2
 schwab.com: schema_1
+scrypt.example.com
+scrypt2.example.com
 still.further.example.com: schema_4
 """
 

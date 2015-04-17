@@ -18,6 +18,7 @@
 #define _PASSACRE_H_ 1
 
 #include <stddef.h>
+#include <stdint.h>
 #include "passacre_export.h"
 
 
@@ -30,6 +31,7 @@ struct passacre_gen_state;
 
 PASSACRE_EXPORT size_t passacre_gen_size(void);
 PASSACRE_EXPORT int passacre_gen_init(struct passacre_gen_state *, enum passacre_gen_algorithm);
+PASSACRE_EXPORT int passacre_gen_use_scrypt(struct passacre_gen_state *, uint64_t, uint32_t, uint32_t);
 PASSACRE_EXPORT int passacre_gen_absorb_username_password_site(
     struct passacre_gen_state *, const unsigned char *, size_t,
     const unsigned char *, size_t, const unsigned char *, size_t);

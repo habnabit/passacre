@@ -49,6 +49,8 @@ def build_generator(username, password, site, options):
     if username is not None:
         username = python_3_encode(username)
     g = Generator(method)
+    if 'scrypt' in options:
+        g.use_scrypt(**options['scrypt'])
     g.absorb_username_password_site(
         username, python_3_encode(password), site.encode('idna'))
     g.absorb_null_rounds(iterations)

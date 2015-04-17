@@ -44,7 +44,15 @@ class ConfigTestCaseMixin(object):
         'still.further.example.com': {
             'iterations': 10,
             'schema': ['printable', [', ', 4, 'word'], 'printable'],
-        }
+        },
+        'scrypt.example.com': {
+            'iterations': 10, 'schema': [[32, 'printable']],
+            'scrypt': {'n': 16, 'r': 1, 'p': 1},
+        },
+        'scrypt2.example.com': {
+            'iterations': 10, 'schema': [[32, 'printable']],
+            'scrypt': {'n': 1024, 'r': 8, 'p': 16},
+        },
     }
     extra_expected_sites = {}
 

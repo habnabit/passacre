@@ -24,6 +24,21 @@ else ()
   message(FATAL_ERROR "I don't know how to pick which Keccak implementation to use!")
 endif ()
 
+include(CheckIncludeFiles)
+include(CheckSymbolExists)
+include(CMakeDependentOption)
+check_include_files("emmintrin.h" HAVE_EMMINTRIN_H)
+cmake_dependent_option(USE_SSE2 "Use optimized SSE2 code (for scrypt)." ON
+                       "HAVE_EMMINTRIN_H" OFF)
+check_include_files("sys/endian.h" HAVE_SYS_ENDIAN_H)
+check_symbol_exists(be64enc "sys/endian.h" HAVE_DECL_BE64ENC)
+check_symbol_exists(posix_memalign "stdlib.h" HAVE_POSIX_MEMALIGN)
+if (USE_SSE2)
+  set(SCRYPTVER "sse")
+else ()
+  set(SCRYPTVER "nosse")
+endif ()
+
 include(FindPkgConfig QUIET)
 if (PKG_CONFIG_FOUND)
   foreach (LIB ${CMAKE_C_IMPLICIT_LINK_LIBRARIES} ${PLATFORM_LIBS})
@@ -39,6 +54,7 @@ add_library(passacre
             skein/skein.c skein/skeinBlockNo3F.c
             skein/threefish256Block.c skein/threefish512Block.c skein/threefish1024Block.c
             skein/skeinApi.c skein/threefishApi.c
+            scrypt/sha256.c scrypt/crypto_scrypt-${SCRYPTVER}.c
             passacre.c)
 set_target_properties(passacre PROPERTIES POSITION_INDEPENDENT_CODE ON)
 generate_export_header(passacre)

@@ -53,6 +53,9 @@ class Generator(object):
         if result:
             raise GeneratorError(-result)
 
+    def use_scrypt(self, n, r, p):
+        self._check(C.passacre_gen_use_scrypt, n, r, p)
+
     def absorb_username_password_site(self, username, password, site):
         if username is None:
             username = ffi.NULL

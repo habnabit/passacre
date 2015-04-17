@@ -9,11 +9,42 @@
 #include "keccak/KeccakSponge.h"
 #include "skein/skeinApi.h"
 #include "skein/threefishApi.h"
+#include "scrypt/crypto_scrypt.h"
+
+
+enum passacre_gen_mode {
+    PASSACRE_GEN_INVALID,
+    PASSACRE_GEN_INITED,
+    PASSACRE_GEN_KDF_SELECTED,
+    PASSACRE_GEN_ABSORBED_PASSWORD,
+    PASSACRE_GEN_ABSORBED_NULLS,
+    PASSACRE_GEN_SQUEEZING,
+};
+
+/*
+ * INITED -> ABSORBED_PASSWORD -> ABSORBED_NULLS -> SQUEEZING
+ *   v            ^      v                             ^
+ * KDF_SELECTED --'      '-----------------------------'
+ */
+
+
+enum passacre_gen_kdf {
+    PASSACRE_NO_KDF,
+    PASSACRE_SCRYPT,
+};
 
 
 struct passacre_gen_state {
+    enum passacre_gen_mode mode;
     enum passacre_gen_algorithm algorithm;
-    unsigned char finished_absorbing;
+    enum passacre_gen_kdf kdf;
+    union {
+        struct _scrypt_state {
+            uint64_t N;
+            uint32_t r;
+            uint32_t p;
+        } scrypt;
+    } kdf_params;
     union {
         spongeState keccak;
         SkeinCtx_t skein;
@@ -62,6 +93,23 @@ passacre_gen_init(struct passacre_gen_state *state, enum passacre_gen_algorithm 
     }
 
     state->algorithm = algo;
+    state->mode = PASSACRE_GEN_INITED;
+    return 0;
+}
+
+
+int
+passacre_gen_use_scrypt(struct passacre_gen_state *state, uint64_t N, uint32_t r, uint32_t p)
+{
+    struct _scrypt_state *s = &state->kdf_params.scrypt;
+    if (state->mode != PASSACRE_GEN_INITED) {
+        return -EINVAL;
+    }
+    state->kdf = PASSACRE_SCRYPT;
+    s->N = N;
+    s->r = r;
+    s->p = p;
+    state->mode = PASSACRE_GEN_KDF_SELECTED;
     return 0;
 }
 
@@ -69,9 +117,6 @@ passacre_gen_init(struct passacre_gen_state *state, enum passacre_gen_algorithm 
 static int
 passacre_gen_absorb(struct passacre_gen_state *state, const unsigned char *input, size_t n_bytes)
 {
-    if (state->finished_absorbing) {
-        return -EINVAL;
-    }
     switch (state->algorithm) {
     case PASSACRE_KECCAK:
         if (Absorb(&state->hasher.keccak, input, n_bytes * 8)) {
@@ -104,16 +149,37 @@ passacre_gen_absorb_username_password_site(
     const unsigned char *site, size_t site_length)
 {
     int result;
-    if (username) {
-        if ((result = passacre_gen_absorb(state, username, username_length))) {
-            return result;
-        }
-        if ((result = passacre_gen_absorb(state, PASSACRE_DELIMITER, sizeof PASSACRE_DELIMITER))) {
-            return result;
-        }
+    switch (state->mode) {
+    case PASSACRE_GEN_INITED:
+    case PASSACRE_GEN_KDF_SELECTED:
+        break;
+    default:
+        return -EINVAL;
     }
-    if ((result = passacre_gen_absorb(state, password, password_length))) {
-        return result;
+    if (state->kdf == PASSACRE_SCRYPT) {
+        unsigned char outbuf[64];
+        struct _scrypt_state *s = &state->kdf_params.scrypt;
+        if (crypto_scrypt(password, password_length,
+                          username, username_length,
+                          s->N, s->r, s->p,
+                          outbuf, sizeof outbuf)) {
+            return -errno;
+        }
+        if ((result = passacre_gen_absorb(state, outbuf, sizeof outbuf))) {
+            return result;
+        }
+    } else {
+        if (username) {
+            if ((result = passacre_gen_absorb(state, username, username_length))) {
+                return result;
+            }
+            if ((result = passacre_gen_absorb(state, PASSACRE_DELIMITER, sizeof PASSACRE_DELIMITER))) {
+                return result;
+            }
+        }
+        if ((result = passacre_gen_absorb(state, password, password_length))) {
+            return result;
+        }
     }
     if ((result = passacre_gen_absorb(state, PASSACRE_DELIMITER, sizeof PASSACRE_DELIMITER))) {
         return result;
@@ -121,6 +187,7 @@ passacre_gen_absorb_username_password_site(
     if ((result = passacre_gen_absorb(state, site, site_length))) {
         return result;
     }
+    state->mode = PASSACRE_GEN_ABSORBED_PASSWORD;
     return 0;
 }
 
@@ -131,11 +198,19 @@ passacre_gen_absorb_null_rounds(struct passacre_gen_state *state, size_t n_round
     int result;
     unsigned char nulls[1024] = {0};
     size_t i;
+    switch (state->mode) {
+    case PASSACRE_GEN_ABSORBED_PASSWORD:
+    case PASSACRE_GEN_ABSORBED_NULLS:
+        break;
+    default:
+        return -EINVAL;
+    }
     for (i = 0; i < n_rounds; ++i) {
         if ((result = passacre_gen_absorb(state, nulls, sizeof nulls))) {
             return result;
         }
     }
+    state->mode = PASSACRE_GEN_ABSORBED_NULLS;
     return 0;
 }
 
@@ -144,8 +219,16 @@ int
 passacre_gen_squeeze(struct passacre_gen_state *state, unsigned char *output, size_t n_bytes)
 {
     int just_started = 0;
-    if (!state->finished_absorbing) {
-        state->finished_absorbing = just_started = 1;
+    switch (state->mode) {
+    case PASSACRE_GEN_ABSORBED_PASSWORD:
+    case PASSACRE_GEN_ABSORBED_NULLS:
+        just_started = 1;
+        state->mode = PASSACRE_GEN_SQUEEZING;
+        break;
+    case PASSACRE_GEN_SQUEEZING:
+        break;
+    default:
+        return -EINVAL;
     }
     switch (state->algorithm) {
     case PASSACRE_KECCAK:

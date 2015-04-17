@@ -276,6 +276,8 @@ class Passacre(object):
         if args.by_schema:
             sites_by_schema = collections.defaultdict(list)
             for site, site_config in sites.items():
+                if 'schema-name' not in site_config:
+                    continue
                 sites_by_schema[site_config['schema-name']].append(site)
             for schema in sorted(sites_by_schema):
                 print('%s: %s' % (
