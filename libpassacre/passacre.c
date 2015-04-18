@@ -11,6 +11,8 @@
 #include "skein/threefishApi.h"
 #include "scrypt/crypto_scrypt.h"
 
+#define PASSACRE_SCRYPT_BUFFER_SIZE 64
+
 
 enum passacre_gen_mode {
     PASSACRE_GEN_INVALID,
@@ -43,6 +45,7 @@ struct passacre_gen_state {
             uint64_t N;
             uint32_t r;
             uint32_t p;
+            unsigned char *persistence_buffer;
         } scrypt;
     } kdf_params;
     union {
@@ -61,6 +64,13 @@ size_t
 passacre_gen_size(void)
 {
     return sizeof (struct passacre_gen_state);
+}
+
+
+size_t
+passacre_gen_scrypt_buffer_size(void)
+{
+    return PASSACRE_SCRYPT_BUFFER_SIZE;
 }
 
 
@@ -99,7 +109,10 @@ passacre_gen_init(struct passacre_gen_state *state, enum passacre_gen_algorithm 
 
 
 int
-passacre_gen_use_scrypt(struct passacre_gen_state *state, uint64_t N, uint32_t r, uint32_t p)
+passacre_gen_use_scrypt(
+    struct passacre_gen_state *state,
+    uint64_t N, uint32_t r, uint32_t p,
+    unsigned char *persistence_buffer)
 {
     struct _scrypt_state *s = &state->kdf_params.scrypt;
     if (state->mode != PASSACRE_GEN_INITED) {
@@ -109,6 +122,10 @@ passacre_gen_use_scrypt(struct passacre_gen_state *state, uint64_t N, uint32_t r
     s->N = N;
     s->r = r;
     s->p = p;
+    s->persistence_buffer = persistence_buffer;
+    if (s->persistence_buffer) {
+        memset(s->persistence_buffer, 'x', PASSACRE_SCRYPT_BUFFER_SIZE);
+    }
     state->mode = PASSACRE_GEN_KDF_SELECTED;
     return 0;
 }
@@ -157,7 +174,7 @@ passacre_gen_absorb_username_password_site(
         return -EINVAL;
     }
     if (state->kdf == PASSACRE_SCRYPT) {
-        unsigned char outbuf[64];
+        unsigned char outbuf[PASSACRE_SCRYPT_BUFFER_SIZE];
         struct _scrypt_state *s = &state->kdf_params.scrypt;
         if (crypto_scrypt(password, password_length,
                           username, username_length,
@@ -167,6 +184,9 @@ passacre_gen_absorb_username_password_site(
         }
         if ((result = passacre_gen_absorb(state, outbuf, sizeof outbuf))) {
             return result;
+        }
+        if (s->persistence_buffer) {
+            memcpy(s->persistence_buffer, outbuf, sizeof outbuf);
         }
     } else {
         if (username) {

@@ -41,14 +41,14 @@ def extend_password_with_yubikey(password, options, YubiKey=None):
     return hexlify(response) + ':' + password
 
 
-def build_generator(username, password, site, options):
+def build_generator(username, password, site, options, scrypt_persist=False):
     if options.get('yubikey-slot'):
         password = extend_password_with_yubikey(password, options)
     method = options['method']
     iterations = options['iterations']
     if username is not None:
         username = python_3_encode(username)
-    g = Generator(method)
+    g = Generator(method, scrypt_persist=scrypt_persist)
     if 'scrypt' in options:
         g.use_scrypt(**options['scrypt'])
     g.absorb_username_password_site(

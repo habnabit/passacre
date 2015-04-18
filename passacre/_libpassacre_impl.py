@@ -38,8 +38,12 @@ class GeneratorError(Exception):
     pass
 
 
+class NoScryptPersistence(GeneratorError):
+    pass
+
+
 class Generator(object):
-    def __init__(self, algorithm):
+    def __init__(self, algorithm, scrypt_persist=False):
         if algorithm not in _ALGORITHMS:
             raise ValueError('unknown algorithm', algorithm)
         size = C.passacre_gen_size()
@@ -47,6 +51,10 @@ class Generator(object):
         self._buf = ffi.new('unsigned char []', size)
         self._context = ffi.cast('struct passacre_gen_state *', self._buf)
         self._check(C.passacre_gen_init, _ALGORITHMS[algorithm])
+        self._scrypt_persistence = ffi.NULL
+        if scrypt_persist:
+            self._scrypt_persistence = ffi.new(
+                'unsigned char []', C.passacre_gen_scrypt_buffer_size())
 
     def _check(self, func, *args):
         result = func(self._context, *args)
@@ -54,7 +62,8 @@ class Generator(object):
             raise GeneratorError(-result)
 
     def use_scrypt(self, n, r, p):
-        self._check(C.passacre_gen_use_scrypt, n, r, p)
+        self._check(
+            C.passacre_gen_use_scrypt, n, r, p, self._scrypt_persistence)
 
     def absorb_username_password_site(self, username, password, site):
         if username is None:
@@ -82,3 +91,9 @@ class Generator(object):
             if value <= mb.max_encodable_value:
                 break
         return mb.encode(value)
+
+    @property
+    def scrypt_persisted(self):
+        if self._scrypt_persistence == ffi.NULL:
+            return NoScryptPersistence()
+        return ffi.buffer(self._scrypt_persistence)[:]
