@@ -13,4 +13,15 @@ for compiler in ['clang', 'gcc']:
 print '''
     - python: 2.7
       env: TOXENV=gcovr,cpp-coveralls _COMPILER=clang
+
+    - python: 2.7
+      env: TOXENV=null _COMPILER=clang
+      addons:
+        coverity_scan:
+          project:
+            name: "habnabit/passacre"
+            description: "Build submitted via Travis CI"
+          notification_email: "coverity@habnab.it"
+          build_command: "python setup.py build_ext"
+          branch_pattern: coverity-scan
 '''

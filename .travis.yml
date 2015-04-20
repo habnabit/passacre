@@ -3,15 +3,6 @@ env:
   global:
     - secure: "SJjsuWq8dCt8A8d+Gn8WS+nB5uBZ4HWbpyY4sQ3Hz11KyFGU0PsGTq+kiVsYnvKYzgrdCAMVNUn0dh3kMqcFZ0beXbzYV3BdJvYjD1TfYVm3v+lIlWdrW5cHqeuvL697xWKjwOEaxg+wFDtyf/emfhrTVQAAnZ1EEaKfwLxGauY="
 
-addons:
-  coverity_scan:
-    project:
-      name: "habnabit/passacre"
-      description: "Build submitted via Travis CI"
-    notification_email: "coverity@habnab.it"
-    build_command: "python setup.py build_ext"
-    branch_pattern: coverity-scan
-
 
 matrix:
   include:
@@ -48,6 +39,17 @@ matrix:
 
     - python: 2.7
       env: TOXENV=gcovr,cpp-coveralls _COMPILER=clang
+
+    - python: 2.7
+      env: TOXENV=null _COMPILER=clang
+      addons:
+        coverity_scan:
+          project:
+            name: "habnabit/passacre"
+            description: "Build submitted via Travis CI"
+          notification_email: "coverity@habnab.it"
+          build_command: "python setup.py build_ext"
+          branch_pattern: coverity-scan
 
 
 before_install:
