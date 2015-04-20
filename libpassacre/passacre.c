@@ -173,6 +173,8 @@ passacre_gen_absorb_username_password_site(
     default:
         return -EINVAL;
     }
+#define _ABSORB_SIZE(b, s) if ((result = passacre_gen_absorb(state, b, s))) { return result; }
+#define _ABSORB(b) _ABSORB_SIZE(b, sizeof (b))
     if (state->kdf == PASSACRE_SCRYPT) {
         unsigned char outbuf[PASSACRE_SCRYPT_BUFFER_SIZE];
         struct _scrypt_state *s = &state->kdf_params.scrypt;
@@ -182,33 +184,23 @@ passacre_gen_absorb_username_password_site(
                           outbuf, sizeof outbuf)) {
             return -errno;
         }
-        if ((result = passacre_gen_absorb(state, outbuf, sizeof outbuf))) {
-            return result;
-        }
+        _ABSORB(outbuf);
         if (s->persistence_buffer) {
             memcpy(s->persistence_buffer, outbuf, sizeof outbuf);
         }
     } else {
         if (username) {
-            if ((result = passacre_gen_absorb(state, username, username_length))) {
-                return result;
-            }
-            if ((result = passacre_gen_absorb(state, PASSACRE_DELIMITER, sizeof PASSACRE_DELIMITER))) {
-                return result;
-            }
+            _ABSORB_SIZE(username, username_length);
+            _ABSORB(PASSACRE_DELIMITER);
         }
-        if ((result = passacre_gen_absorb(state, password, password_length))) {
-            return result;
-        }
+        _ABSORB_SIZE(password, password_length);
     }
-    if ((result = passacre_gen_absorb(state, PASSACRE_DELIMITER, sizeof PASSACRE_DELIMITER))) {
-        return result;
-    }
-    if ((result = passacre_gen_absorb(state, site, site_length))) {
-        return result;
-    }
+    _ABSORB(PASSACRE_DELIMITER);
+    _ABSORB_SIZE(site, site_length);
     state->mode = PASSACRE_GEN_ABSORBED_PASSWORD;
     return 0;
+#undef _ABSORB
+#undef _ABSORB_SIZE
 }
 
 
