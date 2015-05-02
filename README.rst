@@ -2,6 +2,8 @@
 
 .. image:: https://img.shields.io/coveralls/habnabit/passacre/master.svg?style=flat-square
 
+.. image:: https://img.shields.io/coverity/scan/4886.svg?style=flat-square
+
 .. image:: https://img.shields.io/pypi/v/passacre.svg?style=flat-square
 
 .. image:: https://img.shields.io/pypi/l/passacre.svg?style=flat-square
