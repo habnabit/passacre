@@ -33,7 +33,7 @@ if (PKG_CONFIG_FOUND)
   install(FILES libpassacre.pc DESTINATION lib/pkgconfig)
 endif ()
 
-add_definitions(-std=c99 -ggdb -O2 -Wall -Wextra -Wpedantic -Wunused -Werror)
+add_definitions(-std=c99 -ggdb -O2 -pedantic -Wall -Wextra -Wunused -Werror)
 add_library(passacre
             keccak/KeccakSponge.c ${KECCAKF}
             skein/skein.c skein/skeinBlockNo3F.c
