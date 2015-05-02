@@ -20,6 +20,19 @@ void    Skein_256_Process_Block(Skein_256_Ctxt_t *ctx,const u08b_t *blkPtr,size_
 void    Skein_512_Process_Block(Skein_512_Ctxt_t *ctx,const u08b_t *blkPtr,size_t blkCnt,size_t byteCntAdd);
 void    Skein1024_Process_Block(Skein1024_Ctxt_t *ctx,const u08b_t *blkPtr,size_t blkCnt,size_t byteCntAdd);
 
+/* little-endian counter incrementer */
+static void
+le_ctr_increment(u08b_t ctr[8])
+{
+    size_t i;
+    for (i = 0; i < 8; ++i) {
+        if (++ctr[7 - i] != 0) {
+            break;
+        }
+    }
+}
+
+
 /*****************************************************************/
 /*     256-bit Skein                                             */
 /*****************************************************************/
@@ -185,6 +198,7 @@ int Skein_256_Final(Skein_256_Ctxt_t *ctx, u08b_t *hashVal)
 {
     size_t i,n,byteCnt;
     u64b_t X[SKEIN_256_STATE_WORDS];
+    u08b_t ctr[SKEIN_256_BLOCK_BYTES] = {0};
     Skein_Assert(ctx->h.bCnt <= SKEIN_256_BLOCK_BYTES,SKEIN_FAIL);    /* catch uninitialized context */
 
     ctx->h.T[1] |= SKEIN_T1_FLAG_FINAL;                 /* tag as the final block */
@@ -197,19 +211,18 @@ int Skein_256_Final(Skein_256_Ctxt_t *ctx, u08b_t *hashVal)
     byteCnt = (ctx->h.hashBitLen + 7) >> 3;             /* total number of output bytes */
 
     /* run Threefish in "counter mode" to generate output */
-    memset(ctx->b,0,sizeof(ctx->b));  /* zero out b[], so it can hold the counter */
     memcpy(X,ctx->X,sizeof(X));       /* keep a local copy of counter mode "key" */
     for (i=0;i*SKEIN_256_BLOCK_BYTES < byteCnt;i++)
     {
-        ((u64b_t *)ctx->b)[0]= Skein_Swap64((u64b_t) i); /* build the counter block */
         Skein_Start_New_Type(ctx,OUT_FINAL);
-        Skein_256_Process_Block(ctx,ctx->b,1,sizeof(u64b_t)); /* run "counter mode" */
+        Skein_256_Process_Block(ctx, ctr, 1, 8); /* run "counter mode" */
         n = byteCnt - i*SKEIN_256_BLOCK_BYTES;   /* number of output bytes left to go */
         if (n >= SKEIN_256_BLOCK_BYTES)
             n  = SKEIN_256_BLOCK_BYTES;
         Skein_Put64_LSB_First(hashVal+i*SKEIN_256_BLOCK_BYTES,ctx->X,n);   /* "output" the ctr mode bytes */
         Skein_Show_Final(256,&ctx->h,n,hashVal+i*SKEIN_256_BLOCK_BYTES);
         memcpy(ctx->X,X,sizeof(X));   /* restore the counter mode key for next time */
+        le_ctr_increment(ctr);
     }
     return SKEIN_SUCCESS;
 }
@@ -380,6 +393,7 @@ int Skein_512_Final(Skein_512_Ctxt_t *ctx, u08b_t *hashVal)
 {
     size_t i,n,byteCnt;
     u64b_t X[SKEIN_512_STATE_WORDS];
+    u08b_t ctr[SKEIN_512_BLOCK_BYTES] = {0};
     Skein_Assert(ctx->h.bCnt <= SKEIN_512_BLOCK_BYTES,SKEIN_FAIL);    /* catch uninitialized context */
 
     ctx->h.T[1] |= SKEIN_T1_FLAG_FINAL;                 /* tag as the final block */
@@ -392,19 +406,18 @@ int Skein_512_Final(Skein_512_Ctxt_t *ctx, u08b_t *hashVal)
     byteCnt = (ctx->h.hashBitLen + 7) >> 3;             /* total number of output bytes */
 
     /* run Threefish in "counter mode" to generate output */
-    memset(ctx->b,0,sizeof(ctx->b));  /* zero out b[], so it can hold the counter */
     memcpy(X,ctx->X,sizeof(X));       /* keep a local copy of counter mode "key" */
     for (i=0;i*SKEIN_512_BLOCK_BYTES < byteCnt;i++)
     {
-        ((u64b_t *)ctx->b)[0]= Skein_Swap64((u64b_t) i); /* build the counter block */
         Skein_Start_New_Type(ctx,OUT_FINAL);
-        Skein_512_Process_Block(ctx,ctx->b,1,sizeof(u64b_t)); /* run "counter mode" */
+        Skein_512_Process_Block(ctx, ctr, 1, 8); /* run "counter mode" */
         n = byteCnt - i*SKEIN_512_BLOCK_BYTES;   /* number of output bytes left to go */
         if (n >= SKEIN_512_BLOCK_BYTES)
             n  = SKEIN_512_BLOCK_BYTES;
         Skein_Put64_LSB_First(hashVal+i*SKEIN_512_BLOCK_BYTES,ctx->X,n);   /* "output" the ctr mode bytes */
         Skein_Show_Final(512,&ctx->h,n,hashVal+i*SKEIN_512_BLOCK_BYTES);
         memcpy(ctx->X,X,sizeof(X));   /* restore the counter mode key for next time */
+        le_ctr_increment(ctr);
     }
     return SKEIN_SUCCESS;
 }
@@ -572,6 +585,7 @@ int Skein1024_Final(Skein1024_Ctxt_t *ctx, u08b_t *hashVal)
 {
     size_t i,n,byteCnt;
     u64b_t X[SKEIN1024_STATE_WORDS];
+    u08b_t ctr[SKEIN1024_BLOCK_BYTES] = {0};
     Skein_Assert(ctx->h.bCnt <= SKEIN1024_BLOCK_BYTES,SKEIN_FAIL);    /* catch uninitialized context */
 
     ctx->h.T[1] |= SKEIN_T1_FLAG_FINAL;                 /* tag as the final block */
@@ -584,19 +598,18 @@ int Skein1024_Final(Skein1024_Ctxt_t *ctx, u08b_t *hashVal)
     byteCnt = (ctx->h.hashBitLen + 7) >> 3;             /* total number of output bytes */
 
     /* run Threefish in "counter mode" to generate output */
-    memset(ctx->b,0,sizeof(ctx->b));  /* zero out b[], so it can hold the counter */
     memcpy(X,ctx->X,sizeof(X));       /* keep a local copy of counter mode "key" */
     for (i=0;i*SKEIN1024_BLOCK_BYTES < byteCnt;i++)
     {
-        ((u64b_t *)ctx->b)[0]= Skein_Swap64((u64b_t) i); /* build the counter block */
         Skein_Start_New_Type(ctx,OUT_FINAL);
-        Skein1024_Process_Block(ctx,ctx->b,1,sizeof(u64b_t)); /* run "counter mode" */
+        Skein1024_Process_Block(ctx, ctr, 1, 8); /* run "counter mode" */
         n = byteCnt - i*SKEIN1024_BLOCK_BYTES;   /* number of output bytes left to go */
         if (n >= SKEIN1024_BLOCK_BYTES)
             n  = SKEIN1024_BLOCK_BYTES;
         Skein_Put64_LSB_First(hashVal+i*SKEIN1024_BLOCK_BYTES,ctx->X,n);   /* "output" the ctr mode bytes */
         Skein_Show_Final(1024,&ctx->h,n,hashVal+i*SKEIN1024_BLOCK_BYTES);
         memcpy(ctx->X,X,sizeof(X));   /* restore the counter mode key for next time */
+        le_ctr_increment(ctr);
     }
     return SKEIN_SUCCESS;
 }
@@ -659,25 +672,25 @@ int Skein_256_Output(Skein_256_Ctxt_t *ctx, u08b_t *hashVal)
 {
     size_t i,n,byteCnt;
     u64b_t X[SKEIN_256_STATE_WORDS];
+    u08b_t ctr[SKEIN_256_BLOCK_BYTES] = {0};
     Skein_Assert(ctx->h.bCnt <= SKEIN_256_BLOCK_BYTES,SKEIN_FAIL);    /* catch uninitialized context */
 
     /* now output the result */
     byteCnt = (ctx->h.hashBitLen + 7) >> 3;    /* total number of output bytes */
 
     /* run Threefish in "counter mode" to generate output */
-    memset(ctx->b,0,sizeof(ctx->b));  /* zero out b[], so it can hold the counter */
     memcpy(X,ctx->X,sizeof(X));       /* keep a local copy of counter mode "key" */
     for (i=0;i*SKEIN_256_BLOCK_BYTES < byteCnt;i++)
     {
-        ((u64b_t *)ctx->b)[0]= Skein_Swap64((u64b_t) i); /* build the counter block */
         Skein_Start_New_Type(ctx,OUT_FINAL);
-        Skein_256_Process_Block(ctx,ctx->b,1,sizeof(u64b_t)); /* run "counter mode" */
+        Skein_256_Process_Block(ctx, ctr, 1, 8); /* run "counter mode" */
         n = byteCnt - i*SKEIN_256_BLOCK_BYTES;   /* number of output bytes left to go */
         if (n >= SKEIN_256_BLOCK_BYTES)
             n  = SKEIN_256_BLOCK_BYTES;
         Skein_Put64_LSB_First(hashVal+i*SKEIN_256_BLOCK_BYTES,ctx->X,n);   /* "output" the ctr mode bytes */
         Skein_Show_Final(256,&ctx->h,n,hashVal+i*SKEIN_256_BLOCK_BYTES);
         memcpy(ctx->X,X,sizeof(X));   /* restore the counter mode key for next time */
+        le_ctr_increment(ctr);
     }
     return SKEIN_SUCCESS;
 }
@@ -688,25 +701,25 @@ int Skein_512_Output(Skein_512_Ctxt_t *ctx, u08b_t *hashVal)
 {
     size_t i,n,byteCnt;
     u64b_t X[SKEIN_512_STATE_WORDS];
+    u08b_t ctr[SKEIN_512_BLOCK_BYTES] = {0};
     Skein_Assert(ctx->h.bCnt <= SKEIN_512_BLOCK_BYTES,SKEIN_FAIL);    /* catch uninitialized context */
 
     /* now output the result */
     byteCnt = (ctx->h.hashBitLen + 7) >> 3;    /* total number of output bytes */
 
     /* run Threefish in "counter mode" to generate output */
-    memset(ctx->b,0,sizeof(ctx->b));  /* zero out b[], so it can hold the counter */
     memcpy(X,ctx->X,sizeof(X));       /* keep a local copy of counter mode "key" */
     for (i=0;i*SKEIN_512_BLOCK_BYTES < byteCnt;i++)
     {
-        ((u64b_t *)ctx->b)[0]= Skein_Swap64((u64b_t) i); /* build the counter block */
         Skein_Start_New_Type(ctx,OUT_FINAL);
-        Skein_512_Process_Block(ctx,ctx->b,1,sizeof(u64b_t)); /* run "counter mode" */
+        Skein_512_Process_Block(ctx, ctr, 1, 8); /* run "counter mode" */
         n = byteCnt - i*SKEIN_512_BLOCK_BYTES;   /* number of output bytes left to go */
         if (n >= SKEIN_512_BLOCK_BYTES)
             n  = SKEIN_512_BLOCK_BYTES;
         Skein_Put64_LSB_First(hashVal+i*SKEIN_512_BLOCK_BYTES,ctx->X,n);   /* "output" the ctr mode bytes */
         Skein_Show_Final(256,&ctx->h,n,hashVal+i*SKEIN_512_BLOCK_BYTES);
         memcpy(ctx->X,X,sizeof(X));   /* restore the counter mode key for next time */
+        le_ctr_increment(ctr);
     }
     return SKEIN_SUCCESS;
 }
@@ -717,25 +730,25 @@ int Skein1024_Output(Skein1024_Ctxt_t *ctx, u08b_t *hashVal)
 {
     size_t i,n,byteCnt;
     u64b_t X[SKEIN1024_STATE_WORDS];
+    u08b_t ctr[SKEIN1024_BLOCK_BYTES] = {0};
     Skein_Assert(ctx->h.bCnt <= SKEIN1024_BLOCK_BYTES,SKEIN_FAIL);    /* catch uninitialized context */
 
     /* now output the result */
     byteCnt = (ctx->h.hashBitLen + 7) >> 3;    /* total number of output bytes */
 
     /* run Threefish in "counter mode" to generate output */
-    memset(ctx->b,0,sizeof(ctx->b));  /* zero out b[], so it can hold the counter */
     memcpy(X,ctx->X,sizeof(X));       /* keep a local copy of counter mode "key" */
     for (i=0;i*SKEIN1024_BLOCK_BYTES < byteCnt;i++)
     {
-        ((u64b_t *)ctx->b)[0]= Skein_Swap64((u64b_t) i); /* build the counter block */
         Skein_Start_New_Type(ctx,OUT_FINAL);
-        Skein1024_Process_Block(ctx,ctx->b,1,sizeof(u64b_t)); /* run "counter mode" */
+        Skein1024_Process_Block(ctx, ctr, 1, 8); /* run "counter mode" */
         n = byteCnt - i*SKEIN1024_BLOCK_BYTES;   /* number of output bytes left to go */
         if (n >= SKEIN1024_BLOCK_BYTES)
             n  = SKEIN1024_BLOCK_BYTES;
         Skein_Put64_LSB_First(hashVal+i*SKEIN1024_BLOCK_BYTES,ctx->X,n);   /* "output" the ctr mode bytes */
         Skein_Show_Final(256,&ctx->h,n,hashVal+i*SKEIN1024_BLOCK_BYTES);
         memcpy(ctx->X,X,sizeof(X));   /* restore the counter mode key for next time */
+        le_ctr_increment(ctr);
     }
     return SKEIN_SUCCESS;
 }
