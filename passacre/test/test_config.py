@@ -1,14 +1,34 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+import itertools
 import os
+
 import pytest
-import unittest
 
 from passacre import config
 
 
 datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+
+
+def pytest_generate_tests(metafunc):
+    if metafunc.cls is None:
+        return
+    uses = getattr(metafunc.function, '_uses', None)
+    if uses is None:
+        return
+    attrname, key, value = uses
+    attr = getattr(metafunc.cls, attrname)
+    metafunc.parametrize((key, value), attr.items())
+
+
+def uses(attrname, key, value):
+    def deco(func):
+        func._uses = attrname, key, value
+        return func
+    return deco
+
 
 class ConfigTestCaseMixin(object):
     password = 'passacre'
@@ -56,32 +76,35 @@ class ConfigTestCaseMixin(object):
     }
     extra_expected_sites = {}
 
-    maxDiff = None
-
-    def setUp(self):
+    @pytest.fixture
+    def config_obj(self):
         os.chdir(datadir)
-        self.config = config.load(open(self.config_file, 'rb'))
+        return config.load(open(self.config_file, 'rb'))
 
-    def test_expected_passwords(self):
-        for site, expected in self.expected_passwords.items():
-            self.assertEqual(
-                expected, self.config.generate_for_site(None, self.password, site))
+    @uses('expected_passwords', 'site', 'expected')
+    def test_expected_passwords(self, config_obj, site, expected):
+        assert expected == config_obj.generate_for_site(
+            None, self.password, site)
 
-    def test_expected_username_passwords(self):
-        for (username, site), expected in self.expected_username_passwords.items():
-            self.assertEqual(
-                expected, self.config.generate_for_site(username, self.password, site))
+    @uses('expected_username_passwords', 'username_site', 'expected')
+    def test_expected_username_passwords(self, config_obj, username_site, expected):
+        username, site = username_site
+        assert expected == config_obj.generate_for_site(
+            username, self.password, site)
 
-    def test_get_all_sites(self):
-        sites = self.config.get_all_sites()
-        for site, config in list(sites.items()):
-            config.pop('multibase', None)
-            config.pop('schema-name', None)
-            self.assertEqual(self.method, config.pop('method'))
-            if site in self.extra_expected_sites:
-                self.assertEqual(
-                    self.extra_expected_sites[site], sites.pop(site))
-        self.assertEqual(self.expected_sites, sites)
+    def test_get_all_sites(self, config_obj):
+        sites = config_obj.get_all_sites()
+        for site_config in sites.values():
+            site_config.pop('multibase', None)
+            site_config.pop('schema-name', None)
+        expected = {}
+        all_expected = itertools.chain(
+            self.expected_sites.items(), self.extra_expected_sites.items())
+        for site, site_config in all_expected:
+            site_config = site_config.copy()
+            site_config['method'] = self.method
+            expected[site] = site_config
+        assert expected == sites
 
 
 class KeccakTestCaseMixin(ConfigTestCaseMixin):
@@ -110,10 +133,11 @@ class KeccakTestCaseMixin(ConfigTestCaseMixin):
     }
 
 
-class KeccakYAMLTestCase(KeccakTestCaseMixin, unittest.TestCase):
+class TestKeccakYAML(KeccakTestCaseMixin):
     config_file = 'keccak.yaml'
 
-class KeccakSqliteTestCase(KeccakTestCaseMixin, unittest.TestCase):
+
+class TestKeccakSqlite(KeccakTestCaseMixin):
     config_file = 'keccak.sqlite'
 
 
@@ -144,10 +168,11 @@ class SkeinTestCaseMixin(ConfigTestCaseMixin):
     }
 
 
-class SkeinYAMLTestCase(SkeinTestCaseMixin, unittest.TestCase):
+class TestSkeinYAML(SkeinTestCaseMixin):
     config_file = 'skein.yaml'
 
-class SkeinSqliteTestCase(SkeinTestCaseMixin, unittest.TestCase):
+
+class TestSkeinSqlite(SkeinTestCaseMixin):
     config_file = 'skein.sqlite'
 
 

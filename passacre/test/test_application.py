@@ -5,7 +5,6 @@ import pytest
 import py.path
 import sys
 import traceback
-import unittest
 
 from passacre import application, features
 from passacre.test.util import excinfo_arg_0
@@ -131,10 +130,8 @@ class ApplicationTestCaseMixin(object):
     hashed_password = None
 
     @pytest.fixture(autouse=True)
-    def init_capsys(self, capsys):
+    def set_everything_up(self, capsys):
         self.capsys = capsys
-
-    def setUp(self):
         datadir.join(self.config_dir).chdir()
         self.app = create_application()
         _load_config = self.app.load_config
@@ -268,10 +265,12 @@ class KeccakTestCaseMixin(ApplicationTestCaseMixin):
     hashed_site = 'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4'
     hashed_password = 'Abaris abaisance abashedness abarticulation'
 
-class KeccakYAMLTestCase(KeccakTestCaseMixin, unittest.TestCase):
+
+class TestKeccakYAML(KeccakTestCaseMixin):
     config_dir = 'keccak-yaml'
 
-class KeccakSqliteTestCase(KeccakTestCaseMixin, SqliteTestCaseMixin, unittest.TestCase):
+
+class TestKeccakSqlite(KeccakTestCaseMixin, SqliteTestCaseMixin):
     config_dir = 'keccak-sqlite'
 
 
@@ -279,10 +278,12 @@ class SkeinTestCaseMixin(ApplicationTestCaseMixin):
     hashed_site = 'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L'
     hashed_password = 'abactor abattoir abashedly abaca'
 
-class SkeinYAMLTestCase(SkeinTestCaseMixin, unittest.TestCase):
+
+class TestSkeinYAML(SkeinTestCaseMixin):
     config_dir = 'skein-yaml'
 
-class SkeinSqliteTestCase(SkeinTestCaseMixin, SqliteTestCaseMixin, unittest.TestCase):
+
+class TestSkeinSqlite(SkeinTestCaseMixin, SqliteTestCaseMixin):
     config_dir = 'skein-sqlite'
 
 

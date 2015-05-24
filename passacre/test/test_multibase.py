@@ -1,64 +1,92 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-from passacre.multibase import MultiBase
+import pytest
 
-from unittest import TestCase
+from passacre.multibase import MultiBase
 
 digits = '0123456789'
 hexdigits = '0123456789abcdef'
 
-class MultiBaseTestCase(TestCase):
-    "Tests for the ``passacre.multibase.MultiBase`` class."
 
-    def assertEncodingAndDecoding(self, mb, decoded, encoded):
-        "Assert that a ``MultiBase`` encodes and decodes values correspondingly."
-        self.assertEqual(mb.encode(decoded), encoded)
-        self.assertEqual(mb.decode(encoded), decoded)
+bases = [
+    {
+        'mb': MultiBase([digits, digits]),
+        'max_encodable_value': [99],
+        'decoded_encoded': [
+            (5, '05'),
+            (9, '09'),
+            (36, '36'),
+            (94, '94'),
+        ],
+        'encoding_failure': [100, 105],
+        'decoding_failure': ['999', '9', '9a'],
+    }, {
+        'mb': MultiBase([hexdigits, hexdigits]),
+        'max_encodable_value': [0xff],
+        'decoded_encoded': [
+            (0x5, '05'),
+            (0xc, '0c'),
+            (0x36, '36'),
+            (0xfe, 'fe'),
+        ],
+        'encoding_failure': [0x100, 0x105],
+    }, {
+        'mb': MultiBase(['abcd', 'abc', 'ab']),  # 4 * 3 * 2 == 24
+        'max_encodable_value': [23],
+        'decoded_encoded': [
+            (0, 'aaa'),
+            (5, 'acb'),
+            (9, 'bbb'),
+            (11, 'bcb'),
+            (17, 'ccb'),
+            (23, 'dcb'),
+        ],
+        'encoding_failure': [24],
+    },
+]
 
-    def test_simple_base10(self):
-        mb = MultiBase([digits, digits])
 
-        self.assertEqual(mb.max_encodable_value, 99)
+def pytest_generate_tests(metafunc):
+    key = getattr(metafunc.function, '_uses', None)
+    if key is None:
+        return
+    metafunc.parametrize(
+        ('mb', key),
+        [(base['mb'], value) for base in bases for value in base.get(key, ())])
 
-        self.assertEncodingAndDecoding(mb, 5, '05')
-        self.assertEncodingAndDecoding(mb, 9, '09')
-        self.assertEncodingAndDecoding(mb, 36, '36')
-        self.assertEncodingAndDecoding(mb, 94, '94')
 
-        self.assertRaises(ValueError, mb.encode, 100)
-        self.assertRaises(ValueError, mb.encode, 105)
+def uses_each(key):
+    def deco(func):
+        func._uses = key
+        return func
+    return deco
 
-    def test_simple_base16(self):
-        mb = MultiBase([hexdigits, hexdigits])
 
-        self.assertEqual(mb.max_encodable_value, 0xff)
+@uses_each('max_encodable_value')
+def test_max_encodable_value(mb, max_encodable_value):
+    assert mb.max_encodable_value == max_encodable_value
 
-        self.assertEncodingAndDecoding(mb, 0x5, '05')
-        self.assertEncodingAndDecoding(mb, 0xc, '0c')
-        self.assertEncodingAndDecoding(mb, 0x36, '36')
-        self.assertEncodingAndDecoding(mb, 0xfe, 'fe')
 
-        self.assertRaises(ValueError, mb.encode, 0x100)
-        self.assertRaises(ValueError, mb.encode, 0x105)
+@uses_each('decoded_encoded')
+def test_encoding(mb, decoded_encoded):
+    decoded, encoded = decoded_encoded
+    assert mb.encode(decoded) == encoded
 
-    def test_complex_base(self):
-        mb = MultiBase(['abcd', 'abc', 'ab'])  # 4 * 3 * 2 == 24
 
-        self.assertEqual(mb.max_encodable_value, 23)
+@uses_each('decoded_encoded')
+def test_decoding(mb, decoded_encoded):
+    decoded, encoded = decoded_encoded
+    assert mb.decode(encoded) == decoded
 
-        self.assertEncodingAndDecoding(mb, 0, 'aaa')
-        self.assertEncodingAndDecoding(mb, 5, 'acb')
-        self.assertEncodingAndDecoding(mb, 9, 'bbb')
-        self.assertEncodingAndDecoding(mb, 11, 'bcb')
-        self.assertEncodingAndDecoding(mb, 17, 'ccb')
-        self.assertEncodingAndDecoding(mb, 23, 'dcb')
 
-        self.assertRaises(ValueError, mb.encode, 24)
+@uses_each('encoding_failure')
+def test_encoding_failures(mb, encoding_failure):
+    with pytest.raises(ValueError):
+        mb.encode(encoding_failure)
 
-    def test_decoding_exceptions(self):
-        mb = MultiBase([digits, digits])
 
-        self.assertRaises(ValueError, mb.decode, '999')
-        self.assertRaises(ValueError, mb.decode, '9')
-        self.assertRaises(ValueError, mb.decode, '9a')
+@uses_each('decoding_failure')
+def test_decoding_failures(mb, decoding_failure):
+    with pytest.raises(ValueError):
+        mb.decode(decoding_failure)
