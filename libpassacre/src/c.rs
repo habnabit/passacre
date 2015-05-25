@@ -5,7 +5,7 @@
 
 use std::{mem, ptr, slice};
 
-use ::passacre::{Algorithm, PassacreGenerator};
+use ::passacre::{Algorithm, PassacreGenerator, SCRYPT_BUFFER_SIZE};
 
 
 macro_rules! c_export {
@@ -45,8 +45,8 @@ pub extern "C" fn passacre_gen_align() -> ::libc::size_t {
 }
 
 #[no_mangle]
-pub extern "C" fn passacre_gen_scrypt_buffer_size() -> ::libc::size_t{
-    64
+pub extern "C" fn passacre_gen_scrypt_buffer_size() -> ::libc::size_t {
+    SCRYPT_BUFFER_SIZE as ::libc::size_t
 }
 
 c_export!(passacre_gen_init, (gen: *mut PassacreGenerator, algorithm: ::libc::c_uint), {

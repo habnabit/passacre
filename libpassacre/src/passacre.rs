@@ -109,7 +109,7 @@ pub struct PassacreGenerator {
     hash_state: HashState,
 }
 
-const SCRYPT_BUFFER_SIZE: usize = 64;
+pub const SCRYPT_BUFFER_SIZE: usize = 64;
 
 fn with_persistence_buffer<F>(buf: Option<*mut u8>, func: F) where F: FnOnce(&mut [u8]) {
     match buf {

@@ -9,4 +9,4 @@ mod util;
 mod deps;
 mod passacre;
 pub mod c;
-pub use ::passacre::{Algorithm, PassacreGenerator};
+pub use ::passacre::{Algorithm, PassacreGenerator, SCRYPT_BUFFER_SIZE};
