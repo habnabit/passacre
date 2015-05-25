@@ -6,6 +6,6 @@
 extern crate libc;
 
 mod util;
-pub mod deps;
+mod deps;
 pub mod passacre;
 pub mod c;
