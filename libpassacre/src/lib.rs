@@ -7,5 +7,6 @@ extern crate libc;
 
 mod util;
 mod deps;
-pub mod passacre;
+mod passacre;
 pub mod c;
+pub use ::passacre::{Algorithm, PassacreGenerator};
