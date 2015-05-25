@@ -56,14 +56,13 @@ c_export!(passacre_gen_init, (gen: *mut PassacreGenerator, algorithm: ::libc::c_
     Ok(())
 });
 
+fn maybe<T, F>(val: T, pred: F) -> Option<T> where F: FnOnce(&T) -> bool {
+    if pred(&val) { Some(val) } else { None }
+}
+
 passacre_gen_export!(passacre_gen_use_scrypt, gen, (n: u64, r: u32, p: u32,
                                                     persistence_buffer: *mut u8), {
-    let persistence_buffer = if persistence_buffer.is_null() {
-        None
-    } else {
-        Some(persistence_buffer)
-    };
-    gen.use_scrypt(n, r, p, persistence_buffer)
+    gen.use_scrypt(n, r, p, maybe(persistence_buffer, |p| !p.is_null()))
 });
 
 
