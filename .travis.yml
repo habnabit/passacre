@@ -37,9 +37,9 @@ matrix:
 
 before_install:
   - "sudo add-apt-repository --yes ppa:kalakris/cmake"
-  - "sudo add-apt-repository --yes ppa:hansjorg/rust"
   - "sudo apt-get update"
-  - "sudo apt-get install cmake rust-stable cargo-nightly"
+  - "sudo apt-get install cmake"
+  - "curl -sSf https://static.rust-lang.org/rustup.sh | sh"
   - "source .travis/setup.sh"
 install:
   - "pip install tox"
