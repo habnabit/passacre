@@ -56,6 +56,9 @@ class build_ext(_build_ext):
     def run(self):
         for cmd_name in self.get_sub_commands():
             self.run_command(cmd_name)
+        libraries = _parse_rustc_libraries()
+        for ext_module in self.distribution.ext_modules:
+            ext_module.libraries.extend(libraries)
         _build_ext.run(self)
 
 
@@ -95,8 +98,7 @@ class build(_build):
         verifier = Verifier(
             _libpassacre.ffi, _libpassacre.preamble, modulename='_libpassacre_c',
             include_dirs=[libpassacre_build_dir],
-            extra_objects=[os.path.join(libpassacre_build_dir, 'libpassacre.a')],
-            libraries=_parse_rustc_libraries())
+            extra_objects=[os.path.join(libpassacre_build_dir, 'libpassacre.a')])
         self.distribution.ext_modules = [verifier.get_extension()]
         _build.finalize_options(self)
 
