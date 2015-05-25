@@ -61,7 +61,7 @@ add_custom_target(passacre ALL
                   COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo build --release
                   COMMAND cp "${CMAKE_SOURCE_DIR}/target/release/libpassacre.a" "${CMAKE_BINARY_DIR}"
                   DEPENDS passacre_deps
-                  SOURCES src/lib.rs src/deps.rs src/passacre.rs src/c.rs)
+                  SOURCES src/lib.rs src/util.rs src/deps.rs src/passacre.rs src/c.rs)
 list(APPEND TO_CLEAN target libpassacre.a)
 install(FILES passacre.h DESTINATION include)
 install(FILES libpassacre.a DESTINATION lib)
