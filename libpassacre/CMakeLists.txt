@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(libpassacre)
 
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../version.txt" RAW_VERSION)
+file(READ "${CMAKE_SOURCE_DIR}/../version.txt" RAW_VERSION)
 string(REPLACE "-" ";" SPLIT_VERSION "${RAW_VERSION}")
 list(GET SPLIT_VERSION 0 VERSION)
 list(GET SPLIT_VERSION 1 VERSION_COMMITS)
@@ -14,7 +14,6 @@ endif ()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
-include(GenerateExportHeader)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(KECCAKF "keccak/KeccakF-1600-opt64.c")
@@ -46,20 +45,25 @@ if (PKG_CONFIG_FOUND)
   endforeach ()
   configure_file(libpassacre.pc.in libpassacre.pc @ONLY)
   install(FILES libpassacre.pc DESTINATION lib/pkgconfig)
+  list(APPEND TO_CLEAN libpassacre.pc)
 endif ()
 
 add_definitions(-std=c99 -ggdb -O2 -pedantic -Wall -Wextra -Wunused -Werror)
-add_library(passacre
+add_library(passacre_deps
             keccak/KeccakSponge.c ${KECCAKF}
             skein/skein.c skein/skeinBlockNo3F.c
             skein/threefish256Block.c skein/threefish512Block.c skein/threefish1024Block.c
             skein/skeinApi.c skein/threefishApi.c
-            scrypt/sha256.c scrypt/crypto_scrypt-${SCRYPTVER}.c
-            passacre.c)
-set_target_properties(passacre PROPERTIES POSITION_INDEPENDENT_CODE ON)
-generate_export_header(passacre)
+            scrypt/sha256.c scrypt/crypto_scrypt-${SCRYPTVER}.c)
+set_target_properties(passacre_deps PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-install(FILES passacre.h passacre_export.h DESTINATION include)
-install(TARGETS passacre
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib)
+add_custom_target(passacre ALL
+                  COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo build --release --verbose
+                  COMMAND cp "${CMAKE_SOURCE_DIR}/target/release/libpassacre.a" "${CMAKE_BINARY_DIR}"
+                  DEPENDS passacre_deps
+                  SOURCES src/lib.rs src/deps.rs src/passacre.rs src/c.rs)
+list(APPEND TO_CLEAN target libpassacre.a)
+install(FILES passacre.h DESTINATION include)
+install(FILES libpassacre.a DESTINATION lib)
+
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${TO_CLEAN}")

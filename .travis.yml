@@ -34,14 +34,13 @@ matrix:
     - python: 3.4
       env: TOXENV=py34,coveralls _COMPILER=gcc
 
-    - python: 2.7
-      env: TOXENV=gcovr,cpp-coveralls _COMPILER=clang
-
 
 before_install:
   - "sudo add-apt-repository --yes ppa:kalakris/cmake"
+  - "sudo add-apt-repository --yes ppa:hansjorg/rust"
+  - "sudo add-apt-repository --yes ppa:cmrx64/cargo"
   - "sudo apt-get update"
-  - "sudo apt-get install cmake"
+  - "sudo apt-get install cmake rust-stable cargo"
   - "source .travis/setup.sh"
 install:
   - "pip install tox"

@@ -51,6 +51,7 @@ class Generator(object):
         self._buf = ffi.new('unsigned char []', size)
         self._context = ffi.cast('struct passacre_gen_state *', self._buf)
         self._check(C.passacre_gen_init, _ALGORITHMS[algorithm])
+        self._context = ffi.gc(self._context, C.passacre_gen_finished)
         self._scrypt_persistence = ffi.NULL
         if scrypt_persist:
             self._scrypt_persistence = ffi.new(

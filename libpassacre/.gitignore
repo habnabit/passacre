@@ -3,5 +3,6 @@
 /cmake_install.cmake
 /install_manifest.txt
 /Makefile
-/passacre_export.h
 libpassacre*
+/Cargo.lock
+/target

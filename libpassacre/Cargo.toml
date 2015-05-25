@@ -1,0 +1,15 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
+[package]
+name = "passacre"
+version = "0.1.0"
+authors = ["Aaron Gallagher <_@habnab.it>"]
+build = "build.rs"
+
+[dependencies]
+libc = "0.1.*"
+
+[lib]
+name = "passacre"
+crate-type = ["staticlib"]
