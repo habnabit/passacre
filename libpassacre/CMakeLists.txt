@@ -58,7 +58,7 @@ add_library(passacre_deps
 set_target_properties(passacre_deps PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_custom_target(passacre ALL
-                  COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo build --release --verbose
+                  COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo build --release
                   COMMAND cp "${CMAKE_SOURCE_DIR}/target/release/libpassacre.a" "${CMAKE_BINARY_DIR}"
                   DEPENDS passacre_deps
                   SOURCES src/lib.rs src/deps.rs src/passacre.rs src/c.rs)
