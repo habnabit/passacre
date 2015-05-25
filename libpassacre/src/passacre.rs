@@ -6,6 +6,8 @@
 use std::mem::uninitialized;
 use std::slice;
 
+use ::util::{set_memory, clone_from_slice};
+
 
 pub enum Algorithm {
     Keccak,
@@ -119,7 +121,7 @@ impl PassacreGenerator {
             n: n, r: r, p: p, persistence_buffer: persistence_buffer,
         });
         with_persistence_buffer(persistence_buffer, |target| {
-            slice::bytes::MutableByteVector::set_memory(target, b'x');
+            set_memory(target, b'x');
         });
         self.state = State::KdfSelected;
         Ok(())
@@ -157,7 +159,7 @@ impl PassacreGenerator {
                 }
                 try!(self.absorb(&scrypt_result));
                 with_persistence_buffer(persistence_buffer, |target| {
-                    target.clone_from_slice(&scrypt_result[..]);
+                    clone_from_slice(target, &scrypt_result[..]);
                 });
             },
             _ => {
@@ -247,7 +249,8 @@ impl PassacreGenerator {
                             state_output.as_ptr() as *const u64, TWEAK.as_ptr() as *const u64);
                         prng.bytes_remaining = 64;
                     }
-                    let copied = output[output_pos..].clone_from_slice(&prng.buffer[64 - prng.bytes_remaining..]);
+                    let copied = clone_from_slice(
+                        &mut output[output_pos..], &prng.buffer[64 - prng.bytes_remaining..]);
                     prng.bytes_remaining -= copied;
                     n_bytes -= copied;
                     output_pos += copied;

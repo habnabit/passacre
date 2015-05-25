@@ -3,11 +3,9 @@
  * See COPYING for details.
  */
 
-#![feature(collections)]
-#![feature(core)]
-
 extern crate libc;
 
+mod util;
 pub mod deps;
 pub mod passacre;
 pub mod c;
