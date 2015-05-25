@@ -38,16 +38,6 @@ else ()
   set(SCRYPTVER "nosse")
 endif ()
 
-include(FindPkgConfig QUIET)
-if (PKG_CONFIG_FOUND)
-  foreach (LIB ${CMAKE_C_IMPLICIT_LINK_LIBRARIES} ${PLATFORM_LIBS})
-    set(PRIVATE_LIBS "${PRIVATE_LIBS} -l${LIB}")
-  endforeach ()
-  configure_file(libpassacre.pc.in libpassacre.pc @ONLY)
-  install(FILES libpassacre.pc DESTINATION lib/pkgconfig)
-  list(APPEND TO_CLEAN libpassacre.pc)
-endif ()
-
 add_definitions(-std=c99 -ggdb -O2 -pedantic -Wall -Wextra -Wunused -Werror)
 add_library(passacre_deps
             keccak/KeccakSponge.c ${KECCAKF}
@@ -63,7 +53,5 @@ add_custom_target(passacre ALL
                   DEPENDS passacre_deps
                   SOURCES src/lib.rs src/util.rs src/deps.rs src/passacre.rs src/c.rs)
 list(APPEND TO_CLEAN target libpassacre.a)
-install(FILES passacre.h DESTINATION include)
-install(FILES libpassacre.a DESTINATION lib)
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${TO_CLEAN}")
