@@ -8,8 +8,13 @@ file(READ "${CMAKE_SOURCE_DIR}/../version.txt" RAW_VERSION)
 string(REPLACE "-" ";" SPLIT_VERSION "${RAW_VERSION}")
 list(GET SPLIT_VERSION 0 VERSION)
 list(GET SPLIT_VERSION 1 VERSION_COMMITS)
-if ("${VERSION_COMMITS}" GREATER 0)
+if (VERSION_COMMITS GREATER 0)
   set(VERSION "${VERSION}.post${VERSION_COMMITS}")
+endif ()
+
+if (DEFINED ENV{CMAKE_BUILD_TYPE})
+  set(CMAKE_BUILD_TYPE "$ENV{CMAKE_BUILD_TYPE}")
+  set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
 endif ()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
@@ -38,7 +43,13 @@ else ()
   set(SCRYPTVER "nosse")
 endif ()
 
-add_definitions(-std=c99 -ggdb -O2 -pedantic -Wall -Wextra -Wunused -Werror)
+if (CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_CONFIGURATION_TYPES Debug Release)
+  set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING "" FORCE)
+endif ()
+
+add_definitions(-std=c99 -pedantic -Wall -Wextra -Wunused -Werror)
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb")
 add_library(passacre_deps
             keccak/KeccakSponge.c ${KECCAKF}
             skein/skein.c skein/skeinBlockNo3F.c
@@ -47,10 +58,17 @@ add_library(passacre_deps
             scrypt/sha256.c scrypt/crypto_scrypt-${SCRYPTVER}.c)
 set_target_properties(passacre_deps PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+if (CMAKE_BUILD_TYPE STREQUAL Release)
+  set(CARGO_BUILD_FLAGS "--release")
+  set(CARGO_BUILD_DIR "${CMAKE_SOURCE_DIR}/target/release")
+else ()
+  set(CARGO_BUILD_FLAGS "")
+  set(CARGO_BUILD_DIR "${CMAKE_SOURCE_DIR}/target/debug")
+endif ()
 add_custom_target(passacre ALL
                   COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" sh -c
-                  "cargo build --release 2>&1 | tee ${CMAKE_BINARY_DIR}/_cargo_out.txt"
-                  COMMAND cp "${CMAKE_SOURCE_DIR}/target/release/libpassacre.a" "${CMAKE_BINARY_DIR}"
+                  "cargo build ${CARGO_BUILD_FLAGS} 2>&1 | tee ${CMAKE_BINARY_DIR}/_cargo_out.txt"
+                  COMMAND cp "${CARGO_BUILD_DIR}/libpassacre.a" "${CMAKE_BINARY_DIR}"
                   DEPENDS passacre_deps
                   VERBATIM
                   SOURCES src/lib.rs src/util.rs src/deps.rs src/passacre.rs src/c.rs)
