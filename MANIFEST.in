@@ -1,5 +1,6 @@
 include COPYING version.txt passacre.yaml.example
-include libpassacre/CMakeLists.txt libpassacre/passacre.h libpassacre/libpassacre.pc.in
+include libpassacre/CMakeLists.txt libpassacre/ChooseCStandard.cmake
+include libpassacre/libpassacre-config.h.in libpassacre/passacre.h
 include libpassacre/Cargo.toml libpassacre/build.rs
 graft libpassacre/src
 graft libpassacre/keccak

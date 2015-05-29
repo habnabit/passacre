@@ -73,7 +73,7 @@ struct SkeinPrng {
 }
 
 enum HashState {
-    Keccak(::deps::spongeState),
+    Keccak(*mut ::deps::spongeState),
     Skein(::deps::SkeinCtx_t),
     SkeinPrng(SkeinPrng),
 }
@@ -85,8 +85,14 @@ impl HashState {
     fn of_algorithm(algorithm: &Algorithm) -> Result<HashState, ()> {
         let hash_state = match algorithm {
             &Algorithm::Keccak => unsafe {
-                let mut sponge: ::deps::spongeState = uninitialized();
-                check_eq!(0, ::deps::InitSponge(&mut sponge, SPONGE_RATE, SPONGE_CAPACITY));
+                let sponge = ::deps::AllocSponge();
+                if sponge.is_null() {
+                    return Err(());
+                }
+                if ::deps::InitSponge(sponge, SPONGE_RATE, SPONGE_CAPACITY) != 0 {
+                    ::deps::FreeSponge(sponge);
+                    return Err(());
+                }
                 HashState::Keccak(sponge)
             },
             &Algorithm::Skein => unsafe {
@@ -100,6 +106,17 @@ impl HashState {
             },
         };
         Ok(hash_state)
+    }
+}
+
+impl Drop for HashState {
+    fn drop(&mut self) {
+        match self {
+            &mut HashState::Keccak(sponge) => unsafe {
+                ::deps::FreeSponge(sponge);
+            },
+            _ => (),
+        }
     }
 }
 
@@ -152,7 +169,7 @@ impl PassacreGenerator {
     fn absorb(&mut self, input: &[u8]) -> Result<(), ()> {
         decompose!(input);
         match self.hash_state {
-            HashState::Keccak(ref mut sponge) => unsafe {
+            HashState::Keccak(sponge) => unsafe {
                 check_eq!(0, ::deps::Absorb(sponge, input.0, input.1 * 8));
             },
             HashState::Skein(ref mut skein) => unsafe {
@@ -244,7 +261,7 @@ impl PassacreGenerator {
 
     fn really_squeeze(&mut self, output: &mut [u8]) -> Result<(), ()> {
         match self.hash_state {
-            HashState::Keccak(ref mut sponge) => unsafe {
+            HashState::Keccak(sponge) => unsafe {
                 decompose!(mut output);
                 check_eq!(0, ::deps::Squeeze(sponge, output.0, output.1 * 8));
                 return Ok(());

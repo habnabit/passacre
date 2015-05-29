@@ -11,12 +11,14 @@ and related or neighboring rights to the source code in this file.
 http://creativecommons.org/publicdomain/zero/1.0/
 */
 
+#include <stdlib.h>
 #include <string.h>
 #include "KeccakSponge.h"
 #include "KeccakF-1600-interface.h"
 #ifdef KeccakReference
 #include "displayIntermediateValues.h"
 #endif
+#include "libpassacre-config.h"
 
 int InitSponge(spongeState *state, unsigned int rate, unsigned int capacity)
 {
@@ -46,17 +48,17 @@ void AbsorbQueue(spongeState *state)
 #ifdef ProvideFast576
     if (state->rate == 576)
         KeccakAbsorb576bits(state->state, state->dataQueue);
-    else 
+    else
 #endif
 #ifdef ProvideFast832
     if (state->rate == 832)
         KeccakAbsorb832bits(state->state, state->dataQueue);
-    else 
+    else
 #endif
 #ifdef ProvideFast1024
     if (state->rate == 1024)
         KeccakAbsorb1024bits(state->state, state->dataQueue);
-    else 
+    else
 #endif
 #ifdef ProvideFast1088
     if (state->rate == 1088)
@@ -66,12 +68,12 @@ void AbsorbQueue(spongeState *state)
 #ifdef ProvideFast1152
     if (state->rate == 1152)
         KeccakAbsorb1152bits(state->state, state->dataQueue);
-    else 
+    else
 #endif
 #ifdef ProvideFast1344
     if (state->rate == 1344)
         KeccakAbsorb1344bits(state->state, state->dataQueue);
-    else 
+    else
 #endif
         KeccakAbsorb(state->state, state->dataQueue, state->rate/64);
     state->bitsInQueue = 0;
@@ -263,4 +265,26 @@ int Squeeze(spongeState *state, unsigned char *output, unsigned long long output
         i += partialBlock;
     }
     return 0;
+}
+
+spongeState *
+AllocSponge(void)
+{
+#if defined(HAVE_ALIGNED_ALLOC)
+    return aligned_alloc(32, sizeof (spongeState));
+#elif defined(HAVE_POSIX_MEMALIGN)
+    void *ret;
+    if (posix_memalign(&ret, 32, sizeof (spongeState))) {
+        return NULL;
+    }
+    return ret;
+#else
+#error "no memory alignment function available"
+#endif
+}
+
+void
+FreeSponge(spongeState *state)
+{
+    free(state);
 }

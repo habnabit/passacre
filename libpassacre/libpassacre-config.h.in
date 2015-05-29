@@ -1,0 +1,14 @@
+/*
+ * Copyright (c) Aaron Gallagher <_@habnab.it>
+ * See COPYING for details.
+ */
+
+#ifndef _LIBPASSACRE_CONFIG_H_
+#define _LIBPASSACRE_CONFIG_H_
+
+#cmakedefine HAVE_SYS_ENDIAN_H 1
+#cmakedefine HAVE_DECL_BE64ENC 1
+#cmakedefine HAVE_ALIGNED_ALLOC 1
+#cmakedefine HAVE_POSIX_MEMALIGN 1
+
+#endif

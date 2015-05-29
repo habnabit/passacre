@@ -19,9 +19,17 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #define KeccakMaximumRate 1536
 #define KeccakMaximumRateInBytes (KeccakMaximumRate/8)
 
-typedef struct spongeStateStruct {
-    unsigned char state[KeccakPermutationSizeInBytes];
-    unsigned char dataQueue[KeccakMaximumRateInBytes];
+#if defined(__GNUC__)
+#define ALIGN __attribute__ ((aligned(32)))
+#elif defined(_MSC_VER)
+#define ALIGN __declspec(align(32))
+#else
+#define ALIGN
+#endif
+
+ALIGN typedef struct spongeStateStruct {
+    ALIGN unsigned char state[KeccakPermutationSizeInBytes];
+    ALIGN unsigned char dataQueue[KeccakMaximumRateInBytes];
     unsigned int rate;
     unsigned int capacity;
     unsigned int bitsInQueue;
@@ -29,6 +37,9 @@ typedef struct spongeStateStruct {
     int squeezing;
     unsigned int bitsAvailableForSqueezing;
 } spongeState;
+
+spongeState *AllocSponge(void);
+void FreeSponge(spongeState *);
 
 /**
   * Function to initialize the state of the Keccak[r, c] sponge function.

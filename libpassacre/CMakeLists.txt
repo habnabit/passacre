@@ -4,6 +4,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(libpassacre)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
+
 file(READ "${CMAKE_SOURCE_DIR}/../version.txt" RAW_VERSION)
 string(REPLACE "-" ";" SPLIT_VERSION "${RAW_VERSION}")
 list(GET SPLIT_VERSION 0 VERSION)
@@ -30,25 +32,30 @@ endif ()
 
 include(CheckIncludeFiles)
 include(CheckSymbolExists)
+include(ChooseCStandard)
 include(CMakeDependentOption)
+choose_c_standard(CHOICES C11 C99)
 check_include_files("emmintrin.h" HAVE_EMMINTRIN_H)
 cmake_dependent_option(USE_SSE2 "Use optimized SSE2 code (for scrypt)." ON
                        "HAVE_EMMINTRIN_H" OFF)
 check_include_files("sys/endian.h" HAVE_SYS_ENDIAN_H)
 check_symbol_exists(be64enc "sys/endian.h" HAVE_DECL_BE64ENC)
+check_symbol_exists(aligned_alloc "stdlib.h" HAVE_ALIGNED_ALLOC)
 check_symbol_exists(posix_memalign "stdlib.h" HAVE_POSIX_MEMALIGN)
 if (USE_SSE2)
   set(SCRYPTVER "sse")
 else ()
   set(SCRYPTVER "nosse")
 endif ()
+configure_file("libpassacre-config.h.in" "${CMAKE_BINARY_DIR}/libpassacre-config.h")
+include_directories("${CMAKE_BINARY_DIR}")
 
 if (CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_CONFIGURATION_TYPES Debug Release)
   set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING "" FORCE)
 endif ()
 
-add_definitions(-std=c99 -pedantic -Wall -Wextra -Wunused -Werror)
+add_definitions(-pedantic -Wall -Wextra -Wunused -Werror)
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb")
 add_library(passacre_deps
             keccak/KeccakSponge.c ${KECCAKF}
