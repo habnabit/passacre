@@ -95,7 +95,7 @@ class Generator(object):
         self._check(C.passacre_gen_absorb_null_rounds, rounds)
 
     def squeeze(self, n_bytes):
-        output = ffi.new('unsigned char[]', n_bytes)
+        output = ffi.new('unsigned char []', n_bytes)
         self._check(C.passacre_gen_squeeze, output, n_bytes)
         return ffi.buffer(output)[:]
 
