@@ -3,6 +3,9 @@
  * See COPYING for details.
  */
 
+#![feature(set_stdio)]
+#![feature(std_misc)]
+
 extern crate libc;
 
 mod util;

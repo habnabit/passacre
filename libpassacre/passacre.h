@@ -41,6 +41,7 @@ int passacre_gen_absorb_username_password_site(
     const unsigned char *, size_t, const unsigned char *, size_t);
 int passacre_gen_absorb_null_rounds(struct passacre_gen_state *, size_t);
 int passacre_gen_squeeze(struct passacre_gen_state *, unsigned char *, size_t);
-void passacre_gen_finished(struct passacre_gen_state *);
+int passacre_gen_finished(struct passacre_gen_state *);
+size_t passacre_error(int, unsigned char *, size_t);
 
 #endif

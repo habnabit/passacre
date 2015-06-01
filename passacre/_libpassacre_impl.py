@@ -34,12 +34,27 @@ else:
         return int.from_bytes(b, 'big')
 
 
+ERR_BUF_SIZE = 256
+
+
 class GeneratorError(Exception):
     pass
 
 
 class NoScryptPersistence(GeneratorError):
     pass
+
+
+def _raise_error(code, exc_type=GeneratorError):
+    err_buf = ffi.new('unsigned char []', ERR_BUF_SIZE)
+    copied = C.passacre_error(code, err_buf, ERR_BUF_SIZE)
+    raise GeneratorError(code, ffi.buffer(err_buf)[:copied])
+
+
+def _gc_generator(gen):
+    result = C.passacre_gen_finished(gen)
+    if result:
+        _raise_error(result)
 
 
 class Generator(object):
@@ -51,7 +66,7 @@ class Generator(object):
         self._buf = ffi.new('unsigned char []', size)
         self._context = ffi.cast('struct passacre_gen_state *', self._buf)
         self._check(C.passacre_gen_init, _ALGORITHMS[algorithm])
-        self._context = ffi.gc(self._context, C.passacre_gen_finished)
+        self._context = ffi.gc(self._context, _gc_generator)
         self._scrypt_persistence = ffi.NULL
         if scrypt_persist:
             self._scrypt_persistence = ffi.new(
@@ -60,7 +75,7 @@ class Generator(object):
     def _check(self, func, *args):
         result = func(self._context, *args)
         if result:
-            raise GeneratorError(-result)
+            _raise_error(result)
 
     def use_scrypt(self, n, r, p):
         self._check(
