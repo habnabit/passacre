@@ -147,25 +147,39 @@ c_export!(passacre_gen_finished, (gen: *mut PassacreGenerator), {
 #[no_mangle]
 pub extern "C" fn passacre_error(which: ::libc::c_int, dest: *mut ::libc::c_uchar, dest_length: ::libc::size_t)
                                  -> ::libc::size_t {
-    let err = PassacreError::of_c_int(which);
+    let mut result: Option<usize> = None;
     let dest = unsafe { slice::from_raw_parts_mut(dest, dest_length as usize) };
-    let err_str = match err {
-        Some(PassacreError::Panic) => {
-            let mut copied = None;
-            ERROR_STRING.with(|err_string| {
-                let err_string = err_string.borrow();
-                if err_string.is_empty() {
-                    return;
-                }
-                copied = Some(clone_from_slice(dest, err_string.as_bytes()));
-            });
-            match copied {
-                Some(count) => return count as ::libc::size_t,
-                None => "unknown panic",
-            }
-        },
-        Some(e) => e.to_string(),
-        None => "unknown error",
+    let closure_result = {
+        let closure = || {
+            let err = PassacreError::of_c_int(which);
+            let err_str = match err {
+                Some(PassacreError::Panic) => {
+                    if ERROR_STRING.with(|err_string| {
+                        let err_string = err_string.borrow();
+                        if err_string.is_empty() {
+                            return false;
+                        }
+                        result = Some(clone_from_slice(dest, err_string.as_bytes()));
+                        return true;
+                    }) {
+                        return;
+                    } else {
+                        "unknown panic"
+                    }
+                },
+                Some(e) => e.to_string(),
+                None => "unknown error",
+            };
+            result = Some(clone_from_slice(dest, err_str.as_bytes()));
+        };
+        unsafe { try(closure) }
     };
-    clone_from_slice(dest, err_str.as_bytes()) as ::libc::size_t
+    let ret = match closure_result {
+        Ok(()) => match result {
+            Some(s) => s,
+            None => clone_from_slice(dest, "passacre_error: internal error".as_bytes()),
+        },
+        Err(_) => clone_from_slice(dest, "passacre_error: panic".as_bytes()),
+    };
+    ret as ::libc::size_t
 }
