@@ -47,6 +47,7 @@ impl Algorithm {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum PassacreError {
     Panic,
     KeccakError,
@@ -54,6 +55,8 @@ pub enum PassacreError {
     ScryptError,
     UserError,
     InternalError,
+    DomainError,
+    AllocatorError,
 }
 
 impl PassacreError {
@@ -65,6 +68,8 @@ impl PassacreError {
             -4 => PassacreError::ScryptError,
             -5 => PassacreError::UserError,
             -6 => PassacreError::InternalError,
+            -7 => PassacreError::DomainError,
+            -8 => PassacreError::AllocatorError,
             _ => return None,
         };
         Some(result)
@@ -78,6 +83,8 @@ impl PassacreError {
             &PassacreError::ScryptError => -4,
             &PassacreError::UserError => -5,
             &PassacreError::InternalError => -6,
+            &PassacreError::DomainError => -7,
+            &PassacreError::AllocatorError => -8,
         }
     }
 
@@ -89,6 +96,8 @@ impl PassacreError {
             &PassacreError::ScryptError => "scrypt error",
             &PassacreError::UserError => "user error",
             &PassacreError::InternalError => "internal error",
+            &PassacreError::DomainError => "domain error",
+            &PassacreError::AllocatorError => "allocator error",
         }
     }
 }

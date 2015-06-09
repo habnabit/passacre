@@ -45,16 +45,20 @@ class NoScryptPersistence(GeneratorError):
     pass
 
 
-def _raise_error(code, exc_type=GeneratorError):
+class MultiBaseError(Exception):
+    pass
+
+
+def _raise_error(code, exc_type):
     err_buf = ffi.new('unsigned char []', ERR_BUF_SIZE)
     copied = C.passacre_error(code, err_buf, ERR_BUF_SIZE)
-    raise GeneratorError(code, ffi.buffer(err_buf)[:copied])
+    raise exc_type(code, ffi.buffer(err_buf)[:copied])
 
 
 def _gc_generator(gen):
     result = C.passacre_gen_finished(gen)
     if result:
-        _raise_error(result)
+        _raise_error(result, GeneratorError)
 
 
 class Generator(object):
@@ -75,7 +79,7 @@ class Generator(object):
     def _check(self, func, *args):
         result = func(self._context, *args)
         if result:
-            _raise_error(result)
+            _raise_error(result, GeneratorError)
 
     def use_scrypt(self, n, r, p):
         self._check(
@@ -108,8 +112,79 @@ class Generator(object):
                 break
         return mb.encode(value)
 
+    def squeeze_password(self, mb):
+        buf = []
+
+        @ffi.callback('passacre_allocator', error=ffi.NULL)
+        def alloc(size, ctx):
+            buf.append(ffi.new('unsigned char []', size))
+            return buf[-1]
+
+        self._check(
+            C.passacre_gen_squeeze_password, mb._context, alloc, ffi.NULL)
+        if not buf:
+            raise RuntimeError('buffer not found')
+        return ffi.buffer(buf[-1])[:]
+
     @property
     def scrypt_persisted(self):
         if self._scrypt_persistence == ffi.NULL:
             return NoScryptPersistence()
         return ffi.buffer(self._scrypt_persistence)[:]
+
+
+def _gc_multibase(mb):
+    result = C.passacre_mb_finished(mb)
+    if result:
+        _raise_error(result, MultiBaseError)
+
+
+class MultiBase(object):
+    def __init__(self):
+        size = C.passacre_mb_size()
+        self._buf = ffi.new('unsigned char []', size)
+        self._context = ffi.cast('struct passacre_mb_state *', self._buf)
+        self._check(C.passacre_mb_init)
+        self._context = ffi.gc(self._context, _gc_multibase)
+
+    def _check(self, func, *args):
+        result = func(self._context, *args)
+        if result:
+            _raise_error(result, MultiBaseError)
+
+    @property
+    def required_bytes(self):
+        ret = ffi.new('size_t *')
+        self._check(C.passacre_mb_required_bytes, ret)
+        return ret[0]
+
+    def add_separator(self, separator):
+        self._check(
+            C.passacre_mb_add_base, C.PASSACRE_SEPARATOR,
+            separator, len(separator))
+
+    def add_characters(self, characters):
+        self._check(
+            C.passacre_mb_add_base, C.PASSACRE_CHARACTERS,
+            characters, len(characters))
+
+    def add_words(self):
+        self._check(C.passacre_mb_add_base, C.PASSACRE_WORDS, ffi.NULL, 0)
+
+    def load_words_from_path(self, path):
+        self._check(
+            C.passacre_mb_load_words_from_path, path, len(path))
+
+    def encode(self, b):
+        buf = []
+
+        @ffi.callback('passacre_allocator', error=ffi.NULL)
+        def alloc(size, ctx):
+            buf.append(ffi.new('unsigned char []', size))
+            return buf[-1]
+
+        self._check(
+            C.passacre_mb_encode_from_bytes, b, len(b), alloc, ffi.NULL)
+        if not buf:
+            raise RuntimeError('buffer not found')
+        return ffi.buffer(buf[-1])[:]
