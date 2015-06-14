@@ -3,11 +3,8 @@
 
 from __future__ import print_function
 
-from distutils.command.build import build as _build
 from distutils.core import Command
-import errno
 import os
-import re
 import subprocess
 import sys
 import traceback
@@ -56,51 +53,7 @@ class build_ext(_build_ext):
     def run(self):
         for cmd_name in self.get_sub_commands():
             self.run_command(cmd_name)
-        libraries = _parse_rustc_libraries()
-        for ext_module in self.distribution.ext_modules:
-            ext_module.libraries.extend(libraries)
         _build_ext.run(self)
-
-
-_rustc_library_line = re.compile('^note: ((?:static )?library|framework): (.+)$')
-
-
-def _parse_rustc_libraries():
-    try:
-        infile = open(os.path.join(libpassacre_build_dir, '_cargo_out.txt'))
-    except IOError as e:
-        if e.errno != errno.ENOENT:
-            raise
-        print('** WARNING: no _cargo_out.txt present; importing passacre might fail **', file=sys.stderr)
-        return []
-
-    libraries = []
-    with infile:
-        for line in infile:
-            m = _rustc_library_line.match(line)
-            if m is None:
-                continue
-            lib_type, lib_name = m.groups()
-            if lib_type == 'library':
-                libraries.append(lib_name)
-            else:
-                warn = '** WARNING: rust wants us to link a %s? %r **' % (
-                    lib_type, lib_name)
-                print(warn, file=sys.stderr)
-
-    return libraries
-
-
-class build(_build):
-    def finalize_options(self):
-        from cffi.verifier import Verifier
-        import _libpassacre
-        verifier = Verifier(
-            _libpassacre.ffi, _libpassacre.preamble, modulename='_libpassacre_c',
-            include_dirs=[libpassacre_build_dir],
-            extra_objects=[os.path.join(libpassacre_build_dir, 'libpassacre.a')])
-        self.distribution.ext_modules = [verifier.get_extension()]
-        _build.finalize_options(self)
 
 
 extras_require = {
@@ -141,16 +94,15 @@ setup(
     vcversioner={
         'version_module_paths': ['passacre/_version.py'],
     },
-    py_modules=['_libpassacre'],
+    cffi_modules=['libpassacre/cffi_build.py:ffi_maker'],
     packages=['passacre', 'passacre.test'],
     package_data={
         'passacre': ['schema.sql'],
         'passacre.test': ['data/*.sqlite', 'data/*.yaml', 'data/words',
                           'data/*/words', 'data/*/.passacre.*', 'data/json/*'],
     },
-    ext_package='passacre',
-    setup_requires=['vcversioner', 'cffi'],
-    install_requires=['cffi'],
+    setup_requires=['vcversioner', 'cffi>=1.0.0'],
+    install_requires=['cffi>=1.0.0'],
     extras_require=extras_require,
     entry_points={
         'console_scripts': ['passacre = passacre.application:main'],
@@ -158,7 +110,6 @@ setup(
     cmdclass={
         'build_ext': build_ext,
         'build_libpassacre': build_libpassacre,
-        'build': build,
     },
     zip_safe=False,
 )

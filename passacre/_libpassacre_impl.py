@@ -1,20 +1,8 @@
 import math
 import sys
 
-from cffi.verifier import Verifier
+from passacre._libpassacre_c import lib as C, ffi
 
-from _libpassacre import ffi, preamble
-
-
-ffi.verifier = Verifier(
-    ffi, preamble, ext_package='passacre', modulename='_libpassacre_c')
-
-
-def _no_compilation(*a, **kw):
-    raise RuntimeError('cffi implicit compilation attempted')
-
-ffi.verifier.compile_module = ffi.verifier._compile_module = _no_compilation
-C = ffi.verifier.load_library()
 
 _ALGORITHMS = {
     'keccak': C.PASSACRE_KECCAK,
