@@ -12,10 +12,12 @@
 extern crate libc;
 extern crate ramp;
 
+pub mod error;
 mod util;
 mod deps;
 mod multibase;
 mod passacre;
 pub mod c;
-pub use ::passacre::{Algorithm, PassacreError, PassacreGenerator, SCRYPT_BUFFER_SIZE};
+pub use ::error::PassacreError;
+pub use ::passacre::{Algorithm, PassacreGenerator, SCRYPT_BUFFER_SIZE};
 pub use ::multibase::{Base, MultiBase};

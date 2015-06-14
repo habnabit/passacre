@@ -8,7 +8,8 @@ use std::{fs, io, path, str};
 
 use ramp::Int;
 
-use passacre::PassacreError;
+use error::PassacreErrorKind::*;
+use error::PassacreResult;
 
 
 fn int_of_bytes(bytes: &[u8]) -> Int {
@@ -33,22 +34,22 @@ pub enum Base {
 }
 
 impl Base {
-    pub fn of_c_parts(which: ::libc::c_uint, string: &[u8]) -> Result<Base, PassacreError> {
+    pub fn of_c_parts(which: ::libc::c_uint, string: &[u8]) -> PassacreResult<Base> {
         let result = match which {
             0 if !string.is_empty() => {
                 match String::from_utf8(string.to_vec()) {
                     Ok(s) => Base::Separator(s),
-                    _ => return Err(PassacreError::UserError),
+                    _ => fail!(UserError),
                 }
             },
             1 if !string.is_empty() => {
                 match str::from_utf8(string) {
                     Ok(s) => Base::Characters(s.chars().map(length_one_string).collect()),
-                    _ => return Err(PassacreError::UserError),
+                    _ => fail!(UserError),
                 }
             },
             2 if string.is_empty() => Base::Words,
-            _ => return Err(PassacreError::UserError),
+            _ => fail!(UserError),
         };
         Ok(result)
     }
@@ -98,14 +99,14 @@ impl MultiBase {
         ret
     }
 
-    pub fn add_base(&mut self, base: Base) -> Result<(), PassacreError> {
+    pub fn add_base(&mut self, base: Base) -> PassacreResult<()> {
         let length = match &base {
             &Base::Separator(_) => Int::one(),
             &Base::Characters(ref s) => Int::from(s.len()),
             &Base::Words => {
                 match &self.words {
                     &Some(ref w) => w.length.clone(),
-                    &None => return Err(PassacreError::UserError),
+                    &None => fail!(UserError),
                 }
             },
         };
@@ -114,24 +115,24 @@ impl MultiBase {
         Ok(())
     }
 
-    pub fn set_words(&mut self, words: Vec<String>) -> Result<(), PassacreError> {
+    pub fn set_words(&mut self, words: Vec<String>) -> PassacreResult<()> {
         if self.words.is_some() {
-            return Err(PassacreError::UserError);
+            fail!(UserError);
         }
         self.words = Some(Words::new(words));
         Ok(())
     }
 
-    pub fn load_words_from_path(&mut self, path: &path::Path) -> Result<(), PassacreError> {
+    pub fn load_words_from_path(&mut self, path: &path::Path) -> PassacreResult<()> {
         // XXX: real error handling
         let infile = fs::File::open(path).unwrap();
         let lines = io::BufReader::new(infile).lines().collect::<io::Result<Vec<String>>>().unwrap();
         self.set_words(lines)
     }
 
-    fn encode(&self, mut n: Int) -> Result<String, PassacreError> {
+    fn encode(&self, mut n: Int) -> PassacreResult<String> {
         if n < 0 || n >= self.length_product {
-            return Err(PassacreError::DomainError);
+            fail!(DomainError);
         }
         let mut ret = Vec::new();
         for &(ref base, ref length) in self.bases.iter().rev() {
@@ -145,7 +146,7 @@ impl MultiBase {
                     &Base::Words => {
                         match &self.words {
                             &Some(ref w) => ret.push(w.words[d].as_str()),
-                            &None => return Err(PassacreError::UserError),
+                            &None => fail!(UserError),
                         }
                     },
                     _ => unreachable!(),
@@ -157,7 +158,7 @@ impl MultiBase {
         Ok(ret.concat())
     }
 
-    pub fn encode_from_bytes(&self, bytes: &[u8]) -> Result<String, PassacreError> {
+    pub fn encode_from_bytes(&self, bytes: &[u8]) -> PassacreResult<String> {
         self.encode(int_of_bytes(bytes))
     }
 }
@@ -167,7 +168,7 @@ impl MultiBase {
 mod tests {
     use ramp::Int;
 
-    use passacre::PassacreError;
+    use error::PassacreError::*;
     use super::{Base, MultiBase, length_one_string};
 
     macro_rules! multibase_tests {
@@ -208,7 +209,7 @@ mod tests {
             ], {
                 let b = $constructor();
                 let v = Int::from(value);
-                assert_eq!(b.encode(v).unwrap_err(), PassacreError::DomainError);
+                assert_eq!(b.encode(v).unwrap_err(), DomainError);
             }}
 
         }

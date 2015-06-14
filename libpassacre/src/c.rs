@@ -7,20 +7,32 @@ use std::{mem, path, ptr, slice, str, io};
 use std::cell::RefCell;
 use std::rt::unwind::try;
 
-use ::passacre::{Algorithm, PassacreError, PassacreGenerator, SCRYPT_BUFFER_SIZE};
+use ::error::PassacreErrorKind::*;
+use ::error::{PassacreError, PassacreResult};
+use ::passacre::{Algorithm, PassacreGenerator, SCRYPT_BUFFER_SIZE};
 use ::multibase::{Base, MultiBase};
 use ::util::clone_from_slice;
+
+
+macro_rules! recompose {
+    ($name:ident, $length:expr) => {
+        let $name = unsafe { slice::from_raw_parts($name, $length as usize) };
+    };
+    (mut $name:ident, $length:expr) => {
+        let $name = unsafe { slice::from_raw_parts_mut($name, $length as usize) };
+    };
+}
 
 
 pub type Allocator = extern fn(::libc::size_t, *const ::libc::c_void) -> *mut ::libc::c_uchar;
 
 fn allocator_string_copy(s: String, allocator: Allocator, context: *const ::libc::c_void)
-                         -> Result<(), PassacreError> {
+                         -> PassacreResult<()> {
     let output = allocator(s.len() as ::libc::size_t, context);
     if output.is_null() {
-        return Err(PassacreError::AllocatorError);
+        fail!(AllocatorError);
     }
-    let output = unsafe { slice::from_raw_parts_mut(output, s.len()) };
+    recompose!(mut output, s.len());
     clone_from_slice(output, s.as_bytes());
     Ok(())
 }
@@ -62,7 +74,7 @@ macro_rules! c_export {
     ($name:ident, ( $($arg:ident : $argtype:ty),* ), $body:block) => {
         #[no_mangle]
         pub extern "C" fn $name( $($arg : $argtype,)* ) -> ::libc::c_int {
-            let mut result: Option<Result<(), PassacreError>> = None;
+            let mut result: Option<PassacreResult<()>> = None;
             let closure_result = {
                 let closure = || {
                     ERROR_STRING.with(|error_string| error_string.borrow_mut().clear());
@@ -78,9 +90,9 @@ macro_rules! c_export {
                 Ok(()) => match result {
                     Some(Ok(())) => None,
                     Some(Err(e)) => Some(e),
-                    None => Some(PassacreError::InternalError),
+                    None => Some(InternalError.to_error()),
                 },
-                Err(_) => Some(PassacreError::Panic),
+                Err(_) => Some(Panic.to_error()),
             };
             match ret {
                 Some(e) => e.to_c_int(),
@@ -95,7 +107,7 @@ macro_rules! passacre_mb_export {
     ($name:ident, mut $mb:ident, ( $($arg:ident : $argtype:ty),* ), $body:block) => {
         c_export!($name, ( mb: *mut MultiBase $(,$arg : $argtype)* ), {
             if mb.is_null() {
-                return Err(PassacreError::UserError);
+                fail!(UserError);
             }
             let mut $mb = unsafe { &mut *mb };
             $body
@@ -104,7 +116,7 @@ macro_rules! passacre_mb_export {
     ($name:ident, $mb:ident, ( $($arg:ident : $argtype:ty),* ), $body:block) => {
         c_export!($name, ( mb: *const MultiBase $(,$arg : $argtype)* ), {
             if mb.is_null() {
-                return Err(PassacreError::UserError);
+                fail!(UserError);
             }
             let $mb = unsafe { &*mb };
             $body
@@ -137,13 +149,13 @@ passacre_mb_export!(passacre_mb_required_bytes, mb, (dest: *mut ::libc::size_t),
 
 passacre_mb_export!(passacre_mb_add_base, mut mb, (
     which: ::libc::c_uint, string: *const u8, string_length: ::libc::size_t), {
-    let string = unsafe { slice::from_raw_parts(string, string_length as usize) };
+    recompose!(string, string_length);
     let base = try!(Base::of_c_parts(which, string));
     mb.add_base(base)
 });
 
 passacre_mb_export!(passacre_mb_load_words_from_path, mut mb, (path: *const u8, path_length: ::libc::size_t), {
-    let path = unsafe { slice::from_raw_parts(path, path_length as usize) };
+    recompose!(path, path_length);
     // XXX: better error handling
     let path = path::Path::new(str::from_utf8(path).unwrap());
     mb.load_words_from_path(path)
@@ -151,7 +163,7 @@ passacre_mb_export!(passacre_mb_load_words_from_path, mut mb, (path: *const u8, 
 
 passacre_mb_export!(passacre_mb_encode_from_bytes, mb, (
     input: *const u8, input_length: ::libc::size_t, allocator: Allocator, context: *const ::libc::c_void), {
-    let input = unsafe { slice::from_raw_parts(input, input_length as usize) };
+    recompose!(input, input_length);
     let ret = try!(mb.encode_from_bytes(input));
     try!(allocator_string_copy(ret, allocator, context));
     Ok(())
@@ -170,7 +182,7 @@ macro_rules! passacre_gen_export {
     ($name:ident, $gen:ident, ( $($arg:ident : $argtype:ty),* ), $body:block) => {
         c_export!($name, ( gen: *mut PassacreGenerator $(,$arg : $argtype)* ), {
             if gen.is_null() {
-                return Err(PassacreError::UserError);
+                fail!(UserError);
             }
             let mut $gen = unsafe { &mut *gen };
             $body
@@ -215,9 +227,9 @@ passacre_gen_export!(passacre_gen_absorb_username_password_site, gen, (
     username: *const ::libc::c_uchar, username_length: ::libc::size_t,
     password: *const ::libc::c_uchar, password_length: ::libc::size_t,
     site: *const ::libc::c_uchar, site_length: ::libc::size_t), {
-    let username = unsafe { slice::from_raw_parts(username, username_length as usize) };
-    let password = unsafe { slice::from_raw_parts(password, password_length as usize) };
-    let site = unsafe { slice::from_raw_parts(site, site_length as usize) };
+    recompose!(username, username_length);
+    recompose!(password, password_length);
+    recompose!(site, site_length);
     gen.absorb_username_password_site(username, password, site)
 });
 
@@ -228,14 +240,14 @@ passacre_gen_export!(passacre_gen_absorb_null_rounds, gen, (n_rounds: ::libc::si
 
 
 passacre_gen_export!(passacre_gen_squeeze, gen, (output: *mut ::libc::c_uchar, output_length: ::libc::size_t), {
-    let output = unsafe { slice::from_raw_parts_mut(output, output_length as usize) };
+    recompose!(mut output, output_length);
     gen.squeeze(output)
 });
 
 passacre_gen_export!(passacre_gen_squeeze_password, gen, (
     mb: *const MultiBase, allocator: Allocator, context: *const ::libc::c_void), {
     if mb.is_null() {
-        return Err(PassacreError::UserError);
+        fail!(UserError);
     }
     let mb = unsafe { &*mb };
     let mut buf = vec![0u8; mb.required_bytes()];
@@ -246,8 +258,8 @@ passacre_gen_export!(passacre_gen_squeeze_password, gen, (
                 try!(allocator_string_copy(s, allocator, context));
                 break;
             },
-            Err(PassacreError::DomainError) => continue,
-            Err(e) => return Err(e),
+            Err(PassacreError { kind: DomainError, .. }) => continue,
+            Err(e) => fail!(e),
         }
     }
     Ok(())
@@ -265,12 +277,12 @@ c_export!(passacre_gen_finished, (gen: *const PassacreGenerator), {
 pub extern "C" fn passacre_error(which: ::libc::c_int, dest: *mut ::libc::c_uchar, dest_length: ::libc::size_t)
                                  -> ::libc::size_t {
     let mut result: Option<usize> = None;
-    let dest = unsafe { slice::from_raw_parts_mut(dest, dest_length as usize) };
+    recompose!(mut dest, dest_length);
     let closure_result = {
         let closure = || {
             let err = PassacreError::of_c_int(which);
             let err_str = match err {
-                Some(PassacreError::Panic) => {
+                Some(PassacreError { kind: Panic, .. }) => {
                     if ERROR_STRING.with(|err_string| {
                         let err_string = err_string.borrow();
                         if err_string.is_empty() {
