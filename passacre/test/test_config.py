@@ -177,19 +177,23 @@ class TestTahoeSkeinSqlite(SkeinTestCaseMixin):
     config_file = 'tahoe.sqlite'
 
     @responses.activate
-    def setUp(self):
-        os.chdir(datadir)
-        responses.add(responses.GET, 'http://localhost:3456/uri/URI:MDMF:not-really:tahoe',
-                      body=open('skein.sqlite', 'rb').read(),
+    def config_obj(self):
+        responses.add(responses.GET,
+                      'http://localhost:3456/uri/URI:MDMF:not-really:tahoe',
+                      body=open(
+                          os.path.join(datadir, 'skein.sqlite'), 'rb').read(),
                       content_type='application/octet-stream')
-        super(SqliteTahoeTestCase, self).setUp()
+        return super(TestTahoeSkeinSqlite, self).config_obj()
 
     @responses.activate
-    def test_config_saving(self):
-        responses.add(responses.PUT, 'http://localhost:3456/uri/URI:MDMF:not-really:tahoe',
-                      body='URI:MDMF:not-really:tahoe',
-                      content_type='application/octet-stream')
-        self.config.save()
+    def test_config_saving(self, config_obj):
+        responses.add(
+            responses.PUT,
+            'http://localhost:3456/uri/URI:MDMF:not-really:tahoe',
+            body='URI:MDMF:not-really:tahoe',
+            content_type='application/octet-stream')
+        config_obj.save()
+
 
 def test_no_words_file():
     # using sqlite for lazy-loading of site data, otherwise the `load` call
