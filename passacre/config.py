@@ -6,6 +6,7 @@ from __future__ import unicode_literals, print_function
 from passacre.schema import multibase_of_schema
 from passacre.util import nested_set, jloads, jdumps, errormark
 from passacre import features, generator
+from tempfile import NamedTemporaryFile
 
 import collections
 import json
@@ -148,6 +149,9 @@ class SqliteConfig(ConfigBase):
     def read(self, infile):
         import sqlite3
         self._db = sqlite3.connect(infile.name)
+        self._config()
+
+    def _config(self):
         curs = self._db.cursor()
 
         curs.execute(
@@ -188,26 +192,26 @@ class SqliteConfig(ConfigBase):
         curs.execute(
             'INSERT INTO sites (site_name, schema_id) VALUES (?, ?)',
             (name, schema_id))
-        self._db.commit()
+        self.save()
 
     def set_site_schema(self, name, schema_id):
         curs = self._db.cursor()
         curs.execute(
             'UPDATE sites SET schema_id = ? WHERE site_name = ?',
             (schema_id, name))
-        self._db.commit()
+        self.save()
 
     def remove_site(self, name):
         curs = self._db.cursor()
         curs.execute('DELETE FROM sites WHERE site_name = ?', (name,))
         curs.execute('DELETE FROM config_values WHERE site_name = ?', (name,))
-        self._db.commit()
+        self.save()
 
     def rename_site(self, name, newname):
         curs = self._db.cursor()
         curs.execute('UPDATE OR REPLACE sites SET site_name = ? WHERE site_name = ?', (newname, name))
         curs.execute('UPDATE OR REPLACE config_values SET site_name = ? WHERE site_name = ?', (newname, name))
-        self._db.commit()
+        self.save()
 
     def get_all_sites(self):
         curs = self._db.cursor()
@@ -247,7 +251,7 @@ class SqliteConfig(ConfigBase):
         curs.execute(
             'INSERT INTO schemata (name, value) VALUES (?, ?)',
             (name, jdumps(value)))
-        self._db.commit()
+        self.save()
 
     def remove_schema(self, schema_id):
         curs = self._db.cursor()
@@ -257,12 +261,12 @@ class SqliteConfig(ConfigBase):
             raise ValueError(
                 "can't delete this schema; at least one site is using it: %r" % (sites,))
         curs.execute('DELETE FROM schemata WHERE schema_id = ?', (schema_id,))
-        self._db.commit()
+        self.save()
 
     def set_schema_name(self, schema_id, newname):
         curs = self._db.cursor()
         curs.execute('UPDATE schemata SET name = ? WHERE schema_id = ?', (newname, schema_id))
-        self._db.commit()
+        self.save()
 
     def set_schema_value(self, schema_id, value):
         verify_multibase_schema(value)
@@ -270,7 +274,7 @@ class SqliteConfig(ConfigBase):
         curs.execute(
             'UPDATE schemata SET value = ? WHERE schema_id = ?',
             (jdumps(value), schema_id))
-        self._db.commit()
+        self.save()
 
     def get_config(self, site, name):
         curs = self._db.cursor()
@@ -301,12 +305,48 @@ class SqliteConfig(ConfigBase):
             curs.execute(
                 'INSERT INTO config_values (site_name, name, value) VALUES (?, ?, ?)',
                 (site, name, jdumps(new_value)))
+        self.save()
+
+    def save(self):
         self._db.commit()
 
+class SqliteTahoeConfig(SqliteConfig):
+    @features.tahoe.check
+    def __init__(self):
+        try:
+            with open(os.path.expanduser("~/.tahoe/node.url")) as f:
+                self.tahoe = f.readline().decode('ascii').strip()
+                self.tahoe += 'uri/' if self.tahoe.endswith('/') else '/uri/'
+        except IOError:
+            self.tahoe = "http://localhost:3456/uri/"
+        super(SqliteConfig, self).__init__()
+
+    def read(self, uri):
+        """Load site configuration from Tahoe-LAFS gateway"""
+        import requests
+        self._db_uri = self.tahoe + uri.readline().decode('ascii').strip()
+        self._db_raw = NamedTemporaryFile(prefix='passacre')
+        db_request = requests.get(self._db_uri)
+        db_request.raise_for_status()
+        self._db_raw.write(db_request.content)
+        self._db_raw.file.flush()
+        self._db_raw.file.seek(0)
+        super(SqliteTahoeConfig, self).read(self._db_raw)
+
+    def save(self):
+        """Store site configuration back into Tahoe-LAFS"""
+        import requests
+        super(SqliteTahoeConfig, self).save()
+        self._db_raw.flush()
+        self._db_raw.seek(0)
+        requests.put(self._db_uri, data=self._db_raw).raise_for_status()
 
 def load(infile):
-    if infile.read(16) == b'SQLite format 3\x00':
+    magic = infile.read(16)
+    if magic == b'SQLite format 3\x00':
         config = SqliteConfig()
+    elif magic.startswith((b'URI:MDMF:', b'URI:SSK:')):
+        config = SqliteTahoeConfig()
     else:
         config = YAMLConfig()
     infile.seek(0)

@@ -75,6 +75,7 @@ extras_require = {
     'keccak': [],
     'skein': [],
     'yubikey': ['ykpers-cffi'],
+    'tahoe': ['requests'],
 }
 
 extras_require['all'] = [req for reqs in extras_require.values() for req in reqs]

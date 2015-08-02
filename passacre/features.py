@@ -51,5 +51,6 @@ class Feature(object):
 yaml = Feature('YAML configuration', ('yaml', 'pyyaml'))
 copying = Feature('password copying', ('xerox', 'xerox'))
 yubikey = Feature('yubikey support', ('ykpers', 'ykpers-cffi'))
+tahoe = Feature('Tahoe-LAFS support', ('requests', 'requests'))
 
 features = Feature.features
