@@ -80,7 +80,8 @@ class ConfigTestCaseMixin(object):
             None, self.password, site)
 
     @uses('expected_username_passwords', 'username_site', 'expected')
-    def test_expected_username_passwords(self, config_obj, username_site, expected):
+    def test_expected_username_passwords(self,
+                                         config_obj, username_site, expected):
         username, site = username_site
         assert expected == config_obj.generate_for_site(
             username, self.password, site)
@@ -117,7 +118,8 @@ class KeccakTestCaseMixin(ConfigTestCaseMixin):
         ('passacre', 'schwab.com'): 'JkbefmM3',
         ('passacre', 'fhcrc.org'): 'r(O.vF`Avz44Z;$ZvQ..4LqN/CEz/*#?',
         ('passacre', 'hashed.example.com'): 'Aaronic Abassin',
-        ('passacre', 'default.example.com'): '''RN*6~h'Jc-A"Ro-OefetOVes~tR<~=[K''',
+        ('passacre', 'default.example.com'):
+            '''RN*6~h'Jc-A"Ro-OefetOVes~tR<~=[K''',
     }
     extra_expected_sites = {
         'gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4': {
@@ -143,7 +145,8 @@ class SkeinTestCaseMixin(ConfigTestCaseMixin):
         'fidelity.com': '9DT"bYHp4Gch\\"jL',
         'example.com': 'abactor abattoir abashedly abaca',
         'further.example.com': 'abandonable, aal, abalienate, abampere',
-        'still.further.example.com': ';abate, abaciscus, abandonable, abalonea',
+        'still.further.example.com':
+            ';abate, abaciscus, abandonable, abalonea',
         'hashed.example.com': 'aardvark Abadite',
         'default.example.com': '~N8q0u$fYwnpD{VITu^F*,-NO1~PV>m&',
     }
@@ -152,7 +155,8 @@ class SkeinTestCaseMixin(ConfigTestCaseMixin):
         ('not-passacre', 'schwab.com'): 'JlOdJ7KC',
         ('passacre', 'fhcrc.org'): '''~,HDW+W9@hg{'pU*P"qpckS8]gmaEe)D''',
         ('passacre', 'hashed.example.com'): 'abastardize abacist',
-        ('passacre', 'default.example.com'): 'GEvloj!NLoJTP;$ymbp0lz<P#`3[/#4>',
+        ('passacre', 'default.example.com'):
+            'GEvloj!NLoJTP;$ymbp0lz<P#`3[/#4>',
     }
     extra_expected_sites = {
         'UYfDoAN9nYMdxCYtgKenzjhbc9eonu3w92ec3SAA5UbT1J3L': {
@@ -168,8 +172,10 @@ class TestSkeinYAML(SkeinTestCaseMixin):
 class TestSkeinSqlite(SkeinTestCaseMixin):
     config_file = 'skein.sqlite'
 
-class SqliteTahoeTestCase(SkeinTestCaseMixin):
+
+class TestTahoeSkeinSqlite(SkeinTestCaseMixin):
     config_file = 'tahoe.sqlite'
+
     @responses.activate
     def setUp(self):
         os.chdir(datadir)
