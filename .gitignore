@@ -9,6 +9,7 @@
 /htmlcov*
 /gcovr*
 /.tox
+/.cache
 
 *.so
 # gcov, gcno, gcda
