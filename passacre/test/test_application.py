@@ -7,7 +7,6 @@ import sys
 import traceback
 
 from passacre import application, features
-from passacre.test.util import excinfo_arg_0
 
 
 _shush_pyflakes = [features]
@@ -241,7 +240,7 @@ example.com                                             26.58
     def test_no_args(self):
         with pytest.raises(SystemExit) as excinfo:
             self.app.main([])
-        assert excinfo_arg_0(excinfo) == 2
+        assert excinfo.value.code == 2
 
 
 class SqliteTestCaseMixin(object):
@@ -499,7 +498,7 @@ def test_site_remove_hashed(mutable_app, capsys):
 def test_site_remove_default_fails(app):
     with pytest.raises(SystemExit) as excinfo:
         app.main(['site', 'remove', 'default'])
-    assert excinfo_arg_0(excinfo)
+    assert excinfo.value.code
 
 def test_config(app, capsys):
     out = read_out(capsys, app, 'config')
@@ -703,7 +702,7 @@ def test_terse_excepthook(capsys, app):
     out, err = capsys.readouterr()
     assert not out
     assert err == '(pass -v for the full traceback)\nFakeError: example\n'
-    assert excinfo_arg_0(excinfo) == 1
+    assert excinfo.value.code == 1
 
 def test_terse_errormark(capsys, app):
     app.verbose = False
@@ -720,7 +719,7 @@ def test_terse_errormark(capsys, app):
 (pass -v for the full traceback)
 FakeError: example
 """
-    assert excinfo_arg_0(excinfo) == 8
+    assert excinfo.value.code == 8
 
 def test_verbose_errormark(capsys, app):
     app.verbose = True
@@ -736,4 +735,4 @@ def test_verbose_errormark(capsys, app):
     out, err = capsys.readouterr()
     assert not out
     assert err == 'an error occurred testing this code foo eggs\n' + tb_string
-    assert excinfo_arg_0(excinfo) == 8
+    assert excinfo.value.code == 8
