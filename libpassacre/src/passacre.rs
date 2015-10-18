@@ -5,6 +5,8 @@
 
 use std::mem::uninitialized;
 
+use ::error::PassacreErrorKind::*;
+use ::error::PassacreResult;
 use ::util::{set_memory, clone_from_slice};
 
 
@@ -20,13 +22,13 @@ macro_rules! decompose {
 macro_rules! check_eq {
     ($expected:expr, $err:expr, $actual:expr) => {{
         if $expected != $actual {
-            return Err($err);
+            fail!($err);
         }
     }};
 }
 
 macro_rules! check_skein {
-    ($actual:expr) => { check_eq!(::deps::SKEIN_SUCCESS, PassacreError::SkeinError, $actual); };
+    ($actual:expr) => { check_eq!(::deps::SKEIN_SUCCESS, SkeinError, $actual); };
 }
 
 
@@ -36,59 +38,13 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    pub fn of_c_uint(which: ::libc::c_uint) -> Result<Algorithm, PassacreError> {
+    pub fn of_c_uint(which: ::libc::c_uint) -> PassacreResult<Algorithm> {
         let result = match which {
             0 => Algorithm::Keccak,
             1 => Algorithm::Skein,
-            _ => return Err(PassacreError::UserError),
+            _ => fail!(UserError),
         };
         Ok(result)
-    }
-}
-
-pub enum PassacreError {
-    Panic,
-    KeccakError,
-    SkeinError,
-    ScryptError,
-    UserError,
-    InternalError,
-}
-
-impl PassacreError {
-    pub fn of_c_int(which: ::libc::c_int) -> Option<PassacreError> {
-        let result = match which {
-            -1 => PassacreError::Panic,
-            -2 => PassacreError::KeccakError,
-            -3 => PassacreError::SkeinError,
-            -4 => PassacreError::ScryptError,
-            -5 => PassacreError::UserError,
-            -6 => PassacreError::InternalError,
-            _ => return None,
-        };
-        Some(result)
-    }
-
-    pub fn to_c_int(&self) -> ::libc::c_int {
-        match self {
-            &PassacreError::Panic => -1,
-            &PassacreError::KeccakError => -2,
-            &PassacreError::SkeinError => -3,
-            &PassacreError::ScryptError => -4,
-            &PassacreError::UserError => -5,
-            &PassacreError::InternalError => -6,
-        }
-    }
-
-    pub fn to_string(&self) -> &'static str {
-        match self {
-            &PassacreError::Panic => "panic",
-            &PassacreError::KeccakError => "keccak error",
-            &PassacreError::SkeinError => "skein error",
-            &PassacreError::ScryptError => "scrypt error",
-            &PassacreError::UserError => "user error",
-            &PassacreError::InternalError => "internal error",
-        }
     }
 }
 
@@ -118,7 +74,7 @@ impl<'persist> Kdf<'persist> {
         }
     }
 
-    pub fn derive(&mut self, username: &[u8], password: &[u8]) -> Result<Vec<u8>, PassacreError> {
+    pub fn derive(&mut self, username: &[u8], password: &[u8]) -> PassacreResult<Vec<u8>> {
         match self {
             &mut Kdf::Scrypt { n, r, p, ref mut persistence_buffer } => {
                 let mut scrypt_result = vec![0u8; SCRYPT_BUFFER_SIZE];
@@ -126,7 +82,7 @@ impl<'persist> Kdf<'persist> {
                     decompose!(username);
                     decompose!(password);
                     decompose!(mut scrypt_result);
-                    check_eq!(0, PassacreError::ScryptError,
+                    check_eq!(0, ScryptError,
                               unsafe {
                                   ::deps::crypto_scrypt(password.0, password.1, username.0, username.1,
                                                         n, r, p, scrypt_result.0, scrypt_result.1)
@@ -159,16 +115,16 @@ const SPONGE_RATE: ::libc::c_uint = 64;
 const SPONGE_CAPACITY: ::libc::c_uint = 1536;
 
 impl HashState {
-    fn of_algorithm(algorithm: &Algorithm) -> Result<HashState, PassacreError> {
+    fn of_algorithm(algorithm: &Algorithm) -> PassacreResult<HashState> {
         let hash_state = match algorithm {
             &Algorithm::Keccak => unsafe {
                 let sponge = ::deps::AllocSponge();
                 if sponge.is_null() {
-                    return Err(PassacreError::KeccakError);
+                    fail!(KeccakError);
                 }
                 if ::deps::InitSponge(sponge, SPONGE_RATE, SPONGE_CAPACITY) != 0 {
                     ::deps::FreeSponge(sponge);
-                    return Err(PassacreError::KeccakError);
+                    fail!(KeccakError);
                 }
                 HashState::Keccak(sponge)
             },
@@ -213,7 +169,7 @@ const DELIMITER: &'static [u8] = b":";
 const TWEAK: [u8; 24] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3f, 0, 0, 0, 0, 0, 0, 0, 0];
 
 impl<'persist> PassacreGenerator<'persist> {
-    pub fn new(algorithm: Algorithm) -> Result<PassacreGenerator<'persist>, PassacreError> {
+    pub fn new(algorithm: Algorithm) -> PassacreResult<PassacreGenerator<'persist>> {
         let p = PassacreGenerator {
             state: State::Initialized,
             kdf: None,
@@ -222,36 +178,36 @@ impl<'persist> PassacreGenerator<'persist> {
         Ok(p)
     }
 
-    pub fn use_kdf(&mut self, kdf: Kdf<'persist>) -> Result<(), PassacreError> {
+    pub fn use_kdf(&mut self, kdf: Kdf<'persist>) -> PassacreResult<()> {
         match self.state {
             State::Initialized => (),
-            _ => return Err(PassacreError::UserError),
+            _ => fail!(UserError),
         }
         self.kdf = Some(kdf);
         self.state = State::KdfSelected;
         Ok(())
     }
 
-    fn absorb(&mut self, input: &[u8]) -> Result<(), PassacreError> {
+    fn absorb(&mut self, input: &[u8]) -> PassacreResult<()> {
         decompose!(input);
         match self.hash_state {
             HashState::Keccak(sponge) => unsafe {
-                check_eq!(0, PassacreError::KeccakError,
+                check_eq!(0, KeccakError,
                           ::deps::Absorb(sponge, input.0, input.1 * 8));
             },
             HashState::Skein(ref mut skein) => unsafe {
                 check_skein!(::deps::skeinUpdate(skein, input.0, input.1));
             },
-            _ => return Err(PassacreError::InternalError),
+            _ => fail!(InternalError),
         }
         Ok(())
     }
 
     pub fn absorb_username_password_site(&mut self, username: &[u8], password: &[u8], site: &[u8])
-                                         -> Result<(), PassacreError> {
+                                         -> PassacreResult<()> {
         match self.state {
             State::Initialized | State::KdfSelected => (),
-            _ => return Err(PassacreError::UserError),
+            _ => fail!(UserError),
         }
         if self.kdf.is_some() {
             let derived = try!(self.kdf.as_mut().unwrap().derive(username, password));
@@ -269,10 +225,10 @@ impl<'persist> PassacreGenerator<'persist> {
         Ok(())
     }
 
-    pub fn absorb_null_rounds(&mut self, n_rounds: usize) -> Result<(), PassacreError> {
+    pub fn absorb_null_rounds(&mut self, n_rounds: usize) -> PassacreResult<()> {
         match self.state {
             State::AbsorbedPassword | State::AbsorbedNulls => (),
-            _ => return Err(PassacreError::UserError),
+            _ => fail!(UserError),
         }
         let nulls = [0u8; 1024];
         for _ in 0..n_rounds {
@@ -282,13 +238,13 @@ impl<'persist> PassacreGenerator<'persist> {
         Ok(())
     }
 
-    pub fn squeeze(&mut self, output: &mut [u8]) -> Result<(), PassacreError> {
+    pub fn squeeze(&mut self, output: &mut [u8]) -> PassacreResult<()> {
         match self.state {
             State::AbsorbedPassword | State::AbsorbedNulls => {
                 self.state = State::Squeezing;
             },
             State::Squeezing => (),
-            _ => return Err(PassacreError::UserError),
+            _ => fail!(UserError),
         }
         let new_state = match self.hash_state {
             HashState::Skein(ref mut skein) => unsafe {
@@ -314,11 +270,11 @@ impl<'persist> PassacreGenerator<'persist> {
         self.really_squeeze(output)
     }
 
-    fn really_squeeze(&mut self, output: &mut [u8]) -> Result<(), PassacreError> {
+    fn really_squeeze(&mut self, output: &mut [u8]) -> PassacreResult<()> {
         match self.hash_state {
             HashState::Keccak(sponge) => unsafe {
                 decompose!(mut output);
-                check_eq!(0, PassacreError::KeccakError, ::deps::Squeeze(sponge, output.0, output.1 * 8));
+                check_eq!(0, KeccakError, ::deps::Squeeze(sponge, output.0, output.1 * 8));
                 return Ok(());
             },
             HashState::SkeinPrng(ref mut prng) => unsafe {

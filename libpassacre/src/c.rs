@@ -3,12 +3,53 @@
  * See COPYING for details.
  */
 
-use std::{mem, ptr, slice, str, io};
+use std::{mem, path, ptr, slice, str, io};
 use std::cell::RefCell;
 use std::thread::catch_panic;
 
-use ::passacre::{Algorithm, Kdf, PassacreError, PassacreGenerator, SCRYPT_BUFFER_SIZE};
+use ::error::PassacreErrorKind::*;
+use ::error::{PassacreError, PassacreResult};
+use ::passacre::{Algorithm, Kdf, PassacreGenerator, SCRYPT_BUFFER_SIZE};
+use ::multibase::{Base, MultiBase};
 use ::util::clone_from_slice;
+
+
+macro_rules! recompose {
+    ($name:ident, $length:expr) => {
+        let $name = unsafe { slice::from_raw_parts($name, $length as usize) };
+    };
+    (mut $name:ident, $length:expr) => {
+        let $name = unsafe { slice::from_raw_parts_mut($name, $length as usize) };
+    };
+}
+
+
+pub type AllocatorFn = extern fn(::libc::size_t, *const ::libc::c_void) -> *mut ::libc::c_uchar;
+
+struct Allocator {
+    allocator: AllocatorFn,
+    context: *const ::libc::c_void,
+}
+
+impl Allocator {
+    fn new(allocator: AllocatorFn, context: *const ::libc::c_void) -> Allocator {
+        Allocator { allocator: allocator, context: context }
+    }
+
+    fn string_copy(&self, s: String) -> PassacreResult<()> {
+        let output = (self.allocator)(s.len() as ::libc::size_t, self.context);
+        if output.is_null() {
+            fail!(AllocatorError);
+        }
+        recompose!(mut output, s.len());
+        clone_from_slice(output, s.as_bytes());
+        Ok(())
+    }
+}
+
+// fix me please :(
+unsafe impl Send for Allocator {}
+unsafe impl Sync for Allocator {}
 
 
 thread_local!(static ERROR_STRING: RefCell<String> = RefCell::new(String::new()));
@@ -39,12 +80,20 @@ macro_rules! force_block {
     ($b:block) => ($b);
 }
 
+unsafe fn drop_ptr<T>(p: *const T) {
+    // read the pointer and do nothing with the result, so that the value
+    // immediately goes out of scope and is dropped. you can't move a value out
+    // of dereferencing a *mut, and passing a &mut to mem::drop is a no-op.
+    ptr::read(p);
+}
+
+
 macro_rules! c_export {
     ($name:ident, ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
         #[no_mangle]
         #[allow(unused_mut)]
         pub extern "C" fn $name( $($arg : $argtype,)* ) -> ::libc::c_int {
-            let closure_result = force_block!({
+            let closure = move || force_block!({
                 $($preamble)*
                 let closure = move || {
                     ERROR_STRING.with(|error_string| error_string.borrow_mut().clear());
@@ -55,28 +104,110 @@ macro_rules! c_export {
                     io::set_panic(prev_sink.unwrap_or_else(|| Box::new(io::sink())));
                     result
                 };
-                catch_panic(closure)
+                match catch_panic(closure) {
+                    Ok(r) => r,
+                    Err(_) => Err(Panic.to_error()),
+                }
             });
-            let ret = match closure_result {
-                Ok(Ok(())) => None,
-                Ok(Err(e)) => Some(e),
-                Err(_) => Some(PassacreError::Panic),
-            };
-            match ret {
-                Some(e) => e.to_c_int(),
-                None => 0,
+            match closure() {
+                Ok(()) => 0,
+                Err(e) => e.to_c_int(),
             }
         }
     };
 }
 
+
+macro_rules! passacre_mb_export {
+    ($name:ident, mut $mb:ident, ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
+        c_export!($name, ( mb: *mut MultiBase $(,$arg : $argtype)* ), {
+            if mb.is_null() {
+                fail!(UserError);
+            }
+            let mut $mb = unsafe { &mut *mb };
+            $($preamble)*
+        }, $body);
+    };
+    ($name:ident, $mb:ident, ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
+        c_export!($name, ( mb: *const MultiBase $(,$arg : $argtype)* ), {
+            if mb.is_null() {
+                fail!(UserError);
+            }
+            let $mb = unsafe { &*mb };
+            $($preamble)*
+        }, $body);
+    };
+}
+
+
+#[no_mangle]
+pub extern "C" fn passacre_mb_size() -> ::libc::size_t {
+    mem::size_of::<MultiBase>() as ::libc::size_t
+}
+
+#[no_mangle]
+pub extern "C" fn passacre_mb_align() -> ::libc::size_t {
+    mem::align_of::<MultiBase>() as ::libc::size_t
+}
+
+passacre_mb_export!(passacre_mb_init, mut mb, (), {}, {
+    let p = MultiBase::new();
+    unsafe { ptr::write(mb, p); }
+    Ok(())
+});
+
+passacre_mb_export!(passacre_mb_required_bytes, mb, (dest: *mut ::libc::size_t), {
+    let mut dest = unsafe { &mut *dest };
+}, {
+    let ret = mb.required_bytes();
+    *dest = ret as ::libc::size_t;
+    Ok(())
+});
+
+passacre_mb_export!(passacre_mb_add_base, mut mb, (
+    which: ::libc::c_uint, string: *const u8, string_length: ::libc::size_t), {
+    recompose!(string, string_length);
+}, {
+    let base = try!(Base::of_c_parts(which, string));
+    mb.add_base(base)
+});
+
+passacre_mb_export!(passacre_mb_load_words_from_path, mut mb, (path: *const u8, path_length: ::libc::size_t), {
+    recompose!(path, path_length);
+}, {
+    // XXX: better error handling
+    let path = path::Path::new(str::from_utf8(path).unwrap());
+    mb.load_words_from_path(path)
+});
+
+passacre_mb_export!(passacre_mb_encode_from_bytes, mb, (
+    input: *const u8, input_length: ::libc::size_t, allocator_fn: AllocatorFn, context: *const ::libc::c_void), {
+    recompose!(input, input_length);
+    let allocator = Allocator::new(allocator_fn, context);
+}, {
+    let ret = try!(mb.encode_from_bytes(input));
+    try!(allocator.string_copy(ret));
+    Ok(())
+});
+
+c_export!(passacre_mb_finished, (mb: *const MultiBase), {
+    if mb.is_null() {
+        return Ok(());
+    }
+    let mb = unsafe { &*mb };
+}, {
+    unsafe { drop_ptr(mb); }
+    Ok(())
+});
+
+
 macro_rules! passacre_gen_export {
     ($name:ident, $gen:ident, ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
         c_export!($name, ( gen: *mut PassacreGenerator<'static> $(,$arg : $argtype)* ), {
-            let mut $gen = match unsafe { gen.as_mut() } {
-                None => return PassacreError::UserError.to_c_int(),
-                Some(gen) => gen,
-            };
+            if gen.is_null() {
+                fail!(UserError);
+            }
+            let mut $gen = unsafe { &mut *gen };
             $($preamble)*
         }, $body);
     };
@@ -123,9 +254,9 @@ passacre_gen_export!(passacre_gen_absorb_username_password_site, gen, (
     username: *const ::libc::c_uchar, username_length: ::libc::size_t,
     password: *const ::libc::c_uchar, password_length: ::libc::size_t,
     site: *const ::libc::c_uchar, site_length: ::libc::size_t), {
-    let username = unsafe { slice::from_raw_parts(username, username_length as usize) };
-    let password = unsafe { slice::from_raw_parts(password, password_length as usize) };
-    let site = unsafe { slice::from_raw_parts(site, site_length as usize) };
+    recompose!(username, username_length);
+    recompose!(password, password_length);
+    recompose!(site, site_length);
 }, {
     gen.absorb_username_password_site(username, password, site)
 });
@@ -137,22 +268,41 @@ passacre_gen_export!(passacre_gen_absorb_null_rounds, gen, (n_rounds: ::libc::si
 
 
 passacre_gen_export!(passacre_gen_squeeze, gen, (output: *mut ::libc::c_uchar, output_length: ::libc::size_t), {
-    let output = unsafe { slice::from_raw_parts_mut(output, output_length as usize) };
+    recompose!(mut output, output_length);
 }, {
     gen.squeeze(output)
 });
 
+passacre_gen_export!(passacre_gen_squeeze_password, gen, (
+    mb: *const MultiBase, allocator_fn: AllocatorFn, context: *const ::libc::c_void), {
+    if mb.is_null() {
+        fail!(UserError);
+    }
+    let mb = unsafe { &*mb };
+    let allocator = Allocator::new(allocator_fn, context);
+}, {
+    let mut buf = vec![0u8; mb.required_bytes()];
+    loop {
+        try!(gen.squeeze(&mut buf));
+        match mb.encode_from_bytes(&buf) {
+            Ok(s) => {
+                try!(allocator.string_copy(s));
+                break;
+            },
+            Err(PassacreError { kind: DomainError, .. }) => continue,
+            Err(e) => fail!(e),
+        }
+    }
+    Ok(())
+});
+
 c_export!(passacre_gen_finished, (gen: *const PassacreGenerator<'static>), {
     let gen = match unsafe { gen.as_ref() } {
-        // leaky abstraction, sadly. fixme maybe?
-        None => return 0,
+        None => return Ok(()),
         Some(gen) => gen,
     };
 }, {
-    // read the pointer and do nothing with the result, so that the value
-    // immediately goes out of scope and is dropped. you can't move a value out
-    // of dereferencing a *mut, and passing a &mut to mem::drop is a no-op.
-    unsafe { ptr::read(gen); }
+    unsafe { drop_ptr(gen); }
     Ok(())
 });
 
@@ -190,7 +340,7 @@ pub extern "C" fn passacre_error(which: ::libc::c_int, dest_p: *mut ::libc::c_uc
         let closure = move || {
             let err = PassacreError::of_c_int(which);
             let err_str = match err {
-                Some(PassacreError::Panic) => {
+                Some(PassacreError { kind: Panic, .. }) => {
                     if ERROR_STRING.with(|err_string| {
                         let err_string = err_string.borrow();
                         if err_string.is_empty() {

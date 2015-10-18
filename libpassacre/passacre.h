@@ -21,6 +21,32 @@
 #include <stdint.h>
 
 
+typedef unsigned char *(*passacre_allocator)(size_t, const void *);
+
+
+enum passacre_mb_base {
+    PASSACRE_SEPARATOR = 0,
+    PASSACRE_CHARACTERS = 1,
+    PASSACRE_WORDS = 2,
+};
+
+struct passacre_mb_state;
+
+size_t passacre_mb_size(void);
+size_t passacre_mb_align(void);
+int passacre_mb_init(struct passacre_mb_state *);
+int passacre_mb_required_bytes(struct passacre_mb_state *, size_t *);
+int passacre_mb_add_base(
+    struct passacre_mb_state *, enum passacre_mb_base,
+    const unsigned char *, size_t);
+int passacre_mb_load_words_from_path(
+    struct passacre_mb_state *, const unsigned char *, size_t);
+int passacre_mb_encode_from_bytes(
+    struct passacre_mb_state *,
+    const unsigned char *, size_t, passacre_allocator, const void *);
+int passacre_mb_finished(struct passacre_mb_state *);
+
+
 enum passacre_gen_algorithm {
     PASSACRE_KECCAK = 0,
     PASSACRE_SKEIN = 1,
@@ -41,7 +67,12 @@ int passacre_gen_absorb_username_password_site(
     const unsigned char *, size_t, const unsigned char *, size_t);
 int passacre_gen_absorb_null_rounds(struct passacre_gen_state *, size_t);
 int passacre_gen_squeeze(struct passacre_gen_state *, unsigned char *, size_t);
+int passacre_gen_squeeze_password(
+    struct passacre_gen_state *, struct passacre_mb_state *,
+    passacre_allocator, const void *);
 int passacre_gen_finished(struct passacre_gen_state *);
+
+
 size_t passacre_error(int, unsigned char *, size_t);
 
 #endif
