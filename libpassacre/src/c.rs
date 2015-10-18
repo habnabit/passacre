@@ -5,9 +5,9 @@
 
 use std::{mem, ptr, slice, str, io};
 use std::cell::RefCell;
-use std::rt::unwind::try;
+use std::thread::catch_panic;
 
-use ::passacre::{Algorithm, PassacreError, PassacreGenerator, SCRYPT_BUFFER_SIZE};
+use ::passacre::{Algorithm, Kdf, PassacreError, PassacreGenerator, SCRYPT_BUFFER_SIZE};
 use ::util::clone_from_slice;
 
 
@@ -35,28 +35,31 @@ impl io::Write for ErrorStringWriter {
 }
 
 
+macro_rules! force_block {
+    ($b:block) => ($b);
+}
+
 macro_rules! c_export {
-    ($name:ident, ( $($arg:ident : $argtype:ty),* ), $body:block) => {
+    ($name:ident, ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
         #[no_mangle]
+        #[allow(unused_mut)]
         pub extern "C" fn $name( $($arg : $argtype,)* ) -> ::libc::c_int {
-            let mut result: Option<Result<(), PassacreError>> = None;
-            let closure_result = {
-                let closure = || {
+            let closure_result = force_block!({
+                $($preamble)*
+                let closure = move || {
                     ERROR_STRING.with(|error_string| error_string.borrow_mut().clear());
                     let panic_sink = Box::new(ErrorStringWriter);
                     let prev_sink = io::set_panic(panic_sink);
-                    let inner = move || $body;
-                    result = Some(inner());
+                    let mut inner = move || $body;
+                    let result = inner();
                     io::set_panic(prev_sink.unwrap_or_else(|| Box::new(io::sink())));
+                    result
                 };
-                unsafe { try(closure) }
-            };
+                catch_panic(closure)
+            });
             let ret = match closure_result {
-                Ok(()) => match result {
-                    Some(Ok(())) => None,
-                    Some(Err(e)) => Some(e),
-                    None => Some(PassacreError::InternalError),
-                },
+                Ok(Ok(())) => None,
+                Ok(Err(e)) => Some(e),
                 Err(_) => Some(PassacreError::Panic),
             };
             match ret {
@@ -68,14 +71,14 @@ macro_rules! c_export {
 }
 
 macro_rules! passacre_gen_export {
-    ($name:ident, $gen:ident, ( $($arg:ident : $argtype:ty),* ), $body:block) => {
-        c_export!($name, ( gen: *mut PassacreGenerator $(,$arg : $argtype)* ), {
-            if gen.is_null() {
-                return Err(PassacreError::UserError);
-            }
-            let mut $gen = unsafe { &mut *gen };
-            $body
-        });
+    ($name:ident, $gen:ident, ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
+        c_export!($name, ( gen: *mut PassacreGenerator<'static> $(,$arg : $argtype)* ), {
+            let mut $gen = match unsafe { gen.as_mut() } {
+                None => return PassacreError::UserError.to_c_int(),
+                Some(gen) => gen,
+            };
+            $($preamble)*
+        }, $body);
     };
 }
 
@@ -95,20 +98,24 @@ pub extern "C" fn passacre_gen_scrypt_buffer_size() -> ::libc::size_t {
     SCRYPT_BUFFER_SIZE as ::libc::size_t
 }
 
-c_export!(passacre_gen_init, (gen: *mut PassacreGenerator, algorithm: ::libc::c_uint), {
+passacre_gen_export!(passacre_gen_init, gen, (algorithm: ::libc::c_uint), {}, {
     let algorithm = try!(Algorithm::of_c_uint(algorithm));
     let p = try!(PassacreGenerator::new(algorithm));
     unsafe { ptr::write(gen, p); }
     Ok(())
 });
 
-fn maybe<T, F>(val: T, pred: F) -> Option<T> where F: FnOnce(&T) -> bool {
-    if pred(&val) { Some(val) } else { None }
-}
-
 passacre_gen_export!(passacre_gen_use_scrypt, gen, (n: u64, r: u32, p: u32,
                                                     persistence_buffer: *mut u8), {
-    gen.use_scrypt(n, r, p, maybe(persistence_buffer, |p| !p.is_null()))
+    let buf = if persistence_buffer.is_null() {
+        None
+    } else {
+        let buf = persistence_buffer as *mut [u8; SCRYPT_BUFFER_SIZE];
+        Some(unsafe { &mut *buf })
+    };
+    let kdf = Kdf::new_scrypt(n, r, p, buf);
+}, {
+    gen.use_kdf(kdf)
 });
 
 
@@ -119,24 +126,29 @@ passacre_gen_export!(passacre_gen_absorb_username_password_site, gen, (
     let username = unsafe { slice::from_raw_parts(username, username_length as usize) };
     let password = unsafe { slice::from_raw_parts(password, password_length as usize) };
     let site = unsafe { slice::from_raw_parts(site, site_length as usize) };
+}, {
     gen.absorb_username_password_site(username, password, site)
 });
 
 
-passacre_gen_export!(passacre_gen_absorb_null_rounds, gen, (n_rounds: ::libc::size_t), {
+passacre_gen_export!(passacre_gen_absorb_null_rounds, gen, (n_rounds: ::libc::size_t), {}, {
     gen.absorb_null_rounds(n_rounds as usize)
 });
 
 
 passacre_gen_export!(passacre_gen_squeeze, gen, (output: *mut ::libc::c_uchar, output_length: ::libc::size_t), {
     let output = unsafe { slice::from_raw_parts_mut(output, output_length as usize) };
+}, {
     gen.squeeze(output)
 });
 
-c_export!(passacre_gen_finished, (gen: *mut PassacreGenerator), {
-    if gen.is_null() {
-        return Ok(());
-    }
+c_export!(passacre_gen_finished, (gen: *const PassacreGenerator<'static>), {
+    let gen = match unsafe { gen.as_ref() } {
+        // leaky abstraction, sadly. fixme maybe?
+        None => return 0,
+        Some(gen) => gen,
+    };
+}, {
     // read the pointer and do nothing with the result, so that the value
     // immediately goes out of scope and is dropped. you can't move a value out
     // of dereferencing a *mut, and passing a &mut to mem::drop is a no-op.
@@ -144,13 +156,38 @@ c_export!(passacre_gen_finished, (gen: *mut PassacreGenerator), {
     Ok(())
 });
 
+
+struct ByteCopier<'a> {
+    dest: &'a mut [u8],
+    copied: Option<usize>,
+}
+
+impl<'a> ByteCopier<'a> {
+    fn new(dest_p: *mut u8, dest_length: usize) -> ByteCopier<'a> {
+        let dest = unsafe { slice::from_raw_parts_mut(dest_p, dest_length as usize) };
+        ByteCopier { dest: dest, copied: None }
+    }
+
+    fn copy(&mut self, bytes: &[u8]) {
+        if self.copied.is_some() {
+            return
+        }
+        self.copied = Some(clone_from_slice(self.dest, bytes));
+    }
+
+    fn copied_with_default(&mut self, default: &[u8]) -> usize {
+        self.copy(default);
+        self.copied.unwrap()
+    }
+}
+
+
 #[no_mangle]
-pub extern "C" fn passacre_error(which: ::libc::c_int, dest: *mut ::libc::c_uchar, dest_length: ::libc::size_t)
+pub extern "C" fn passacre_error(which: ::libc::c_int, dest_p: *mut ::libc::c_uchar, dest_length: ::libc::size_t)
                                  -> ::libc::size_t {
-    let mut result: Option<usize> = None;
-    let dest = unsafe { slice::from_raw_parts_mut(dest, dest_length as usize) };
+    let mut copier = ByteCopier::new(dest_p, dest_length as usize);
     let closure_result = {
-        let closure = || {
+        let closure = move || {
             let err = PassacreError::of_c_int(which);
             let err_str = match err {
                 Some(PassacreError::Panic) => {
@@ -159,10 +196,10 @@ pub extern "C" fn passacre_error(which: ::libc::c_int, dest: *mut ::libc::c_ucha
                         if err_string.is_empty() {
                             return false;
                         }
-                        result = Some(clone_from_slice(dest, err_string.as_bytes()));
+                        copier.copy(err_string.as_bytes());
                         return true;
                     }) {
-                        return;
+                        return copier;
                     } else {
                         "unknown panic"
                     }
@@ -170,16 +207,18 @@ pub extern "C" fn passacre_error(which: ::libc::c_int, dest: *mut ::libc::c_ucha
                 Some(e) => e.to_string(),
                 None => "unknown error",
             };
-            result = Some(clone_from_slice(dest, err_str.as_bytes()));
+            copier.copy(err_str.as_bytes());
+            copier
         };
-        unsafe { try(closure) }
+        catch_panic(closure)
     };
-    let ret = match closure_result {
-        Ok(()) => match result {
-            Some(s) => s,
-            None => clone_from_slice(dest, "passacre_error: internal error".as_bytes()),
+    let mut copier = match closure_result {
+        Ok(c) => c,
+        Err(_) => {
+            let mut copier = ByteCopier::new(dest_p, dest_length as usize);
+            copier.copy("passacre_error: panic".as_bytes());
+            copier
         },
-        Err(_) => clone_from_slice(dest, "passacre_error: panic".as_bytes()),
     };
-    ret as ::libc::size_t
+    copier.copied_with_default("passacre_error: internal error".as_bytes()) as ::libc::size_t
 }

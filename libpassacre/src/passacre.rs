@@ -4,7 +4,6 @@
  */
 
 use std::mem::uninitialized;
-use std::slice;
 
 use ::util::{set_memory, clone_from_slice};
 
@@ -101,13 +100,45 @@ enum State {
     Squeezing,
 }
 
-enum Kdf {
+pub enum Kdf<'persist> {
     Scrypt {
         n: u64,
         r: u32,
         p: u32,
-        persistence_buffer: Option<*mut u8>,
+        persistence_buffer: Option<&'persist mut [u8; SCRYPT_BUFFER_SIZE]>,
     },
+}
+
+impl<'persist> Kdf<'persist> {
+    pub fn new_scrypt(n: u64, r: u32, p: u32,
+                      mut persistence_buffer: Option<&'persist mut [u8; SCRYPT_BUFFER_SIZE]>) -> Kdf<'persist> {
+        persistence_buffer.as_mut().map(|target| set_memory(*target, b'x'));
+        Kdf::Scrypt {
+            n: n, r: r, p: p, persistence_buffer: persistence_buffer,
+        }
+    }
+
+    pub fn derive(&mut self, username: &[u8], password: &[u8]) -> Result<Vec<u8>, PassacreError> {
+        match self {
+            &mut Kdf::Scrypt { n, r, p, ref mut persistence_buffer } => {
+                let mut scrypt_result = vec![0u8; SCRYPT_BUFFER_SIZE];
+                {
+                    decompose!(username);
+                    decompose!(password);
+                    decompose!(mut scrypt_result);
+                    check_eq!(0, PassacreError::ScryptError,
+                              unsafe {
+                                  ::deps::crypto_scrypt(password.0, password.1, username.0, username.1,
+                                                        n, r, p, scrypt_result.0, scrypt_result.1)
+                              });
+                }
+                persistence_buffer.as_mut().map(|target| {
+                    clone_from_slice(*target, &scrypt_result[..]);
+                });
+                Ok(scrypt_result)
+            }
+        }
+    }
 }
 
 const SKEIN_512_BLOCK_BYTES: usize = 64;
@@ -166,29 +197,23 @@ impl Drop for HashState {
     }
 }
 
-pub struct PassacreGenerator {
+// aw jeez. make this better.
+unsafe impl Send for HashState {}
+unsafe impl Sync for HashState {}
+
+pub struct PassacreGenerator<'persist> {
     state: State,
-    kdf: Option<Kdf>,
+    kdf: Option<Kdf<'persist>>,
     hash_state: HashState,
 }
 
 pub const SCRYPT_BUFFER_SIZE: usize = 64;
 
-fn with_persistence_buffer<F>(buf: Option<*mut u8>, func: F) where F: FnOnce(&mut [u8]) {
-    match buf {
-        Some(buf) => {
-            let target = unsafe { slice::from_raw_parts_mut(buf, SCRYPT_BUFFER_SIZE) };
-            func(target);
-        },
-        None => (),
-    }
-}
-
 const DELIMITER: &'static [u8] = b":";
 const TWEAK: [u8; 24] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3f, 0, 0, 0, 0, 0, 0, 0, 0];
 
-impl PassacreGenerator {
-    pub fn new(algorithm: Algorithm) -> Result<PassacreGenerator, PassacreError> {
+impl<'persist> PassacreGenerator<'persist> {
+    pub fn new(algorithm: Algorithm) -> Result<PassacreGenerator<'persist>, PassacreError> {
         let p = PassacreGenerator {
             state: State::Initialized,
             kdf: None,
@@ -197,18 +222,12 @@ impl PassacreGenerator {
         Ok(p)
     }
 
-    pub fn use_scrypt(&mut self, n: u64, r: u32, p: u32, persistence_buffer: Option<*mut u8>)
-                      -> Result<(), PassacreError> {
+    pub fn use_kdf(&mut self, kdf: Kdf<'persist>) -> Result<(), PassacreError> {
         match self.state {
             State::Initialized => (),
             _ => return Err(PassacreError::UserError),
         }
-        self.kdf = Some(Kdf::Scrypt {
-            n: n, r: r, p: p, persistence_buffer: persistence_buffer,
-        });
-        with_persistence_buffer(persistence_buffer, |target| {
-            set_memory(target, b'x');
-        });
+        self.kdf = Some(kdf);
         self.state = State::KdfSelected;
         Ok(())
     }
@@ -234,29 +253,15 @@ impl PassacreGenerator {
             State::Initialized | State::KdfSelected => (),
             _ => return Err(PassacreError::UserError),
         }
-        match self.kdf {
-            Some(Kdf::Scrypt{ n, r, p, persistence_buffer }) => unsafe {
-                let mut scrypt_result: [u8; SCRYPT_BUFFER_SIZE] = uninitialized();
-                {
-                    decompose!(username);
-                    decompose!(password);
-                    decompose!(mut scrypt_result);
-                    check_eq!(0, PassacreError::ScryptError,
-                              ::deps::crypto_scrypt(password.0, password.1, username.0, username.1,
-                                                    n, r, p, scrypt_result.0, scrypt_result.1));
-                }
-                try!(self.absorb(&scrypt_result));
-                with_persistence_buffer(persistence_buffer, |target| {
-                    clone_from_slice(target, &scrypt_result[..]);
-                });
-            },
-            _ => {
-                if !username.is_empty() {
-                    try!(self.absorb(username));
-                    try!(self.absorb(DELIMITER));
-                }
-                try!(self.absorb(password));
+        if self.kdf.is_some() {
+            let derived = try!(self.kdf.as_mut().unwrap().derive(username, password));
+            try!(self.absorb(&derived[..]));
+        } else {
+            if !username.is_empty() {
+                try!(self.absorb(username));
+                try!(self.absorb(DELIMITER));
             }
+            try!(self.absorb(password));
         }
         try!(self.absorb(DELIMITER));
         try!(self.absorb(site));
