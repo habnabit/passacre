@@ -44,17 +44,17 @@ assert_generator_panics = partial(assert_panics, GeneratorError)
 
 
 def test_unknown_error_type():
-    assert _read_error(-98) == b'unknown error'
+    assert _read_error(-98) == 'unknown error'
 
 
 def test_passacre_error_panic():
-    assert _read_error(-99) == b'passacre_error: panic'
+    assert _read_error(-99) == 'passacre_error: panic'
 
 
 def test_multibase_error_on_failing_allocator():
     mb = MultiBase()
     mb._allocator = AlwaysFailsAllocator
-    assert_multibase_error_type('allocator error', mb.encode, '')
+    assert_multibase_error_type('allocator error', mb.encode, b'')
 
 
 def test_generator_error_on_invalid_algorithm(monkeypatch):

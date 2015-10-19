@@ -71,7 +71,7 @@ class MultiBaseError(Exception):
 def _read_error(code):
     err_buf = ffi.new('unsigned char []', ERR_BUF_SIZE)
     copied = C.passacre_error(code, err_buf, ERR_BUF_SIZE)
-    return ffi.buffer(err_buf)[:copied]
+    return ffi.buffer(err_buf)[:copied].decode('utf-8')
 
 
 def _raise_error(code, exc_type):
