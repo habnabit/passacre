@@ -168,7 +168,7 @@ impl MultiBase {
 mod tests {
     use ramp::Int;
 
-    use error::PassacreError::*;
+    use error::PassacreErrorKind::*;
     use super::{Base, MultiBase, length_one_string};
 
     macro_rules! multibase_tests {
@@ -209,7 +209,7 @@ mod tests {
             ], {
                 let b = $constructor();
                 let v = Int::from(value);
-                assert_eq!(b.encode(v).unwrap_err(), DomainError);
+                assert_eq!(b.encode(v).unwrap_err().kind, DomainError);
             }}
 
         }
