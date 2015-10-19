@@ -34,6 +34,9 @@ matrix:
     - python: 3.5
       env: TOXENV=py35 _COMPILER=gcc
 
+    - python: 2.7
+      env: TOXENV=kcov _COMPILER=clang
+
 
 before_install:
   - "sudo add-apt-repository --yes ppa:kalakris/cmake"

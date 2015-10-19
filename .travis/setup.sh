@@ -11,3 +11,11 @@ case "$_COMPILER" in
         exit 1
         ;;
 esac
+
+if [ -n "$_KCOV" ]; then
+    sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev
+    wget -O kcov.tar.gz https://github.com/SimonKagstrom/kcov/archive/v29.tar.gz
+    tar xf kcov.tar.gz
+    (cd kcov-29 && cmake . -DCMAKE_INSTALL_PREFIX:PATH="$HOME/.local" && make && make install)
+    export PATH="$HOME/.local/bin:$PATH"
+fi
