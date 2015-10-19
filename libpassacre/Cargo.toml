@@ -17,3 +17,6 @@ fnconcat = "0.2.*"
 [lib]
 name = "passacre"
 crate-type = ["staticlib"]
+
+[features]
+testing-checks = []

@@ -83,6 +83,11 @@ else ()
   set(CARGO_BUILD_FLAGS "")
   set(CARGO_BUILD_DIR "${CMAKE_SOURCE_DIR}/target/debug")
 endif ()
+
+if ($ENV{PASSACRE_LIBRARY_TESTING_ONLY} STREQUAL yes)
+  set(CARGO_BUILD_FLAGS "${CARGO_BUILD_FLAGS} --features testing-checks")
+endif()
+
 add_custom_target(passacre ALL
                   COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" sh -c
                   "cargo build ${CARGO_BUILD_FLAGS} 2>&1 | tee ${CMAKE_BINARY_DIR}/_cargo_out.txt"

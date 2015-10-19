@@ -10,6 +10,22 @@
 extern crate libc;
 extern crate ramp;
 
+macro_rules! testing_panic {
+    ($cond:expr) => {{
+        if cfg!(feature = "testing-checks") && $cond {
+            panic!("testing panic");
+        }
+    }}
+}
+
+macro_rules! testing_fail {
+    ($cond:expr, $result:expr) => {{
+        if cfg!(feature = "testing-checks") && $cond {
+            fail!($result);
+        }
+    }}
+}
+
 pub mod error;
 mod util;
 mod deps;

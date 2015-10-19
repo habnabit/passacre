@@ -66,6 +66,11 @@ extras_require = {
 
 extras_require['all'] = [req for reqs in extras_require.values() for req in reqs]
 
+entry_points = {'console_scripts': []}
+if os.environ.get('PASSACRE_LIBRARY_TESTING_ONLY') != 'yes':
+    entry_points['console_scripts'].append(
+        'passacre = passacre.application:main')
+
 
 setup(
     name='passacre',
@@ -104,9 +109,7 @@ setup(
     setup_requires=['vcversioner', 'cffi>=1.0.0'],
     install_requires=['cffi>=1.0.0'],
     extras_require=extras_require,
-    entry_points={
-        'console_scripts': ['passacre = passacre.application:main'],
-    },
+    entry_points=entry_points,
     cmdclass={
         'build_ext': build_ext,
         'build_libpassacre': build_libpassacre,

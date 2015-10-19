@@ -77,6 +77,7 @@ impl<'persist> Kdf<'persist> {
     pub fn derive(&mut self, username: &[u8], password: &[u8]) -> PassacreResult<Vec<u8>> {
         match self {
             &mut Kdf::Scrypt { n, r, p, ref mut persistence_buffer } => {
+                testing_fail!(n == 99 && r == 99 && p == 99, ScryptError);
                 let mut scrypt_result = vec![0u8; SCRYPT_BUFFER_SIZE];
                 {
                     decompose!(username);
@@ -246,6 +247,7 @@ impl<'persist> PassacreGenerator<'persist> {
             State::Squeezing => (),
             _ => fail!(UserError),
         }
+        testing_panic!(output.len() == 99999);
         let new_state = match self.hash_state {
             HashState::Skein(ref mut skein) => unsafe {
                 let mut hash: [u8; SKEIN_512_BLOCK_BYTES] = uninitialized();
