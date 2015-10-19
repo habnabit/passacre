@@ -7,3 +7,5 @@ libpassacre*
 /Cargo.lock
 /target
 /_cargo_out.txt
+/CTestTestfile.cmake
+/Testing

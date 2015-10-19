@@ -98,3 +98,6 @@ add_custom_target(passacre ALL
 list(APPEND TO_CLEAN target libpassacre.a)
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${TO_CLEAN}")
+
+enable_testing()
+add_test(NAME cargo-tests COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo test)
