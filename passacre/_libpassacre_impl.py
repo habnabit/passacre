@@ -22,6 +22,26 @@ else:
         return int.from_bytes(b, 'big')
 
 
+class SimpleAllocator(object):
+    def __init__(self):
+        self._buf = []
+
+        @ffi.callback('passacre_allocator', error=ffi.NULL)
+        def alloc(size, ctx):
+            self._buf.append(ffi.new('unsigned char []', size))
+            return self._buf[-1]
+
+        self.callback = alloc
+
+    def buffers(self, count):
+        if len(self._buf) != count:
+            raise RuntimeError('expected {}; found {}'.format(count, len(self._buf)))
+        return [ffi.buffer(b)[:] for b in self._buf]
+
+    def one_buffer(self):
+        return self.buffers(count=1)[0]
+
+
 ERR_BUF_SIZE = 256
 
 
@@ -50,6 +70,8 @@ def _gc_generator(gen):
 
 
 class Generator(object):
+    _allocator = SimpleAllocator
+
     def __init__(self, algorithm, scrypt_persist=False):
         if algorithm not in _ALGORITHMS:
             raise ValueError('unknown algorithm', algorithm)
@@ -101,18 +123,9 @@ class Generator(object):
         return mb.encode(value)
 
     def squeeze_password(self, mb):
-        buf = []
-
-        @ffi.callback('passacre_allocator', error=ffi.NULL)
-        def alloc(size, ctx):
-            buf.append(ffi.new('unsigned char []', size))
-            return buf[-1]
-
-        self._check(
-            C.passacre_gen_squeeze_password, mb._context, alloc, ffi.NULL)
-        if not buf:
-            raise RuntimeError('buffer not found')
-        return ffi.buffer(buf[-1])[:]
+        alloc = self._allocator()
+        self._check(C.passacre_gen_squeeze_password, mb._context, alloc.callback, ffi.NULL)
+        return alloc.one_buffer()
 
     @property
     def scrypt_persisted(self):
@@ -128,6 +141,8 @@ def _gc_multibase(mb):
 
 
 class MultiBase(object):
+    _allocator = SimpleAllocator
+
     def __init__(self):
         size = C.passacre_mb_size()
         self._buf = ffi.new('unsigned char []', size)
@@ -164,15 +179,6 @@ class MultiBase(object):
             C.passacre_mb_load_words_from_path, path, len(path))
 
     def encode(self, b):
-        buf = []
-
-        @ffi.callback('passacre_allocator', error=ffi.NULL)
-        def alloc(size, ctx):
-            buf.append(ffi.new('unsigned char []', size))
-            return buf[-1]
-
-        self._check(
-            C.passacre_mb_encode_from_bytes, b, len(b), alloc, ffi.NULL)
-        if not buf:
-            raise RuntimeError('buffer not found')
-        return ffi.buffer(buf[-1])[:]
+        alloc = self._allocator()
+        self._check(C.passacre_mb_encode_from_bytes, b, len(b), alloc.callback, ffi.NULL)
+        return alloc.one_buffer()
