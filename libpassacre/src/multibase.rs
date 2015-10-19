@@ -86,7 +86,8 @@ impl MultiBase {
     }
 
     fn max_encodable_value(&self) -> Int {
-        &self.length_product - 1
+        // XXX: https://github.com/Aatch/ramp/issues/23
+        &self.length_product - &Int::one()
     }
 
     pub fn required_bytes(&self) -> usize {
