@@ -9,6 +9,17 @@ _ALGORITHMS = {
     'skein': C.PASSACRE_SKEIN,
 }
 
+_ERRORS = {
+    C.PASSACRE_PANIC_ERROR: 'panic',
+    C.PASSACRE_KECCAK_ERROR: 'keccak',
+    C.PASSACRE_SKEIN_ERROR: 'skein',
+    C.PASSACRE_SCRYPT_ERROR: 'scrypt',
+    C.PASSACRE_USER_ERROR: 'user error',
+    C.PASSACRE_INTERNAL_ERROR: 'internal error',
+    C.PASSACRE_DOMAIN_ERROR: 'domain error',
+    C.PASSACRE_ALLOCATOR_ERROR: 'allocator error',
+}
+
 
 if sys.version_info < (3,):  # pragma: nocover
     def int_of_bytes(b):
@@ -57,10 +68,14 @@ class MultiBaseError(Exception):
     pass
 
 
-def _raise_error(code, exc_type):
+def _read_error(code):
     err_buf = ffi.new('unsigned char []', ERR_BUF_SIZE)
     copied = C.passacre_error(code, err_buf, ERR_BUF_SIZE)
-    raise exc_type(code, ffi.buffer(err_buf)[:copied])
+    return ffi.buffer(err_buf)[:copied]
+
+
+def _raise_error(code, exc_type):
+    raise exc_type(code, _ERRORS.get(code), _read_error(code))
 
 
 def _gc_generator(gen):
