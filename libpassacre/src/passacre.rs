@@ -203,8 +203,8 @@ impl<'persist> PassacreGenerator<'persist> {
         Ok(())
     }
 
-    pub fn absorb_username_password_site(&mut self, username: &[u8], password: &[u8], site: &[u8])
-                                         -> PassacreResult<()> {
+    pub fn absorb_username_password_site(&mut self, username: &[u8],
+                                         password: &[u8], site: &[u8]) -> PassacreResult<()> {
         match self.state {
             State::Initialized | State::KdfSelected => (),
             _ => fail!(UserError),
