@@ -1,12 +1,7 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-from __future__ import print_function
-
-import errno
 import os
-import re
-import sys
 
 import cffi
 
@@ -14,41 +9,11 @@ import cffi
 libpassacre_build_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-_rustc_library_line = re.compile('^note: ((?:static )?library|framework): (.+)$')
-
-
-def _parse_rustc_libraries():
-    try:
-        infile = open(os.path.join(libpassacre_build_dir, '_cargo_out.txt'))
-    except IOError as e:
-        if e.errno != errno.ENOENT:
-            raise
-        print('** WARNING: no _cargo_out.txt present; importing passacre might fail **', file=sys.stderr)
-        return []
-
-    libraries = []
-    with infile:
-        for line in infile:
-            m = _rustc_library_line.match(line)
-            if m is None:
-                continue
-            lib_type, lib_name = m.groups()
-            if lib_type == 'library':
-                libraries.append(lib_name)
-            else:
-                warn = '** WARNING: rust wants us to link a %s? %r **' % (
-                    lib_type, lib_name)
-                print(warn, file=sys.stderr)
-
-    return libraries
-
-
 def ffi_maker():
     ffi = cffi.FFI()
     ffi.set_source(
         'passacre._libpassacre_c',
         '#include "passacre.h"',
-        libraries=_parse_rustc_libraries(),
         include_dirs=[libpassacre_build_dir],
         extra_objects=[os.path.join(libpassacre_build_dir, 'libpassacre.a')])
 

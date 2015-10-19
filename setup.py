@@ -3,15 +3,16 @@
 
 from __future__ import print_function
 
-from distutils.core import Command
+import errno
 import os
+import re
 import subprocess
 import sys
 import traceback
+from distutils.core import Command
 
-# may god have mercy on my soul
-from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools import setup
+from setuptools.command.build_ext import build_ext as _build_ext
 
 here = os.path.dirname(os.path.abspath(__file__))
 libpassacre_build_dir = os.path.join(here, 'libpassacre')
@@ -53,7 +54,39 @@ class build_ext(_build_ext):
     def run(self):
         for cmd_name in self.get_sub_commands():
             self.run_command(cmd_name)
+        libraries = _parse_rustc_libraries()
+        for ext_module in self.distribution.ext_modules:
+            ext_module.libraries.extend(libraries)
         _build_ext.run(self)
+
+
+_rustc_library_line = re.compile('^note: ((?:static )?library|framework): (.+)$')
+
+
+def _parse_rustc_libraries():
+    try:
+        infile = open(os.path.join(libpassacre_build_dir, '_cargo_out.txt'))
+    except IOError as e:
+        if e.errno != errno.ENOENT:
+            raise
+        print('** WARNING: no _cargo_out.txt present; importing passacre might fail **', file=sys.stderr)
+        return []
+
+    libraries = []
+    with infile:
+        for line in infile:
+            m = _rustc_library_line.match(line)
+            if m is None:
+                continue
+            lib_type, lib_name = m.groups()
+            if lib_type == 'library':
+                libraries.append(lib_name)
+            else:
+                warn = '** WARNING: rust wants us to link a %s? %r **' % (
+                    lib_type, lib_name)
+                print(warn, file=sys.stderr)
+
+    return libraries
 
 
 extras_require = {
