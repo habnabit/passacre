@@ -19,5 +19,5 @@ for compiler in ['clang', 'gcc']:
 
 echo('''
     - python: 2.7
-      env: TOXENV=kcov _COMPILER=clang
+      env: TOXENV=kcov _COMPILER=clang _KCOV=1
 ''')
