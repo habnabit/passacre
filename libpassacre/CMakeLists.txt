@@ -84,7 +84,7 @@ else ()
   set(CARGO_BUILD_DIR "${CMAKE_SOURCE_DIR}/target/debug")
 endif ()
 
-if ($ENV{PASSACRE_LIBRARY_TESTING_ONLY} STREQUAL yes)
+if ("$ENV{PASSACRE_LIBRARY_TESTING_ONLY}" STREQUAL yes)
   set(CARGO_BUILD_FLAGS "${CARGO_BUILD_FLAGS} --features testing-checks")
 endif()
 
