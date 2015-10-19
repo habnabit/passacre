@@ -199,7 +199,7 @@ passacre_mb_export!(passacre_mb_init, mut mb, false, (), {}, {
 });
 
 passacre_mb_export!(passacre_mb_required_bytes, mb, false, (dest: *mut ::libc::size_t), {
-    let mut dest = unsafe { &mut *dest };
+    let mut dest = resolve_ptr!(null_check_mut, dest, false);
 }, {
     let ret = mb.required_bytes();
     *dest = ret as ::libc::size_t;
@@ -276,12 +276,7 @@ passacre_gen_export!(passacre_gen_init, gen, false, (algorithm: ::libc::c_uint),
 
 passacre_gen_export!(passacre_gen_use_scrypt, gen, false,
                      (n: u64, r: u32, p: u32, persistence_buffer: *mut u8), {
-    let buf = if persistence_buffer.is_null() {
-        None
-    } else {
-        let buf = persistence_buffer as *mut [u8; SCRYPT_BUFFER_SIZE];
-        Some(unsafe { &mut *buf })
-    };
+    let buf = try!(null_check_mut(persistence_buffer as *mut [u8; SCRYPT_BUFFER_SIZE], true));
     let kdf = Kdf::new_scrypt(n, r, p, buf);
 }, {
     gen.use_kdf(kdf)
