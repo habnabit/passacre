@@ -5,34 +5,34 @@ matrix:
   include:
 
     - python: 2.6
-      env: TOXENV=py26,coveralls _COMPILER=clang
+      env: TOXENV=py26 _COMPILER=clang
 
     - python: 2.7
-      env: TOXENV=py27,coveralls _COMPILER=clang
+      env: TOXENV=py27 _COMPILER=clang
 
     - python: 3.3
-      env: TOXENV=py33,coveralls _COMPILER=clang
+      env: TOXENV=py33 _COMPILER=clang
 
     - python: 3.4
-      env: TOXENV=py34,coveralls _COMPILER=clang
+      env: TOXENV=py34 _COMPILER=clang
 
     - python: 3.5
-      env: TOXENV=py35,coveralls _COMPILER=clang
+      env: TOXENV=py35 _COMPILER=clang
 
     - python: 2.6
-      env: TOXENV=py26,coveralls _COMPILER=gcc
+      env: TOXENV=py26 _COMPILER=gcc
 
     - python: 2.7
-      env: TOXENV=py27,coveralls _COMPILER=gcc
+      env: TOXENV=py27 _COMPILER=gcc
 
     - python: 3.3
-      env: TOXENV=py33,coveralls _COMPILER=gcc
+      env: TOXENV=py33 _COMPILER=gcc
 
     - python: 3.4
-      env: TOXENV=py34,coveralls _COMPILER=gcc
+      env: TOXENV=py34 _COMPILER=gcc
 
     - python: 3.5
-      env: TOXENV=py35,coveralls _COMPILER=gcc
+      env: TOXENV=py35 _COMPILER=gcc
 
 
 before_install:
@@ -45,3 +45,5 @@ install:
   - "pip install tox"
 script:
   - "tox -- -rs"
+after_success:
+  - "tox -e codecov"
