@@ -171,6 +171,12 @@ mod tests {
     use error::PassacreErrorKind::*;
     use super::{Base, MultiBase, length_one_string};
 
+    #[test]
+    fn test_no_words_base_without_words() {
+        let mut b = MultiBase::new();
+        assert_eq!(b.add_base(Base::Words).unwrap_err().kind, UserError);
+    }
+
     macro_rules! multibase_tests {
         ($constructor:ident,
          $max_value:expr,
@@ -275,4 +281,51 @@ mod tests {
          17 => "ccb",
          23 => "dcb"],
         [24]);
+
+    fn base_2x3_words() -> MultiBase {
+        let mut b = MultiBase::new();
+        let words = ["spam", "eggs", "sausage"].into_iter().map(|s| String::from(*s)).collect();
+        b.set_words(words).unwrap();
+        b.add_base(Base::Words).unwrap();
+        b.add_base(Base::Separator(String::from(" "))).unwrap();
+        b.add_base(Base::Words).unwrap();
+        b
+    }
+
+    multibase_tests!(
+        base_2x3_words,
+        8,  // 3 * 3 == 9
+        1,
+        [0 => "spam spam",
+         3 => "eggs spam",
+         8 => "sausage sausage"],
+        [9, 12, 24]);
+
+    fn base_2x3_words_and_2x10() -> MultiBase {
+        let mut b = MultiBase::new();
+        let words = ["spam", "eggs", "sausage"].into_iter().map(|s| String::from(*s)).collect();
+        b.set_words(words).unwrap();
+        b.add_base(Base::Words).unwrap();
+        b.add_base(characters(DIGITS)).unwrap();
+        b.add_base(Base::Separator(String::from(" "))).unwrap();
+        b.add_base(characters(DIGITS)).unwrap();
+        b.add_base(Base::Words).unwrap();
+        b
+    }
+
+    multibase_tests!(
+        base_2x3_words_and_2x10,
+        899,  // 3 * 3 * 10 * 10 == 900
+        2,
+        [0 => "spam0 0spam",
+         3 => "spam0 1spam",
+         8 => "spam0 2sausage",
+         29 => "spam0 9sausage",
+         30 => "spam1 0spam",
+         99 => "spam3 3spam",
+         100 => "spam3 3eggs",
+         299 => "spam9 9sausage",
+         300 => "eggs0 0spam",
+         899 => "sausage9 9sausage"],
+        [900, 1000]);
 }
