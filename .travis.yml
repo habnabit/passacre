@@ -1,3 +1,5 @@
+sudo: required
+dist: trusty
 language: python
 
 
@@ -37,11 +39,12 @@ matrix:
     - python: 2.7
       env: TOXENV=kcov _COMPILER=clang _KCOV=1
 
+    - rust: nightly
+      env: TOXENV=rust _COMPILER=clang _KCOV=1
+
 
 before_install:
-  - "sudo add-apt-repository --yes ppa:kalakris/cmake"
   - "sudo apt-get update"
-  - "sudo apt-get install cmake"
   - "curl -sSf https://static.rust-lang.org/rustup.sh | sh -s -- - --yes --verbose --channel=nightly"
   - "source .travis/setup.sh"
 install:

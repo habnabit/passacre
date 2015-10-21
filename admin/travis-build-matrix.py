@@ -20,4 +20,7 @@ for compiler in ['clang', 'gcc']:
 echo('''
     - python: 2.7
       env: TOXENV=kcov _COMPILER=clang _KCOV=1
+
+    - rust: nightly
+      env: TOXENV=rust _COMPILER=clang _KCOV=1
 ''')
