@@ -3,16 +3,16 @@
 
 [package]
 name = "passacre"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Aaron Gallagher <_@habnab.it>"]
 build = "build.rs"
 
 [dependencies]
-libc = "0.1.*"
-ramp = "0.1.*"
+libc = "0.1.10"
+ramp = "0.1.12"
 
 [dev-dependencies]
-fnconcat = "0.2.*"
+fnconcat = "0.2.1"
 
 [lib]
 name = "passacre"
