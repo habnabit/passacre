@@ -22,5 +22,5 @@ echo('''
       env: TOXENV=kcov _COMPILER=clang _KCOV=1
 
     - rust: nightly
-      env: TOXENV=rust _COMPILER=clang _KCOV=1
+      env: TOXENV=rust-kcov _COMPILER=clang _KCOV=1
 ''')
