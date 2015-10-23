@@ -21,6 +21,6 @@ echo('''
     - python: 2.7
       env: TOXENV=kcov _COMPILER=clang _KCOV=1
 
-    - rust: nightly
+    - python: 2.7
       env: TOXENV=rust-kcov _COMPILER=clang _KCOV=1
 ''')
