@@ -3,7 +3,9 @@
  * See COPYING for details.
  */
 
+use rand::Rng;
 use std::mem::uninitialized;
+use std::panic::RecoverSafe;
 
 use ::error::PassacreErrorKind::*;
 use ::error::PassacreResult;
@@ -12,10 +14,16 @@ use ::util::{set_memory, clone_from_slice};
 
 macro_rules! decompose {
     ($name:ident) => {
-        let $name = ($name.as_ptr(), $name.len() as ::libc::size_t);
+        decompose!($name as ::libc::size_t);
     };
     (mut $name:ident) => {
-        let $name = ($name.as_mut_ptr(), $name.len() as ::libc::size_t);
+        decompose!(mut $name as ::libc::size_t);
+    };
+    ($name:ident as $typ:ty) => {
+        let $name = ($name.as_ptr(), $name.len() as $typ);
+    };
+    (mut $name:ident as $typ:ty) => {
+        let $name = ($name.as_mut_ptr(), $name.len() as $typ);
     };
 }
 
@@ -98,6 +106,9 @@ impl<'persist> Kdf<'persist> {
     }
 }
 
+impl<'persist> RecoverSafe for Kdf<'persist> {}
+
+
 const SKEIN_512_BLOCK_BYTES: usize = 64;
 
 struct SkeinPrng {
@@ -154,10 +165,6 @@ impl Drop for HashState {
     }
 }
 
-// aw jeez. make this better.
-unsafe impl Send for HashState {}
-unsafe impl Sync for HashState {}
-
 pub struct PassacreGenerator<'persist> {
     state: State,
     kdf: Option<Kdf<'persist>>,
@@ -193,8 +200,9 @@ impl<'persist> PassacreGenerator<'persist> {
         decompose!(input);
         match self.hash_state {
             HashState::Keccak(sponge) => unsafe {
-                check_eq!(0, KeccakError,
-                          ::deps::Absorb(sponge, input.0, input.1 * 8));
+                check_eq!(
+                    0, KeccakError,
+                    ::deps::Absorb(sponge, input.0, input.1 as ::libc::c_ulonglong * 8));
             },
             HashState::Skein(ref mut skein) => unsafe {
                 check_skein!(::deps::skeinUpdate(skein, input.0, input.1));
@@ -275,7 +283,7 @@ impl<'persist> PassacreGenerator<'persist> {
     fn really_squeeze(&mut self, output: &mut [u8]) -> PassacreResult<()> {
         match self.hash_state {
             HashState::Keccak(sponge) => unsafe {
-                decompose!(mut output);
+                decompose!(mut output as ::libc::c_ulonglong);
                 check_eq!(0, KeccakError, ::deps::Squeeze(sponge, output.0, output.1 * 8));
                 return Ok(());
             },
@@ -308,5 +316,17 @@ impl<'persist> PassacreGenerator<'persist> {
             },
             _ => unreachable!(),
         }
+    }
+}
+
+impl<'persist> Rng for PassacreGenerator<'persist> {
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        self.squeeze(dest).unwrap()
+    }
+
+    fn next_u32(&mut self) -> u32 {
+        let mut ret = [0u8; 4];
+        self.fill_bytes(&mut ret);
+        ret[0] as u32 | ((ret[1] as u32) << 8) | ((ret[2] as u32) << 16) | ((ret[3] as u32) << 24)
     }
 }

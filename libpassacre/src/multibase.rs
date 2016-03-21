@@ -3,14 +3,22 @@
  * See COPYING for details.
  */
 
+use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::io::BufRead;
 use std::{fs, io, path, str};
 
 use ramp::Int;
+use rand::Rng;
 
 use error::PassacreErrorKind::*;
-use error::PassacreResult;
+use error::{PassacreError, PassacreResult};
+use passacre::PassacreGenerator;
 
+
+fn borrow_string(s: &String) -> Cow<str> {
+    return Cow::Borrowed(s.as_str())
+}
 
 fn int_of_bytes(bytes: &[u8]) -> Int {
     let mut ret = Int::zero();
@@ -20,6 +28,15 @@ fn int_of_bytes(bytes: &[u8]) -> Int {
     ret
 }
 
+fn factorial(n: usize) -> Int {
+    if n < 2 {
+        return Int::one();
+    }
+    (2..n).fold(
+        Int::from(n),
+        |acc, i| acc * Int::from(i))
+}
+
 fn length_one_string(c: char) -> String {
     let mut ret = String::with_capacity(c.len_utf8());
     ret.push(c);
@@ -27,10 +44,12 @@ fn length_one_string(c: char) -> String {
 }
 
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Base {
     Separator(String),
     Characters(Vec<String>),
     Words,
+    NestedBase(MultiBase),
 }
 
 impl Base {
@@ -55,6 +74,7 @@ impl Base {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct Words {
     words: Vec<String>,
     length: Int,
@@ -70,18 +90,39 @@ impl Words {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct BaseInfo {
+    length: Int,
+    positions: Vec<usize>,
+}
+
+impl BaseInfo {
+    fn new(length: Int) -> BaseInfo {
+        BaseInfo {
+            length: length,
+            positions: Vec::new(),
+        }
+    }
+}
+
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MultiBase {
-    bases: Vec<(Base, Int)>,
+    bases: BTreeMap<Base, BaseInfo>,
+    n_bases: usize,
     words: Option<Words>,
     length_product: Int,
+    shuffle: bool,
 }
 
 impl MultiBase {
     pub fn new() -> MultiBase {
         MultiBase {
-            bases: Vec::new(),
+            bases: BTreeMap::new(),
+            n_bases: 0,
             words: None,
             length_product: Int::one(),
+            shuffle: false,
         }
     }
 
@@ -90,16 +131,29 @@ impl MultiBase {
     }
 
     pub fn required_bytes(&self) -> usize {
-        let mut ret = 0;
-        let mut cur = self.max_encodable_value();
-        while cur > 0 {
-            ret += 1;
-            cur = cur >> 8;
+        ((self.max_encodable_value().bit_length() + 7) / 8) as usize
+    }
+
+    pub fn entropy_bits(&self) -> usize {
+        self.length_product.bit_length() as usize
+    }
+
+    pub fn enable_shuffle(&mut self) {
+        if self.shuffle {
+            return;
         }
-        ret
+        self.length_product = self.bases
+            .values()
+            .fold(
+                &self.length_product * factorial(self.n_bases),
+                |acc, info| acc / factorial(info.positions.len()));
+        self.shuffle = true;
     }
 
     pub fn add_base(&mut self, base: Base) -> PassacreResult<()> {
+        if self.shuffle {
+            fail!(UserError);
+        }
         let length = match &base {
             &Base::Separator(_) => Int::one(),
             &Base::Characters(ref s) => Int::from(s.len()),
@@ -109,9 +163,12 @@ impl MultiBase {
                     &None => fail!(UserError),
                 }
             },
+            &Base::NestedBase(ref b) => b.length_product.clone(),
         };
         self.length_product = &self.length_product * &length;
-        self.bases.push((base, length));
+        let mut entry = self.bases.entry(base).or_insert_with(move || BaseInfo::new(length));
+        entry.positions.push(self.n_bases);
+        self.n_bases = self.n_bases + 1;
         Ok(())
     }
 
@@ -130,42 +187,70 @@ impl MultiBase {
         self.set_words(lines)
     }
 
+    fn bases_ref_vec(&self) -> Vec<(&Base, &Int, usize)> {
+        let mut ret = vec![None; self.n_bases];
+        for (e, (base, info)) in self.bases.iter().enumerate() {
+            for &i in info.positions.iter() {
+                ret[i] = Some((base, &info.length, e));
+            }
+        }
+        ret.into_iter().collect::<Option<Vec<_>>>().unwrap()
+    }
+
     fn encode(&self, mut n: Int) -> PassacreResult<String> {
         if n < 0 || n >= self.length_product {
             fail!(DomainError);
         }
-        let mut ret = Vec::new();
-        for &(ref base, ref length) in self.bases.iter().rev() {
+        let bases = self.bases_ref_vec();
+        let mut ret: Vec<Cow<str>> = Vec::with_capacity(self.n_bases);
+        for &(base, length, _) in bases.iter().rev() {
             if let &Base::Separator(ref s) = base {
-                ret.push(s.as_str());
-            } else {
-                let (next_n, d) = n.divmod(length);
-                let d = usize::from(&d);
-                match base {
-                    &Base::Characters(ref cs) => ret.push(cs[d].as_str()),
-                    &Base::Words => {
-                        match &self.words {
-                            &Some(ref w) => ret.push(w.words[d].as_str()),
-                            &None => fail!(UserError),
-                        }
-                    },
-                    _ => unreachable!(),
-                }
-                n = next_n;
+                ret.push(borrow_string(s));
+                continue;
             }
+            let (next_n, d) = n.divmod(length);
+            ret.push(match base {
+                &Base::Characters(ref cs) => borrow_string(&cs[usize::from(&d)]),
+                &Base::Words => {
+                    match &self.words {
+                        &Some(ref w) => borrow_string(&w.words[usize::from(&d)]),
+                        &None => fail!(UserError),
+                    }
+                },
+                &Base::NestedBase(ref b) => Cow::Owned(try!(b.encode(d))),
+                _ => unreachable!(),
+            });
+            n = next_n;
         }
-        ret.reverse();
+        if self.shuffle {
+            unimplemented!();
+        } else {
+            ret.reverse();
+        }
         Ok(ret.concat())
     }
 
     pub fn encode_from_bytes(&self, bytes: &[u8]) -> PassacreResult<String> {
         self.encode(int_of_bytes(bytes))
     }
+
+    pub fn encode_from_generator(&self, gen: &mut PassacreGenerator) -> PassacreResult<String> {
+        let mut buf = vec![0u8; self.required_bytes()];
+        loop {
+            try!(gen.squeeze(&mut buf));
+            match self.encode(int_of_bytes(&buf)) {
+                Err(PassacreError { kind: DomainError, .. }) => continue,
+                x => return x,
+            }
+        }
+    }
 }
 
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use ramp::Int;
 
     use error::PassacreErrorKind::*;
@@ -194,6 +279,19 @@ mod tests {
             fnconcat!{#[test] [test_, $constructor, _required_bytes]() {
                 let b = $constructor();
                 assert_eq!(b.required_bytes(), $req_bytes);
+            }}
+
+            fnconcat!{#[test] [test_, $constructor, _all_unique]() {
+                let b = $constructor();
+                let l: usize = ::std::convert::From::from(&b.length_product);
+                let mut h = HashMap::with_capacity(l);
+                for i in 0..l {
+                    h.entry(b.encode(Int::from(i)).unwrap()).or_insert_with(|| vec![]).push(i);
+                }
+                let dupes: Vec<_> = h.into_iter()
+                    .filter(|&(_, ref c)| c.len() > 1)
+                    .collect();
+                assert_eq!(dupes, vec![]);
             }}
 
             parametrize_test!{[test_, $constructor, _encoding], [
@@ -281,6 +379,25 @@ mod tests {
          17 => "ccb",
          23 => "dcb"],
         [24]);
+
+    fn base_4_3_2_shuffled() -> MultiBase {
+        let mut b = MultiBase::new();
+        b.add_base(characters("abcd")).unwrap();
+        b.add_base(characters("efg")).unwrap();
+        b.add_base(characters("hi")).unwrap();
+        b.enable_shuffle();
+        b
+    }
+
+    multibase_tests!(
+        base_4_3_2_shuffled,
+        143,  // 4 * 3 * 2 * 6 == 144
+        1,
+        [0 => "hea",
+         23 => "igd",
+         37 => "xxx",
+         61 => "xxx"],
+        [144]);
 
     fn base_2x3_words() -> MultiBase {
         let mut b = MultiBase::new();

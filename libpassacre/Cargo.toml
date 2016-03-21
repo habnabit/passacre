@@ -8,8 +8,9 @@ authors = ["Aaron Gallagher <_@habnab.it>"]
 build = "build.rs"
 
 [dependencies]
-libc = "0.1.10"
-ramp = "0.1.12"
+libc = "0.2.7"
+ramp = "0.2.3"
+rand = "0.3.13"
 
 [dev-dependencies]
 fnconcat = "0.2.1"

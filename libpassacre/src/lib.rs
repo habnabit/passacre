@@ -3,12 +3,13 @@
  * See COPYING for details.
  */
 
-#![feature(convert, set_stdio, catch_panic)]
+#![feature(set_stdio, recover)]
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(fnconcat))]
 
 extern crate libc;
 extern crate ramp;
+extern crate rand;
 
 macro_rules! testing_panic {
     ($cond:expr) => {{

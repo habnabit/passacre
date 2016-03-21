@@ -10,7 +10,6 @@ from passacre import features, generator
 import collections
 import json
 import os
-import sys
 
 
 @errormark('verifying schema: {0!r}')
@@ -49,23 +48,16 @@ class ConfigBase(object):
             'enabled': True,
         }
         self.global_config = {}
-        self.words = None
-        self.word_list_file = None
+        self.word_list_path = None
 
     def load_words_file(self, path):
         if path is None:
             return
-        self.word_list_file = path
-        try:
-            infile = open(os.path.expanduser(path))
-        except IOError as e:
-            print("warning: couldn't open %r: %s" % (path, e), file=sys.stderr)
-        else:
-            with infile:
-                self.words = [word.strip() for word in infile]
+        self.word_list_path = os.path.expanduser(path)
 
     def fill_out_config(self, config):
-        config['multibase'] = multibase_of_schema(config['schema'], self.words)
+        config['multibase'] = multibase_of_schema(
+            config['schema'], self.word_list_path)
         config['iterations'] = (
             config.get('iterations', 1000) + config.get('increment', 0))
 

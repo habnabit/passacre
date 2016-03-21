@@ -5,6 +5,8 @@
 
 #![macro_use]
 
+use std::sync;
+
 use self::PassacreErrorKind::*;
 
 
@@ -25,6 +27,7 @@ pub enum PassacreErrorKind {
     InternalError,
     DomainError,
     AllocatorError,
+    MutexError,
 }
 
 impl PassacreErrorKind {
@@ -50,6 +53,7 @@ impl PassacreError {
             -6 => InternalError,
             -7 => DomainError,
             -8 => AllocatorError,
+            -9 => MutexError,
             _ => return None,
         };
         Some(result.to_error())
@@ -65,6 +69,7 @@ impl PassacreError {
             InternalError => -6,
             DomainError => -7,
             AllocatorError => -8,
+            MutexError => -9,
         }
     }
 
@@ -78,6 +83,7 @@ impl PassacreError {
             InternalError => "internal error",
             DomainError => "domain error",
             AllocatorError => "allocator error",
+            MutexError => "mutex error",
         }
     }
 }
@@ -94,5 +100,11 @@ impl From<PassacreErrorKind> for PassacreError {
 impl From<(PassacreErrorKind, &'static str)> for PassacreError {
     fn from((kind, context): (PassacreErrorKind, &'static str)) -> PassacreError {
         PassacreError { kind: kind, context: Some(context.to_string()) }
+    }
+}
+
+impl<T> From<sync::PoisonError<T>> for PassacreError {
+    fn from(_: sync::PoisonError<T>) -> PassacreError {
+        PassacreError { kind: MutexError, context: None }
     }
 }

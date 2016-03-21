@@ -1,4 +1,3 @@
-import math
 import sys
 
 from passacre._libpassacre_c import lib as C, ffi
@@ -129,15 +128,6 @@ class Generator(object):
         return ffi.buffer(output)[:]
 
     def squeeze_for_multibase(self, mb):
-        required_bytes = int(math.ceil(
-            math.log(mb.max_encodable_value + 1, 256)))
-        while True:
-            value = int_of_bytes(self.squeeze(required_bytes))
-            if value <= mb.max_encodable_value:
-                break
-        return mb.encode(value)
-
-    def squeeze_password(self, mb):
         alloc = self._allocator()
         self._check(C.passacre_gen_squeeze_password, mb._context, alloc.callback, ffi.NULL)
         return alloc.one_buffer()
@@ -170,18 +160,29 @@ class MultiBase(object):
         if result:
             _raise_error(result, MultiBaseError)
 
+    def set_shuffle(self, shuffle):
+        self._check(C.passacre_mb_set_shuffle, shuffle)
+
     @property
     def required_bytes(self):
         ret = ffi.new('size_t *')
         self._check(C.passacre_mb_required_bytes, ret)
         return ret[0]
 
+    @property
+    def entropy_bits(self):
+        ret = ffi.new('size_t *')
+        self._check(C.passacre_mb_entropy_bits, ret)
+        return ret[0]
+
     def add_separator(self, separator):
+        separator = unicode(separator).encode('utf-8')
         self._check(
             C.passacre_mb_add_base, C.PASSACRE_SEPARATOR,
             separator, len(separator))
 
     def add_characters(self, characters):
+        characters = unicode(characters).encode('utf-8')
         self._check(
             C.passacre_mb_add_base, C.PASSACRE_CHARACTERS,
             characters, len(characters))
@@ -189,7 +190,11 @@ class MultiBase(object):
     def add_words(self):
         self._check(C.passacre_mb_add_base, C.PASSACRE_WORDS, ffi.NULL, 0)
 
+    def add_sub_multibase(self, other):
+        self._check(C.passacre_mb_add_sub_mb, other._context)
+
     def load_words_from_path(self, path):
+        path = unicode(path).encode('utf-8')
         self._check(
             C.passacre_mb_load_words_from_path, path, len(path))
 
