@@ -1,6 +1,7 @@
 import sys
 
 from passacre._libpassacre_c import lib as C, ffi
+from passacre.compat import unicode
 
 
 _ALGORITHMS = {
@@ -77,7 +78,7 @@ def _raise_error(code, exc_type):
     raise exc_type(code, _ERRORS.get(code), _read_error(code))
 
 
-def _gc_generator(gen):
+def _gc_generator(gen, C=C):
     result = C.passacre_gen_finished(gen)
     if result:
         _raise_error(result, GeneratorError)
@@ -130,7 +131,7 @@ class Generator(object):
     def squeeze_for_multibase(self, mb):
         alloc = self._allocator()
         self._check(C.passacre_gen_squeeze_password, mb._context, alloc.callback, ffi.NULL)
-        return alloc.one_buffer()
+        return alloc.one_buffer().decode('utf-8')
 
     @property
     def scrypt_persisted(self):
@@ -139,7 +140,7 @@ class Generator(object):
         return ffi.buffer(self._scrypt_persistence)[:]
 
 
-def _gc_multibase(mb):
+def _gc_multibase(mb, C=C):
     result = C.passacre_mb_finished(mb)
     if result:
         _raise_error(result, MultiBaseError)
@@ -160,8 +161,8 @@ class MultiBase(object):
         if result:
             _raise_error(result, MultiBaseError)
 
-    def set_shuffle(self, shuffle):
-        self._check(C.passacre_mb_set_shuffle, shuffle)
+    def enable_shuffle(self):
+        self._check(C.passacre_mb_enable_shuffle)
 
     @property
     def required_bytes(self):

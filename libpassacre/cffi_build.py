@@ -51,8 +51,8 @@ def ffi_maker():
         struct passacre_mb_state *, size_t *);
     enum passacre_error_type passacre_mb_entropy_bits(
         struct passacre_mb_state *, size_t *);
-    enum passacre_error_type passacre_mb_set_shuffle(
-        struct passacre_mb_state *, unsigned char);
+    enum passacre_error_type passacre_mb_enable_shuffle(
+        struct passacre_mb_state *);
     enum passacre_error_type passacre_mb_add_base(
         struct passacre_mb_state *, enum passacre_mb_base,
         const unsigned char *, size_t);

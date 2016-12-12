@@ -180,6 +180,6 @@ def test_no_words_file():
     # using sqlite for lazy-loading of site data, otherwise the `load` call
     # will fail too.
     c = config.load(open(os.path.join(datadir, 'no-words.sqlite'), 'rb'))
-    assert c.words is None
+    assert c.word_list_path is None
     with pytest.raises(ValueError):
         c.generate_for_site(None, 'passacre', 'example.com')

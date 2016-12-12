@@ -225,31 +225,28 @@ class Passacre(object):
         possible passwords for a site.
         """
 
-        entropy = [('schema' if args.schema else 'site', 'entropy', '(bits)'), ('', '', '')]
         if args.schema:
-            pre_entropy = []
-            for schema_name, schema in self.config.get_all_schemata().items():
-                multibase = multibase_of_schema(schema, self.config.words)
-                pre_entropy.append((schema_name, math.log(multibase.max_encodable_value + 1, 2)))
+            entropy = [
+                (schema_name, multibase_of_schema(schema, self.config.word_list_path))
+                for schema_name, schema in self.config.get_all_schemata().items()
+            ]
         else:
             default_site = self.config.get_site('default')
-            pre_entropy = [
-                (site, math.log(site_config['multibase'].max_encodable_value + 1, 2))
+            entropy = [
+                (site, site_config['multibase'])
                 for site, site_config in self.config.get_all_sites().items()
                 if site_config['schema'] != default_site['schema'] or site == 'default'
             ]
-        pre_entropy.sort(key=operator.itemgetter(1, 0), reverse=True)
-        entropy.extend([site] + ('%0.2f' % bits).split('.')
-                       for site, bits in pre_entropy)
-        max_site_len, max_ibits_len, max_fbits_len = [
-            len(max(x, key=len)) for x in zip(*entropy)]
+        entropy = [(site, mb.entropy_bits) for site, mb in entropy]
+        entropy.sort(key=operator.itemgetter(1, 0), reverse=True)
+        entropy[:0] = [('schema' if args.schema else 'site', 'entropy (bits)'), ('', '')]
+        max_site_len, max_bits_len = [
+            max(len(str(y)) for y in x) for x in zip(*entropy)]
         print()
-        for e, (site, ibits, fbits) in enumerate(entropy):
+        for e, (site, bits) in enumerate(entropy):
             if e == 0:
                 site = site.center(max_site_len)
-            print('%*s   %*s%s%*s' % (
-                -max_site_len, site, max_ibits_len, ibits,
-                '.' if ibits.isdigit() else ' ', -max_fbits_len, fbits))
+            print('%*s   %*s' % (-max_site_len, site, max_bits_len, bits))
 
 
     def site_args(self, subparser):

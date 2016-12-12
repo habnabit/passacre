@@ -5,11 +5,11 @@ import string
 
 from passacre._libpassacre_impl import Generator
 from passacre.compat import python_3_encode, hexlify
-from passacre.multibase import MultiBase
+from passacre.schema import multibase_of_schema
 from passacre import features, signing_uuid
 
 
-_site_multibase = MultiBase([string.ascii_letters + string.digits + '-_'] * 48)
+_site_multibase = multibase_of_schema([string.ascii_letters + string.digits + '-_'] * 48, None)
 
 
 def generate(username, password, site, options):

@@ -6,6 +6,7 @@ import py.path
 import sys
 import traceback
 
+from passacre._libpassacre_impl import MultiBaseError
 from passacre import application, features
 
 
@@ -199,14 +200,14 @@ class ApplicationTestCaseMixin(object):
         assert out == """
                       site                         entropy (bits)
 
-default                                                209.75
-becu.org                                               190.53
-fidelity.com                                           101.72
-schwab.com                                              47.63
-still.further.example.com                               39.68
-further.example.com                                     26.58
-example.com                                             26.58
-%s        13.29""" % (self.hashed_site,)
+default                                                       210
+becu.org                                                      191
+fidelity.com                                                  102
+schwab.com                                                     48
+still.further.example.com                                      40
+further.example.com                                            27
+example.com                                                    27
+%s               14""" % (self.hashed_site,)
 
 
     def test_site_hash_with_newline(self):
@@ -250,14 +251,14 @@ class SqliteTestCaseMixin(object):
         assert out == """
  schema    entropy (bits)
 
-schema_5       209.75
-schema_3       190.53
-schema_6       101.72
-schema_1        47.63
-schema_4        39.68
-schema_2        26.58
-schema_0        26.58
-schema_7        13.29"""
+schema_5              210
+schema_3              191
+schema_6              102
+schema_1               48
+schema_4               40
+schema_2               27
+schema_0               27
+schema_7               14"""
 
 
 class KeccakTestCaseMixin(ApplicationTestCaseMixin):
@@ -671,7 +672,7 @@ def nonextant_words_app(app, tmpdir):
 
 def test_nonextant_words_warns(nonextant_words_app):
     app = nonextant_words_app
-    with pytest.raises(ValueError):
+    with pytest.raises(MultiBaseError):
         app.main(['generate', 'example.com'])
 
 
