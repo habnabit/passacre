@@ -5,7 +5,7 @@
 
 use rand::Rng;
 use std::mem::uninitialized;
-use std::panic::RecoverSafe;
+use std::panic::UnwindSafe;
 
 use ::error::PassacreErrorKind::*;
 use ::error::PassacreResult;
@@ -106,7 +106,7 @@ impl<'persist> Kdf<'persist> {
     }
 }
 
-impl<'persist> RecoverSafe for Kdf<'persist> {}
+impl<'persist> UnwindSafe for Kdf<'persist> {}
 
 
 const SKEIN_512_BLOCK_BYTES: usize = 64;

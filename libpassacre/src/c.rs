@@ -5,7 +5,7 @@
 
 use std::{mem, path, ptr, slice, str, sync, io};
 use std::cell::RefCell;
-use std::panic::{AssertRecoverSafe, RecoverSafe, recover};
+use std::panic::{AssertUnwindSafe, UnwindSafe, catch_unwind};
 
 use ::error::PassacreErrorKind::*;
 use ::error::{PassacreError, PassacreResult};
@@ -30,7 +30,7 @@ macro_rules! recompose {
             if $name.is_null() && length != 0 {
                 fail!(UserError);
             }
-            AssertRecoverSafe::new(unsafe { slice::from_raw_parts_mut($name, length) })
+            AssertUnwindSafe(unsafe { slice::from_raw_parts_mut($name, length) })
         };
     };
 }
@@ -106,13 +106,13 @@ macro_rules! c_export {
                 let closure = move || {
                     ERROR_STRING.with(|error_string| error_string.borrow_mut().clear());
                     let panic_sink = Box::new(ErrorStringWriter);
-                    let prev_sink = io::set_panic(panic_sink);
+                    let prev_sink = io::set_panic(Some(panic_sink));
                     let mut inner = move || $body;
                     let result = inner();
-                    io::set_panic(prev_sink.unwrap_or_else(|| Box::new(io::sink())));
+                    io::set_panic(prev_sink);
                     result
                 };
-                match recover(closure) {
+                match catch_unwind(closure) {
                     Ok(r) => r,
                     Err(_) => Err(Panic.to_error()),
                 }
@@ -193,7 +193,7 @@ c_export!(passacre_mb_init, (mb: *mut CMultiBase), {}, {
 });
 
 passacre_mb_export!(passacre_mb_required_bytes, mb, false, (dest: *mut ::libc::size_t), {
-    let mut dest = AssertRecoverSafe::new(resolve_ptr!(null_check_mut, dest, false));
+    let mut dest = AssertUnwindSafe(resolve_ptr!(null_check_mut, dest, false));
 }, {
     let ret = mb.required_bytes();
     **dest = ret as ::libc::size_t;
@@ -201,7 +201,7 @@ passacre_mb_export!(passacre_mb_required_bytes, mb, false, (dest: *mut ::libc::s
 });
 
 passacre_mb_export!(passacre_mb_entropy_bits, mb, false, (dest: *mut ::libc::size_t), {
-    let mut dest = AssertRecoverSafe::new(resolve_ptr!(null_check_mut, dest, false));
+    let mut dest = AssertUnwindSafe(resolve_ptr!(null_check_mut, dest, false));
 }, {
     let ret = mb.entropy_bits();
     **dest = ret as ::libc::size_t;
@@ -374,7 +374,7 @@ impl<'a> ByteCopier<'a> {
     }
 }
 
-impl<'a> RecoverSafe for ByteCopier<'a> {}
+impl<'a> UnwindSafe for ByteCopier<'a> {}
 
 
 #[no_mangle]
@@ -406,7 +406,7 @@ pub extern "C" fn passacre_error(which: ::libc::c_int, dest_p: *mut ::libc::c_uc
             copier.copy(err_str.as_bytes());
             copier
         };
-        recover(closure)
+        catch_unwind(closure)
     };
     let mut copier = match closure_result {
         Ok(c) => c,

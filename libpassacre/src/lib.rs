@@ -3,7 +3,7 @@
  * See COPYING for details.
  */
 
-#![feature(set_stdio, recover)]
+#![feature(set_stdio)]
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(fnconcat))]
 

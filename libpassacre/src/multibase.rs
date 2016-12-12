@@ -9,7 +9,6 @@ use std::io::BufRead;
 use std::{fs, io, path, str};
 
 use ramp::Int;
-use rand::Rng;
 
 use error::PassacreErrorKind::*;
 use error::{PassacreError, PassacreResult};
