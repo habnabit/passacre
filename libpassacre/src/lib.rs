@@ -36,3 +36,5 @@ pub mod c;
 pub use ::error::PassacreError;
 pub use ::passacre::{Algorithm, Kdf, PassacreGenerator, SCRYPT_BUFFER_SIZE};
 pub use ::multibase::{Base, MultiBase};
+
+pub use c::*;

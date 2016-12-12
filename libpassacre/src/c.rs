@@ -160,7 +160,8 @@ macro_rules! resolve_ptr {
 }
 
 
-pub type CMultiBase = sync::Mutex<MultiBase>;
+#[repr(C)]
+pub struct CMultiBase(sync::Mutex<MultiBase>);
 
 macro_rules! passacre_mb_export {
     ($name:ident, $mb:ident, $null_allowed:expr,
@@ -169,7 +170,7 @@ macro_rules! passacre_mb_export {
             let mb_mutex = resolve_ptr!(null_check, mb, $null_allowed);
             $($preamble)*
         }, {
-            let mut $mb = try!(mb_mutex.lock());
+            let mut $mb = try!(mb_mutex.0.lock());
             $body
         });
     };
@@ -187,7 +188,7 @@ pub extern "C" fn passacre_mb_align() -> ::libc::size_t {
 }
 
 c_export!(passacre_mb_init, (mb: *mut CMultiBase), {}, {
-    let p = sync::Mutex::new(MultiBase::new());
+    let p = CMultiBase(sync::Mutex::new(MultiBase::new()));
     unsafe { ptr::write(mb, p); }
     Ok(())
 });
@@ -228,8 +229,8 @@ c_export!(passacre_mb_add_sub_mb, (parent: *const CMultiBase, child: *const CMul
     let parent = resolve_ptr!(null_check, parent, false);
     let child = resolve_ptr!(null_check, child, false);
 }, {
-    let mut parent = try!(parent.lock());
-    let child = try!(child.lock());
+    let mut parent = try!(parent.0.lock());
+    let child = try!(child.0.lock());
     parent.add_base(Base::NestedBase(child.clone()))
 });
 
@@ -259,7 +260,8 @@ c_export!(passacre_mb_finished, (mb: *const CMultiBase), {}, {
 });
 
 
-pub type CPassacreGenerator<'a> = sync::Mutex<PassacreGenerator<'a>>;
+#[repr(C)]
+pub struct CPassacreGenerator(sync::Mutex<PassacreGenerator<'static>>);
 
 macro_rules! passacre_gen_export {
     ($name:ident, $gen:ident, $null_allowed:expr,
@@ -268,7 +270,7 @@ macro_rules! passacre_gen_export {
             let gen_mutex = resolve_ptr!(null_check, gen, $null_allowed);
             $($preamble)*
         }, {
-            let mut $gen = try!(gen_mutex.lock());
+            let mut $gen = try!(gen_mutex.0.lock());
             $body
         });
     };
@@ -295,7 +297,7 @@ c_export!(passacre_gen_init, (gen: *mut CPassacreGenerator, algorithm: ::libc::c
     testing_panic!(algorithm == 99);
     let algorithm = try!(Algorithm::of_c_uint(algorithm));
     let p = try!(PassacreGenerator::new(algorithm));
-    let p = sync::Mutex::new(p);
+    let p = CPassacreGenerator(sync::Mutex::new(p));
     unsafe { ptr::write(gen, p); }
     Ok(())
 });
@@ -340,7 +342,7 @@ passacre_gen_export!(passacre_gen_squeeze_password, gen, false,
     let mb = resolve_ptr!(null_check, mb, false);
     let allocator = Allocator::new(allocator_fn, context);
 }, {
-    let mut mb = try!(mb.lock());
+    let mut mb = try!(mb.0.lock());
     allocator.string_copy(try!(mb.encode_from_generator(&mut *gen)))
 });
 
