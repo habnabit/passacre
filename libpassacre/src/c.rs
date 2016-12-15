@@ -3,9 +3,9 @@
  * See COPYING for details.
  */
 
-use std::{mem, path, ptr, slice, str, sync, io};
+use std::{mem, path, ptr, slice, str, sync};
 use std::cell::RefCell;
-use std::panic::{AssertUnwindSafe, UnwindSafe, catch_unwind};
+use std::panic::{self, AssertUnwindSafe, UnwindSafe, catch_unwind};
 
 use ::error::PassacreErrorKind::*;
 use ::error::{PassacreError, PassacreResult};
@@ -36,20 +36,61 @@ macro_rules! recompose {
 }
 
 
-pub type AllocatorFn = extern fn(::libc::size_t, *const ::libc::c_void) -> *mut ::libc::c_uchar;
-
-struct Allocator {
-    allocator: AllocatorFn,
-    context: *const ::libc::c_void,
+struct ReifiedPanicInfo {
+    file: Option<String>,
+    line: Option<u32>,
+    payload: String,
 }
 
-impl Allocator {
-    fn new(allocator: AllocatorFn, context: *const ::libc::c_void) -> Allocator {
-        Allocator { allocator: allocator, context: context }
+impl ReifiedPanicInfo {
+    fn from_info(info: &panic::PanicInfo) -> ReifiedPanicInfo {
+        let payload = if let Some(s) = info.payload().downcast_ref::<String>() {
+            s.clone()
+        } else if let Some(&s) = info.payload().downcast_ref::<&'static str>() {
+            s.into()
+        } else {
+            "unknown panic payload".into()
+        };
+        let mut ret = ReifiedPanicInfo {
+            file: None,
+            line: None,
+            payload: payload,
+        };
+        if let Some(loc) = info.location() {
+            ret.file = Some(loc.file().into());
+            ret.line = Some(loc.line());
+        }
+        ret
+    }
+}
+
+thread_local!(static LAST_PANIC: RefCell<Option<ReifiedPanicInfo>> = RefCell::new(None));
+
+fn install_panic_hook() {
+    panic::set_hook(Box::new(|info| {
+        LAST_PANIC.with(|opt_ref| {
+            *opt_ref.borrow_mut() = Some(ReifiedPanicInfo::from_info(info));
+        });
+    }));
+}
+
+pub type AllocatorFn = extern fn(::libc::size_t, *const ::libc::c_void) -> *mut ::libc::c_uchar;
+
+struct Context {
+    allocator: AllocatorFn,
+    last_panic: Option<ReifiedPanicInfo>,
+}
+
+impl Context {
+    fn new(allocator: AllocatorFn) -> Context {
+        Context {
+            allocator: allocator,
+            last_panic: None,
+        }
     }
 
-    fn string_copy(&self, s: String) -> PassacreResult<()> {
-        let output = (self.allocator)(s.len() as ::libc::size_t, self.context);
+    fn string_copy(&self, closure: *const ::libc::c_void, s: String) -> PassacreResult<()> {
+        let output = (self.allocator)(s.len() as ::libc::size_t, closure);
         if output.is_null() {
             fail!(AllocatorError);
         }
@@ -60,34 +101,6 @@ impl Allocator {
 }
 
 
-thread_local!(static ERROR_STRING: RefCell<String> = RefCell::new(String::new()));
-
-
-struct ErrorStringWriter;
-
-impl io::Write for ErrorStringWriter {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let buf = match str::from_utf8(buf) {
-            Ok(buf) => buf,
-            _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid utf-8")),
-        };
-        ERROR_STRING.with(|error_string| {
-            let mut error_string = error_string.borrow_mut();
-            error_string.push_str(buf);
-        });
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
-
-macro_rules! force_block {
-    ($b:block) => ($b);
-}
-
 unsafe fn drop_ptr<T>(p: *const T) {
     // read the pointer and do nothing with the result, so that the value
     // immediately goes out of scope and is dropped. you can't move a value out
@@ -96,31 +109,49 @@ unsafe fn drop_ptr<T>(p: *const T) {
 }
 
 
+#[repr(C)]
+pub struct CPassacreContext(sync::Mutex<Context>);
+
+#[no_mangle]
+pub extern "C" fn passacre_ctx_size() -> ::libc::size_t {
+    mem::size_of::<CPassacreContext>() as ::libc::size_t
+}
+
+#[no_mangle]
+pub extern "C" fn passacre_ctx_align() -> ::libc::size_t {
+    mem::align_of::<CPassacreContext>() as ::libc::size_t
+}
+
+macro_rules! c_int_error {
+    ($body:block) => {
+        match (move || $body)() {
+            Ok(()) => 0,
+            Err(e) => PassacreError::to_c_int(&e),
+        }
+    };
+}
+
 macro_rules! c_export {
-    ($name:ident, ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
+    ($name:ident, $(mut)* $ctx:tt, ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
         #[no_mangle]
         #[allow(unused_mut)]
-        pub extern "C" fn $name( $($arg : $argtype,)* ) -> ::libc::c_int {
-            let closure = move || force_block!({
+        pub extern "C" fn $name( ctx: *mut CPassacreContext $(, $arg : $argtype)* ) -> ::libc::c_int {
+            c_int_error! {{
+                let ctx = resolve_ptr!(null_check_mut, ctx, false);
                 $($preamble)*
-                let closure = move || {
-                    ERROR_STRING.with(|error_string| error_string.borrow_mut().clear());
-                    let panic_sink = Box::new(ErrorStringWriter);
-                    let prev_sink = io::set_panic(Some(panic_sink));
-                    let mut inner = move || $body;
-                    let result = inner();
-                    io::set_panic(prev_sink);
-                    result
-                };
-                match catch_unwind(closure) {
+                match catch_unwind({
+                    let $ctx = &ctx;
+                    move || $body
+                }) {
                     Ok(r) => r,
-                    Err(_) => Err(Panic.to_error()),
+                    Err(_) => {
+                        LAST_PANIC.with(|opt_ref| {
+                            ctx.0.lock().unwrap().last_panic = opt_ref.borrow_mut().take();
+                        });
+                        Err(Panic.to_error())
+                    },
                 }
-            });
-            match closure() {
-                Ok(()) => 0,
-                Err(e) => e.to_c_int(),
-            }
+            }}
         }
     };
 }
@@ -160,13 +191,39 @@ macro_rules! resolve_ptr {
 }
 
 
+#[no_mangle]
+pub extern "C" fn passacre_ctx_init(ctx: *mut CPassacreContext, allocator_fn: AllocatorFn) -> ::libc::c_int {
+    c_int_error! {{
+        let ctx = resolve_ptr!(null_check_mut, ctx, false);
+        install_panic_hook();
+        let p = CPassacreContext(sync::Mutex::new(Context::new(allocator_fn)));
+        unsafe { ptr::write(ctx, p); }
+        Ok(())
+    }}
+}
+
+c_export!(passacre_ctx_describe_last_panic, ctx, (closure: *const ::libc::c_void), {}, {
+    let mut ctx = try!(ctx.0.lock());
+    if let Some(info) = ctx.last_panic.take() {
+        try!(ctx.string_copy(closure, info.payload));
+    }
+    Ok(())
+});
+
+#[no_mangle]
+pub extern "C" fn passacre_ctx_finished(ctx: *mut CPassacreContext) {
+    if !ctx.is_null() {
+        unsafe { drop_ptr(ctx); }
+    }
+}
+
 #[repr(C)]
 pub struct CMultiBase(sync::Mutex<MultiBase>);
 
 macro_rules! passacre_mb_export {
-    ($name:ident, $mb:ident, $null_allowed:expr,
+    ($name:ident, $ctx:tt, $mb:ident, $null_allowed:expr,
      ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
-        c_export!($name, ( mb: *const CMultiBase $(,$arg : $argtype)* ), {
+        c_export!($name, $ctx, ( mb: *const CMultiBase $(,$arg : $argtype)* ), {
             let mb_mutex = resolve_ptr!(null_check, mb, $null_allowed);
             $($preamble)*
         }, {
@@ -187,13 +244,13 @@ pub extern "C" fn passacre_mb_align() -> ::libc::size_t {
     mem::align_of::<CMultiBase>() as ::libc::size_t
 }
 
-c_export!(passacre_mb_init, (mb: *mut CMultiBase), {}, {
+c_export!(passacre_mb_init, _, (mb: *mut CMultiBase), {}, {
     let p = CMultiBase(sync::Mutex::new(MultiBase::new()));
     unsafe { ptr::write(mb, p); }
     Ok(())
 });
 
-passacre_mb_export!(passacre_mb_required_bytes, mb, false, (dest: *mut ::libc::size_t), {
+passacre_mb_export!(passacre_mb_required_bytes, _, mb, false, (dest: *mut ::libc::size_t), {
     let mut dest = AssertUnwindSafe(resolve_ptr!(null_check_mut, dest, false));
 }, {
     let ret = mb.required_bytes();
@@ -201,7 +258,7 @@ passacre_mb_export!(passacre_mb_required_bytes, mb, false, (dest: *mut ::libc::s
     Ok(())
 });
 
-passacre_mb_export!(passacre_mb_entropy_bits, mb, false, (dest: *mut ::libc::size_t), {
+passacre_mb_export!(passacre_mb_entropy_bits, _, mb, false, (dest: *mut ::libc::size_t), {
     let mut dest = AssertUnwindSafe(resolve_ptr!(null_check_mut, dest, false));
 }, {
     let ret = mb.entropy_bits();
@@ -209,12 +266,12 @@ passacre_mb_export!(passacre_mb_entropy_bits, mb, false, (dest: *mut ::libc::siz
     Ok(())
 });
 
-passacre_mb_export!(passacre_mb_enable_shuffle, mb, false, (), {}, {
+passacre_mb_export!(passacre_mb_enable_shuffle, _, mb, false, (), {}, {
     mb.enable_shuffle();
     Ok(())
 });
 
-passacre_mb_export!(passacre_mb_add_base, mb, false, (
+passacre_mb_export!(passacre_mb_add_base, _, mb, false, (
     which: ::libc::c_uint, string: *const u8, string_length: ::libc::size_t), {
     recompose!(string, string_length);
 }, {
@@ -222,7 +279,7 @@ passacre_mb_export!(passacre_mb_add_base, mb, false, (
     mb.add_base(base)
 });
 
-c_export!(passacre_mb_add_sub_mb, (parent: *const CMultiBase, child: *const CMultiBase), {
+c_export!(passacre_mb_add_sub_mb, _, (parent: *const CMultiBase, child: *const CMultiBase), {
     if parent == child {
         fail!(UserError);
     }
@@ -234,7 +291,7 @@ c_export!(passacre_mb_add_sub_mb, (parent: *const CMultiBase, child: *const CMul
     parent.add_base(Base::NestedBase(child.clone()))
 });
 
-passacre_mb_export!(passacre_mb_load_words_from_path, mb, false,
+passacre_mb_export!(passacre_mb_load_words_from_path, _, mb, false,
                     (path: *const u8, path_length: ::libc::size_t), {
     recompose!(path, path_length);
 }, {
@@ -243,30 +300,32 @@ passacre_mb_export!(passacre_mb_load_words_from_path, mb, false,
     mb.load_words_from_path(path)
 });
 
-passacre_mb_export!(passacre_mb_encode_from_bytes, mb, false,
+passacre_mb_export!(passacre_mb_encode_from_bytes, ctx, mb, false,
                     (input: *const u8, input_length: ::libc::size_t,
-                     allocator_fn: AllocatorFn, context: *const ::libc::c_void), {
+                     closure: *const ::libc::c_void), {
     recompose!(input, input_length);
-    let allocator = Allocator::new(allocator_fn, context);
 }, {
+    let ctx = try!(ctx.0.lock());
     let ret = try!(mb.encode_from_bytes(input));
-    try!(allocator.string_copy(ret));
+    try!(ctx.string_copy(closure, ret));
     Ok(())
 });
 
-c_export!(passacre_mb_finished, (mb: *const CMultiBase), {}, {
-    unsafe { drop_ptr(mb); }
-    Ok(())
-});
+#[no_mangle]
+pub extern "C" fn passacre_mb_finished(mb: *mut CMultiBase) {
+    if !mb.is_null() {
+        unsafe { drop_ptr(mb); }
+    }
+}
 
 
 #[repr(C)]
 pub struct CPassacreGenerator(sync::Mutex<PassacreGenerator<'static>>);
 
 macro_rules! passacre_gen_export {
-    ($name:ident, $gen:ident, $null_allowed:expr,
+    ($name:ident, $ctx:tt, $gen:ident, $null_allowed:expr,
      ( $($arg:ident : $argtype:ty),* ), { $($preamble:tt)* }, $body:block) => {
-        c_export!($name, ( gen: *const CPassacreGenerator $(,$arg : $argtype)* ), {
+        c_export!($name, $ctx, ( gen: *const CPassacreGenerator $(,$arg : $argtype)* ), {
             let gen_mutex = resolve_ptr!(null_check, gen, $null_allowed);
             $($preamble)*
         }, {
@@ -293,7 +352,7 @@ pub extern "C" fn passacre_gen_scrypt_buffer_size() -> ::libc::size_t {
 }
 
 
-c_export!(passacre_gen_init, (gen: *mut CPassacreGenerator, algorithm: ::libc::c_uint), {}, {
+c_export!(passacre_gen_init, _, (gen: *mut CPassacreGenerator, algorithm: ::libc::c_uint), {}, {
     testing_panic!(algorithm == 99);
     let algorithm = try!(Algorithm::of_c_uint(algorithm));
     let p = try!(PassacreGenerator::new(algorithm));
@@ -302,7 +361,7 @@ c_export!(passacre_gen_init, (gen: *mut CPassacreGenerator, algorithm: ::libc::c
     Ok(())
 });
 
-passacre_gen_export!(passacre_gen_use_scrypt, gen, false,
+passacre_gen_export!(passacre_gen_use_scrypt, _, gen, false,
                      (n: u64, r: u32, p: u32, persistence_buffer: *mut u8), {
     let buf = try!(null_check_mut(persistence_buffer as *mut [u8; SCRYPT_BUFFER_SIZE], true));
     let kdf = Kdf::new_scrypt(n, r, p, buf);
@@ -311,7 +370,7 @@ passacre_gen_export!(passacre_gen_use_scrypt, gen, false,
 });
 
 
-passacre_gen_export!(passacre_gen_absorb_username_password_site, gen, false,
+passacre_gen_export!(passacre_gen_absorb_username_password_site, _, gen, false,
                      (username: *const ::libc::c_uchar, username_length: ::libc::size_t,
                       password: *const ::libc::c_uchar, password_length: ::libc::size_t,
                       site: *const ::libc::c_uchar, site_length: ::libc::size_t), {
@@ -323,33 +382,35 @@ passacre_gen_export!(passacre_gen_absorb_username_password_site, gen, false,
 });
 
 
-passacre_gen_export!(passacre_gen_absorb_null_rounds, gen, false,
+passacre_gen_export!(passacre_gen_absorb_null_rounds, _, gen, false,
                      (n_rounds: ::libc::size_t), {}, {
     gen.absorb_null_rounds(n_rounds as usize)
 });
 
 
-passacre_gen_export!(passacre_gen_squeeze, gen, false,
+passacre_gen_export!(passacre_gen_squeeze, _, gen, false,
                      (output: *mut ::libc::c_uchar, output_length: ::libc::size_t), {
     recompose!(mut output, output_length);
 }, {
     gen.squeeze(&mut *output)
 });
 
-passacre_gen_export!(passacre_gen_squeeze_password, gen, false,
-                     (mb: *const CMultiBase, allocator_fn: AllocatorFn,
-                      context: *const ::libc::c_void), {
+passacre_gen_export!(passacre_gen_squeeze_password, ctx, gen, false,
+                     (mb: *const CMultiBase, closure: *const ::libc::c_void), {
     let mb = resolve_ptr!(null_check, mb, false);
-    let allocator = Allocator::new(allocator_fn, context);
 }, {
+    let ctx = try!(ctx.0.lock());
     let mut mb = try!(mb.0.lock());
-    allocator.string_copy(try!(mb.encode_from_generator(&mut *gen)))
+    ctx.string_copy(closure, try!(mb.encode_from_generator(&mut *gen)))
 });
 
-c_export!(passacre_gen_finished, (gen: *const CPassacreGenerator), {}, {
-    unsafe { drop_ptr(gen); }
-    Ok(())
-});
+
+#[no_mangle]
+pub extern "C" fn passacre_gen_finished(gen: *mut CPassacreGenerator) {
+    if !gen.is_null() {
+        unsafe { drop_ptr(gen); }
+    }
+}
 
 
 struct ByteCopier<'a> {
@@ -389,18 +450,7 @@ pub extern "C" fn passacre_error(which: ::libc::c_int, dest_p: *mut ::libc::c_uc
             let err = PassacreError::of_c_int(which);
             let err_str = match err {
                 Some(PassacreError { kind: Panic, .. }) => {
-                    if ERROR_STRING.with(|err_string| {
-                        let err_string = err_string.borrow();
-                        if err_string.is_empty() {
-                            return false;
-                        }
-                        copier.copy(err_string.as_bytes());
-                        return true;
-                    }) {
-                        return copier;
-                    } else {
-                        "unknown panic"
-                    }
+                    "unknown panic"
                 },
                 Some(e) => e.to_string(),
                 None => "unknown error",

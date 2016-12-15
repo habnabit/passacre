@@ -7,16 +7,12 @@ import pytest
 
 from passacre._libpassacre_impl import (
     _ALGORITHMS, GeneratorError, Generator, MultiBaseError, MultiBase,
-    _read_error, ffi)
+    ffi)
 
 
 class AlwaysFailsAllocator(object):
-    def __init__(self):
-        @ffi.callback('passacre_allocator')
-        def alloc(size, ctx):
-            return ffi.NULL
-
-        self.callback = alloc
+    def new_buffer(self, size):
+        return ffi.NULL
 
     def buffers(self, count):
         raise NotImplementedError('should be unreachable')
@@ -41,14 +37,6 @@ assert_multibase_error_type = partial(assert_error_type, MultiBaseError)
 assert_multibase_panics = partial(assert_panics, MultiBaseError)
 assert_generator_error_type = partial(assert_error_type, GeneratorError)
 assert_generator_panics = partial(assert_panics, GeneratorError)
-
-
-def test_unknown_error_type():
-    assert _read_error(-98) == 'unknown error'
-
-
-def test_passacre_error_panic():
-    assert _read_error(-99) == 'passacre_error: panic'
 
 
 def test_multibase_error_on_failing_allocator():

@@ -33,16 +33,19 @@ else:
         return int.from_bytes(b, 'big')
 
 
+@ffi.def_extern()
+def python_allocator(size, allocator_handle):
+    allocator = ffi.from_handle(allocator_handle)
+    return allocator.new_buffer(size)
+
+
 class SimpleAllocator(object):
     def __init__(self):
         self._buf = []
 
-        @ffi.callback('passacre_allocator', error=ffi.NULL)
-        def alloc(size, ctx):
-            self._buf.append(ffi.new('unsigned char []', size))
-            return self._buf[-1]
-
-        self.callback = alloc
+    def new_buffer(self, size):
+        self._buf.append(ffi.new('unsigned char []', size))
+        return self._buf[-1]
 
     def buffers(self, count):
         if len(self._buf) != count:
@@ -54,6 +57,10 @@ class SimpleAllocator(object):
 
 
 ERR_BUF_SIZE = 256
+
+
+class ContextError(Exception):
+    pass
 
 
 class GeneratorError(Exception):
@@ -68,43 +75,74 @@ class MultiBaseError(Exception):
     pass
 
 
-def _read_error(code):
-    err_buf = ffi.new('unsigned char []', ERR_BUF_SIZE)
-    copied = C.passacre_error(code, err_buf, ERR_BUF_SIZE)
-    return ffi.buffer(err_buf)[:copied].decode('utf-8')
+class Context(object):
+    _allocator = SimpleAllocator
+
+    def __init__(self, allocator=C.python_allocator):
+        size = C.passacre_ctx_size()
+        self._buf = ffi.new('unsigned char []', size)
+        self._obj = ffi.cast('CPassacreContext *', self._buf)
+        self._check(C.passacre_ctx_init, allocator)
+        self._obj = ffi.gc(self._obj, C.passacre_ctx_finished)
+
+    def _check(self, func, *args):
+        result = func(self._obj, *args)
+        if result:
+            self._raise_error(result, ContextError)
+
+    def _read_error(self, code):
+        if code == C.PASSACRE_PANIC_ERROR:
+            alloc = self._allocator()
+            self._check(C.passacre_ctx_describe_last_panic, ffi.new_handle(alloc))
+            return alloc.one_buffer().decode('utf-8')
+        else:
+            err_buf = ffi.new('unsigned char []', ERR_BUF_SIZE)
+            copied = C.passacre_error(code, err_buf, ERR_BUF_SIZE)
+            return ffi.buffer(err_buf)[:copied].decode('utf-8')
+
+    def _raise_error(self, code, exc_type):
+        if not code:
+            return
+        raise exc_type(code, _ERRORS.get(code), self._read_error(code))
+
+    def bind(self, exc_type, obj):
+        return BoundContext(self, exc_type, obj)
 
 
-def _raise_error(code, exc_type):
-    raise exc_type(code, _ERRORS.get(code), _read_error(code))
+class BoundContext(object):
+    def __init__(self, context, exc_type, obj):
+        self._context = context
+        self._exc_type = exc_type
+        self._obj = obj
+
+    def check(self, func, *args):
+        self._context._raise_error(
+            func(self._context._obj, self._obj, *args),
+            self._exc_type)
 
 
-def _gc_generator(gen, C=C):
-    result = C.passacre_gen_finished(gen)
-    if result:
-        _raise_error(result, GeneratorError)
+default_context = Context()
 
 
 class Generator(object):
     _allocator = SimpleAllocator
 
-    def __init__(self, algorithm, scrypt_persist=False):
+    def __init__(self, algorithm, scrypt_persist=False, context=default_context):
         if algorithm not in _ALGORITHMS:
             raise ValueError('unknown algorithm', algorithm)
         size = C.passacre_gen_size()
         self._algorithm = algorithm
         self._buf = ffi.new('unsigned char []', size)
-        self._context = ffi.cast('struct passacre_gen_state *', self._buf)
+        self._context = context.bind(
+            GeneratorError,
+            ffi.gc(ffi.cast('CPassacreGenerator *', self._buf),
+                   C.passacre_gen_finished))
+        self._check = self._context.check
         self._check(C.passacre_gen_init, _ALGORITHMS[algorithm])
-        self._context = ffi.gc(self._context, _gc_generator)
         self._scrypt_persistence = ffi.NULL
         if scrypt_persist:
             self._scrypt_persistence = ffi.new(
                 'unsigned char []', C.passacre_gen_scrypt_buffer_size())
-
-    def _check(self, func, *args):
-        result = func(self._context, *args)
-        if result:
-            _raise_error(result, GeneratorError)
 
     def use_scrypt(self, n, r, p):
         self._check(
@@ -130,7 +168,7 @@ class Generator(object):
 
     def squeeze_for_multibase(self, mb):
         alloc = self._allocator()
-        self._check(C.passacre_gen_squeeze_password, mb._context, alloc.callback, ffi.NULL)
+        self._check(C.passacre_gen_squeeze_password, mb._context._obj, ffi.new_handle(alloc))
         return alloc.one_buffer().decode('utf-8')
 
     @property
@@ -140,26 +178,19 @@ class Generator(object):
         return ffi.buffer(self._scrypt_persistence)[:]
 
 
-def _gc_multibase(mb, C=C):
-    result = C.passacre_mb_finished(mb)
-    if result:
-        _raise_error(result, MultiBaseError)
-
-
 class MultiBase(object):
     _allocator = SimpleAllocator
 
-    def __init__(self):
+    def __init__(self, context=default_context):
         size = C.passacre_mb_size()
+        self._context = context
         self._buf = ffi.new('unsigned char []', size)
-        self._context = ffi.cast('struct passacre_mb_state *', self._buf)
+        self._context = context.bind(
+            MultiBaseError,
+            ffi.gc(ffi.cast('CMultiBase *', self._buf),
+                   C.passacre_mb_finished))
+        self._check = self._context.check
         self._check(C.passacre_mb_init)
-        self._context = ffi.gc(self._context, _gc_multibase)
-
-    def _check(self, func, *args):
-        result = func(self._context, *args)
-        if result:
-            _raise_error(result, MultiBaseError)
 
     def enable_shuffle(self):
         self._check(C.passacre_mb_enable_shuffle)
@@ -201,5 +232,5 @@ class MultiBase(object):
 
     def encode(self, b):
         alloc = self._allocator()
-        self._check(C.passacre_mb_encode_from_bytes, b, len(b), alloc.callback, ffi.NULL)
+        self._check(C.passacre_mb_encode_from_bytes, b, len(b), ffi.new_handle(alloc))
         return alloc.one_buffer()
