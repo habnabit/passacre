@@ -89,12 +89,12 @@ if ("$ENV{PASSACRE_LIBRARY_TESTING_ONLY}" STREQUAL yes)
 endif()
 
 add_custom_target(passacre ALL
-                  COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" sh -c
-                  "cargo build ${CARGO_BUILD_FLAGS} 2>&1 | tee ${CMAKE_BINARY_DIR}/_cargo_out.txt"
+                  COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo build ${CARGO_BUILD_FLAGS}
                   COMMAND cp "${CARGO_BUILD_DIR}/libpassacre.a" "${CMAKE_BINARY_DIR}"
                   DEPENDS passacre_deps
                   VERBATIM
-                  SOURCES src/lib.rs src/util.rs src/deps.rs src/passacre.rs src/c.rs)
+                  SOURCES src/deps.rs src/error.rs src/lib.rs src/multibase.rs src/passacre.rs
+                          src/passacre_capnp.rs src/rpc.rs)
 list(APPEND TO_CLEAN target libpassacre.a)
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${TO_CLEAN}")

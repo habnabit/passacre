@@ -16,7 +16,18 @@ pub struct SkeinCtx_t {
     pub _m: [u64; 36usize],
 }
 
+impl Default for SkeinCtx_t {
+    fn default() -> SkeinCtx_t {
+        SkeinCtx_t {
+            skeinSize: Default::default(),
+            XSave: Default::default(),
+            _m: [0; 36],
+        }
+    }
+}
+
 #[repr(C)]
+#[derive(Default)]
 pub struct ThreefishKey_t {
     pub stateSize: u64,
     pub key: [u64; 17usize],

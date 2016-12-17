@@ -17,7 +17,7 @@ macro_rules! fail {
 }
 
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum PassacreErrorKind {
     Panic,
     KeccakError,
@@ -28,6 +28,7 @@ pub enum PassacreErrorKind {
     DomainError,
     AllocatorError,
     MutexError,
+    Capnp(::capnp::Error),
 }
 
 impl PassacreErrorKind {
@@ -36,43 +37,13 @@ impl PassacreErrorKind {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct PassacreError {
     pub kind: PassacreErrorKind,
     context: Option<String>,
 }
 
 impl PassacreError {
-    pub fn of_c_int(which: ::libc::c_int) -> Option<PassacreError> {
-        let result = match which {
-            -1 => Panic,
-            -2 => KeccakError,
-            -3 => SkeinError,
-            -4 => ScryptError,
-            -5 => UserError,
-            -6 => InternalError,
-            -7 => DomainError,
-            -8 => AllocatorError,
-            -9 => MutexError,
-            _ => return None,
-        };
-        Some(result.to_error())
-    }
-
-    pub fn to_c_int(&self) -> ::libc::c_int {
-        match self.kind {
-            Panic => -1,
-            KeccakError => -2,
-            SkeinError => -3,
-            ScryptError => -4,
-            UserError => -5,
-            InternalError => -6,
-            DomainError => -7,
-            AllocatorError => -8,
-            MutexError => -9,
-        }
-    }
-
     pub fn to_string(&self) -> &'static str {
         match self.kind {
             Panic => "panic",
@@ -84,6 +55,7 @@ impl PassacreError {
             DomainError => "domain error",
             AllocatorError => "allocator error",
             MutexError => "mutex error",
+            Capnp(_) => "capnp error",
         }
     }
 }
@@ -106,5 +78,28 @@ impl From<(PassacreErrorKind, &'static str)> for PassacreError {
 impl<T> From<sync::PoisonError<T>> for PassacreError {
     fn from(_: sync::PoisonError<T>) -> PassacreError {
         PassacreError { kind: MutexError, context: None }
+    }
+}
+
+impl From<::capnp::Error> for PassacreError {
+    fn from(e: ::capnp::Error) -> PassacreError {
+        PassacreErrorKind::Capnp(e).into()
+    }
+}
+
+impl From<::capnp::NotInSchema> for PassacreError {
+    fn from(e: ::capnp::NotInSchema) -> PassacreError {
+        e.into()
+    }
+}
+
+impl Into<::capnp::Error> for PassacreError {
+    fn into(self) -> ::capnp::Error {
+        if let PassacreErrorKind::Capnp(e) = self.kind {
+            e
+        } else {
+            // XXX: information leakage?
+            ::capnp::Error::failed(format!("passacre internal error: {:?}", self))
+        }
     }
 }

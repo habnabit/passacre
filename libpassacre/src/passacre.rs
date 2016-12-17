@@ -4,12 +4,9 @@
  */
 
 use rand::Rng;
-use std::mem::uninitialized;
-use std::panic::UnwindSafe;
 
-use ::error::PassacreErrorKind::*;
-use ::error::PassacreResult;
-use ::util::{set_memory, clone_from_slice};
+use super::error::PassacreErrorKind::*;
+use super::error::PassacreResult;
 
 
 macro_rules! decompose {
@@ -39,6 +36,14 @@ macro_rules! check_skein {
     ($actual:expr) => { check_eq!(::deps::SKEIN_SUCCESS, SkeinError, $actual); };
 }
 
+fn copy_from_shorter_slice<T: Copy>(dst: &mut [T], src: &[T]) -> usize {
+    let ret = ::std::cmp::min(dst.len(), src.len());
+    if ret > 0 {
+        (&mut dst[..ret]).copy_from_slice(&src[..ret]);
+    }
+    ret
+}
+
 
 pub enum Algorithm {
     Keccak,
@@ -64,27 +69,24 @@ enum State {
     Squeezing,
 }
 
-pub enum Kdf<'persist> {
+pub enum Kdf {
     Scrypt {
         n: u64,
         r: u32,
         p: u32,
-        persistence_buffer: Option<&'persist mut [u8; SCRYPT_BUFFER_SIZE]>,
     },
 }
 
-impl<'persist> Kdf<'persist> {
-    pub fn new_scrypt(n: u64, r: u32, p: u32,
-                      mut persistence_buffer: Option<&'persist mut [u8; SCRYPT_BUFFER_SIZE]>) -> Kdf<'persist> {
-        persistence_buffer.as_mut().map(|target| set_memory(*target, b'x'));
+impl Kdf {
+    pub fn new_scrypt(n: u64, r: u32, p: u32) -> Kdf {
         Kdf::Scrypt {
-            n: n, r: r, p: p, persistence_buffer: persistence_buffer,
+            n: n, r: r, p: p,
         }
     }
 
     pub fn derive(&mut self, username: &[u8], password: &[u8]) -> PassacreResult<Vec<u8>> {
         match self {
-            &mut Kdf::Scrypt { n, r, p, ref mut persistence_buffer } => {
+            &mut Kdf::Scrypt { n, r, p } => {
                 testing_fail!(n == 99 && r == 99 && p == 99, ScryptError);
                 let mut scrypt_result = vec![0u8; SCRYPT_BUFFER_SIZE];
                 {
@@ -97,16 +99,11 @@ impl<'persist> Kdf<'persist> {
                                                         n, r, p, scrypt_result.0, scrypt_result.1)
                               });
                 }
-                persistence_buffer.as_mut().map(|target| {
-                    clone_from_slice(*target, &scrypt_result[..]);
-                });
                 Ok(scrypt_result)
             }
         }
     }
 }
-
-impl<'persist> UnwindSafe for Kdf<'persist> {}
 
 
 const SKEIN_512_BLOCK_BYTES: usize = 64;
@@ -141,7 +138,7 @@ impl HashState {
                 HashState::Keccak(sponge)
             },
             &Algorithm::Skein => unsafe {
-                let mut skein: ::deps::SkeinCtx_t = uninitialized();
+                let mut skein: ::deps::SkeinCtx_t = Default::default();
                 check_skein!(::deps::skeinCtxPrepare(&mut skein, ::deps::Skein512));
                 check_skein!(::deps::skeinInit(&mut skein, ::deps::Skein512));
                 let nulls = [0u8; SKEIN_512_BLOCK_BYTES];
@@ -165,9 +162,9 @@ impl Drop for HashState {
     }
 }
 
-pub struct PassacreGenerator<'persist> {
+pub struct PassacreGenerator {
     state: State,
-    kdf: Option<Kdf<'persist>>,
+    kdf: Option<Kdf>,
     hash_state: HashState,
 }
 
@@ -176,8 +173,8 @@ pub const SCRYPT_BUFFER_SIZE: usize = 64;
 const DELIMITER: &'static [u8] = b":";
 const TWEAK: [u8; 24] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3f, 0, 0, 0, 0, 0, 0, 0, 0];
 
-impl<'persist> PassacreGenerator<'persist> {
-    pub fn new(algorithm: Algorithm) -> PassacreResult<PassacreGenerator<'persist>> {
+impl PassacreGenerator {
+    pub fn new(algorithm: Algorithm) -> PassacreResult<PassacreGenerator> {
         let p = PassacreGenerator {
             state: State::Initialized,
             kdf: None,
@@ -186,7 +183,7 @@ impl<'persist> PassacreGenerator<'persist> {
         Ok(p)
     }
 
-    pub fn use_kdf(&mut self, kdf: Kdf<'persist>) -> PassacreResult<()> {
+    pub fn use_kdf(&mut self, kdf: Kdf) -> PassacreResult<()> {
         match self.state {
             State::Initialized => (),
             _ => fail!(UserError),
@@ -258,9 +255,9 @@ impl<'persist> PassacreGenerator<'persist> {
         testing_panic!(output.len() == 99999);
         let new_state = match self.hash_state {
             HashState::Skein(ref mut skein) => unsafe {
-                let mut hash: [u8; SKEIN_512_BLOCK_BYTES] = uninitialized();
+                let mut hash = [0u8; SKEIN_512_BLOCK_BYTES];
                 check_skein!(::deps::skeinFinal(skein, hash.as_mut_ptr()));
-                let mut threefish: ::deps::ThreefishKey_t = uninitialized();
+                let mut threefish: ::deps::ThreefishKey_t = Default::default();
                 ::deps::threefishSetKey(&mut threefish, ::deps::Threefish512,
                                         hash.as_ptr() as *const u64, TWEAK.as_ptr() as *const u64);
                 Some(HashState::SkeinPrng(SkeinPrng {
@@ -293,7 +290,7 @@ impl<'persist> PassacreGenerator<'persist> {
                 let mut output_pos = 0usize;
                 while n_bytes > 0 {
                     if prng.bytes_remaining == 0 {
-                        let mut state_output: [u8; SKEIN_512_BLOCK_BYTES] = uninitialized();
+                        let mut state_output = [0u8; SKEIN_512_BLOCK_BYTES];
                         input[0] = 0;
                         ::deps::threefishEncryptBlockBytes(
                             &mut prng.threefish, input.as_ptr(), state_output.as_mut_ptr());
@@ -305,7 +302,7 @@ impl<'persist> PassacreGenerator<'persist> {
                             state_output.as_ptr() as *const u64, TWEAK.as_ptr() as *const u64);
                         prng.bytes_remaining = prng.buffer.len();
                     }
-                    let copied = clone_from_slice(
+                    let copied = copy_from_shorter_slice(
                         &mut output[output_pos..], &prng.buffer[prng.buffer.len() - prng.bytes_remaining..]);
                     prng.bytes_remaining -= copied;
                     n_bytes -= copied;
@@ -319,7 +316,7 @@ impl<'persist> PassacreGenerator<'persist> {
     }
 }
 
-impl<'persist> Rng for PassacreGenerator<'persist> {
+impl Rng for PassacreGenerator {
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         self.squeeze(dest).unwrap()
     }
@@ -327,6 +324,9 @@ impl<'persist> Rng for PassacreGenerator<'persist> {
     fn next_u32(&mut self) -> u32 {
         let mut ret = [0u8; 4];
         self.fill_bytes(&mut ret);
-        ret[0] as u32 | ((ret[1] as u32) << 8) | ((ret[2] as u32) << 16) | ((ret[3] as u32) << 24)
+        ret[0] as u32
+            | ((ret[1] as u32) << 8)
+            | ((ret[2] as u32) << 16)
+            | ((ret[3] as u32) << 24)
     }
 }

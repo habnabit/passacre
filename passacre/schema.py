@@ -1,9 +1,8 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+import itertools
 import string
-
-from passacre._libpassacre_impl import MultiBase
 
 
 _word = object()
@@ -121,22 +120,19 @@ def parse_items(x):
     return [y for subitems in items for y in subitems]
 
 
-def multibase_of_schema(schema, word_list_path):
+def multibase_of_schema(schema):
     "Convert a password schema from decoded YAML to a ``MultiBase``."
     items = parse_items(schema)
-    mb = MultiBase()
-    loaded_words = False
-    for item in items:
+    ret = []
+    for item, iteritems in itertools.groupby(items):
         if item is _word:
-            if not loaded_words:
-                if word_list_path is None:
-                    raise ValueError(
-                        "can't use a schema with 'word' without a words file")
-                mb.load_words_from_path(word_list_path)
-                loaded_words = True
-            mb.add_words()
+            item = {'words': None}
         elif len(item) == 1:
-            mb.add_separator(item[0])
+            item = {'separator': item[0]}
         else:
-            mb.add_characters(item)
-    return mb
+            item = {'characters': list(item)}
+        ret.append({
+            'value': item,
+            'repeat': sum(1 for _ in iteritems),
+        })
+    return {'value': ret}

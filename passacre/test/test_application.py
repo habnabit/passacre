@@ -6,7 +6,6 @@ import py.path
 import sys
 import traceback
 
-from passacre._libpassacre_impl import MultiBaseError
 from passacre import application, features
 
 
@@ -672,7 +671,7 @@ def nonextant_words_app(app, tmpdir):
 
 def test_nonextant_words_warns(nonextant_words_app):
     app = nonextant_words_app
-    with pytest.raises(MultiBaseError):
+    with pytest.raises(RuntimeError):
         app.main(['generate', 'example.com'])
 
 

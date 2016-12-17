@@ -7,7 +7,14 @@ version = "0.0.1"
 authors = ["Aaron Gallagher <_@habnab.it>"]
 build = "build.rs"
 
+[build-dependencies]
+capnpc = "0.7"
+
 [dependencies]
+capnp = "0.7.5"
+capnp-rpc = "0.7.4"
+gj = "0.2"
+gjio = "0.1"
 libc = "0.2.18"
 ramp = "0.3.3"
 rand = "0.3.15"
@@ -17,7 +24,6 @@ fnconcat = "0.2.1"
 
 [lib]
 name = "passacre"
-crate-type = ["staticlib"]
 
 [features]
 testing-checks = []

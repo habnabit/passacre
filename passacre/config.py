@@ -14,7 +14,7 @@ import os
 
 @errormark('verifying schema: {0!r}')
 def verify_multibase_schema(schema):
-    multibase_of_schema(schema, ['a'])
+    multibase_of_schema(schema)
 
 
 global_config_options = set("""
@@ -55,9 +55,14 @@ class ConfigBase(object):
             return
         self.word_list_path = os.path.expanduser(path)
 
+    def multibase_of_schema(self, schema):
+        ret = multibase_of_schema(schema)
+        if self.word_list_path is not None:
+            ret['words'] = {'source': {'filePath': self.word_list_path}}
+        return ret
+
     def fill_out_config(self, config):
-        config['multibase'] = multibase_of_schema(
-            config['schema'], self.word_list_path)
+        config['multibase'] = self.multibase_of_schema(config['schema'])
         config['iterations'] = (
             config.get('iterations', 1000) + config.get('increment', 0))
 
