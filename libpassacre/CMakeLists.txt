@@ -19,9 +19,6 @@ if (DEFINED ENV{CMAKE_BUILD_TYPE})
   set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
 endif ()
 
-set(CMAKE_C_VISIBILITY_PRESET hidden)
-set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
-
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(KECCAKF "keccak/KeccakF-1600-opt64.c")
 elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -93,8 +90,7 @@ add_custom_target(passacre ALL
                   COMMAND cp "${CARGO_BUILD_DIR}/libpassacre.a" "${CMAKE_BINARY_DIR}"
                   DEPENDS passacre_deps
                   VERBATIM
-                  SOURCES src/deps.rs src/error.rs src/lib.rs src/multibase.rs src/passacre.rs
-                          src/passacre_capnp.rs src/rpc.rs)
+                  SOURCES src/deps.rs src/error.rs src/lib.rs src/multibase.rs src/passacre.rs src/rpc.rs)
 list(APPEND TO_CLEAN target libpassacre.a)
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${TO_CLEAN}")
