@@ -6,13 +6,9 @@ project(libpassacre)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
 
-file(READ "${CMAKE_SOURCE_DIR}/../version.txt" RAW_VERSION)
-string(REPLACE "-" ";" SPLIT_VERSION "${RAW_VERSION}")
-list(GET SPLIT_VERSION 0 VERSION)
-list(GET SPLIT_VERSION 1 VERSION_COMMITS)
-if (VERSION_COMMITS GREATER 0)
-  set(VERSION "${VERSION}.post${VERSION_COMMITS}")
-endif ()
+execute_process(COMMAND env "PYTHONPATH=${CMAKE_SOURCE_DIR}/.."
+                        python -c "import sys, passacre; sys.stdout.write(passacre.__version__)"
+                OUTPUT_VARIABLE VERSION)
 
 if (DEFINED ENV{CMAKE_BUILD_TYPE})
   set(CMAKE_BUILD_TYPE "$ENV{CMAKE_BUILD_TYPE}")
@@ -87,18 +83,28 @@ if ("$ENV{PASSACRE_LIBRARY_TESTING_ONLY}" STREQUAL yes)
   list(APPEND CARGO_BUILD_FLAGS --features testing-checks)
 endif()
 
-add_custom_target(passacre ALL
+add_custom_target(cargo-passacre ALL
                   COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo build ${CARGO_BUILD_FLAGS}
-                  COMMAND cp "${CARGO_BUILD_DIR}/passacre-backend" "${CMAKE_BINARY_DIR}/${PASSACRE_BACKEND}"
-                  COMMAND cp "${CMAKE_SOURCE_DIR}/../version.txt" "${CMAKE_SOURCE_DIR}/setup.py" "${CMAKE_BINARY_DIR}"
-                  COMMAND pip wheel .
                   DEPENDS passacre_deps
                   VERBATIM
                   SOURCES src/deps.rs src/error.rs src/lib.rs src/multibase.rs src/passacre.rs src/rpc.rs)
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/${PASSACRE_BACKEND}"
+                   DEPENDS cargo-passacre "${CARGO_BUILD_DIR}/passacre-backend"
+                   COMMAND ${CMAKE_COMMAND} -E
+                           copy "${CARGO_BUILD_DIR}/passacre-backend" "${CMAKE_BINARY_DIR}/${PASSACRE_BACKEND}")
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/setup.py"
+                   DEPENDS setup.py
+                   COMMAND ${CMAKE_COMMAND} -E
+                           copy "${CMAKE_SOURCE_DIR}/setup.py" "${CMAKE_BINARY_DIR}/setup.py")
+add_custom_target(passacre-backend-wheel ALL
+                  COMMAND env "PASSACRE_VERSION=${VERSION}" pip wheel .
+                  DEPENDS "${CMAKE_BINARY_DIR}/${PASSACRE_BACKEND}" "${CMAKE_BINARY_DIR}/setup.py"
+                  VERBATIM)
+
 list(APPEND TO_CLEAN target ${PASSACRE_BACKEND})
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${TO_CLEAN}")
 
 add_custom_target(test-prep
                   COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo test --no-run
-                  DEPENDS passacre)
+                  DEPENDS cargo-passacre)

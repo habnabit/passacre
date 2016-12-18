@@ -1,3 +1,5 @@
-include COPYING version.txt passacre.yaml.example
+include COPYING passacre.yaml.example
 include passacre/_passacre.capnp passacre/schema.sql
 graft passacre/test/data
+include versioneer.py
+include passacre/_version.py

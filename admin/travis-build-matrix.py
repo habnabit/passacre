@@ -14,7 +14,7 @@ for compiler in ['clang', 'gcc']:
     for python in ['2.6', '2.7', '3.3', '3.4', '3.5']:
         echo('''
     - python: {pydot}
-      env: TOXENV=py{pynodot} _COMPILER={compiler}
+      env: TOXENV=cmake-backend,py{pynodot} _COMPILER={compiler}
 ''', compiler=compiler, pydot=python, pynodot=python.replace('.', ''))
 
 echo('''

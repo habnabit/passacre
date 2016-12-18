@@ -1,9 +1,6 @@
 /passacre.yaml
-/MANIFEST
-/build
-/dist
-/version.txt
-/passacre/_version.py
+build
+dist
 *.egg*
 /.coverage
 /htmlcov*

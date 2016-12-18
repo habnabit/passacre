@@ -4,6 +4,9 @@ omit =
     *passacre/test/*
     *passacre/__main__.py
 
+[html]
+directory = htmlcov-${TOX_ENVNAME}
+
 [report]
 exclude_lines =
     pragma: no ?cover

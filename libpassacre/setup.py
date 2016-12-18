@@ -38,9 +38,8 @@ setup(
     ],
     license='ISC',
 
-    vcversioner={},
+    version=os.environ['PASSACRE_VERSION'],
     scripts=[backend],
-    setup_requires=['vcversioner'],
     cmdclass={
         'bdist_wheel': bdist_wheel,
     },

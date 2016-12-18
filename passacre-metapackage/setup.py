@@ -1,40 +1,18 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-import os
-
 from setuptools import setup
 
 import versioneer
 
 
-here = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(here, 'README.rst'), 'r') as infile:
-    long_description = infile.read()
-
-
-extras_require = {
-    'yaml': ['PyYAML'],
-    'clipboard': ['xerox'],
-    'keccak': [],
-    'skein': [],
-    'yubikey': ['ykpers-cffi'],
-    ':python_version < "3.2"': ['subprocess32'],
-}
-
-extras_require['all'] = [
-    req
-    for extra, reqs in extras_require.items() if not extra.startswith(':')
-    for req in reqs]
-
-entry_points = {'console_scripts': []}
-if os.environ.get('PASSACRE_LIBRARY_TESTING_ONLY') != 'yes':
-    entry_points['console_scripts'].append(
-        'passacre = passacre.application:main')
+version = versioneer.get_version()
+#with open('../README.rst', 'r') as infile:
+long_description = ''#infile.read()
 
 
 setup(
-    name='passacre-nobackend',
+    name='passacre',
     description='better repeatable password generation',
     long_description=long_description,
     author='Aaron Gallagher',
@@ -57,13 +35,10 @@ setup(
     ],
     license='ISC',
 
-    packages=['passacre', 'passacre.test'],
-    include_package_data=True,
     install_requires=[
-        'pycapnp',
+        'passacre-backend==' + version,
+        'passacre-nobackend==' + version,
     ],
-    extras_require=extras_require,
-    entry_points=entry_points,
-    version=versioneer.get_version(),
+    version=version,
     cmdclass=versioneer.get_cmdclass(),
 )
