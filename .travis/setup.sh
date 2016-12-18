@@ -1,3 +1,5 @@
+export PATH="$HOME/.cargo/bin:$PATH"
+
 case "$_COMPILER" in
     clang)
         sudo apt-get install -y clang-3.4

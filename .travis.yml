@@ -45,7 +45,7 @@ matrix:
 
 before_install:
   - "sudo apt-get update"
-  - "curl -sSf https://static.rust-lang.org/rustup.sh | sh -s -- - --yes --verbose --channel=nightly"
+  - "curl https://sh.rustup.rs/ | sh -s -- -y --default-toolchain nightly"
   - "source .travis/setup.sh"
 install:
   - "pip install tox"
