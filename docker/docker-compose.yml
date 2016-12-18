@@ -1,0 +1,15 @@
+version: '2'
+services:
+
+  build-linux-backend:
+    build:
+      context: .
+      dockerfile: build-linux-backend.docker
+    image: build-linux-backend
+    volumes:
+      - ..:/build
+      - cargo_registry:/var/lib/builder/.cargo/registry
+    command: /build/docker/build-linux-backend-root.sh
+
+volumes:
+  cargo_registry: {}

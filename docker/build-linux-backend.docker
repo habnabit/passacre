@@ -1,0 +1,7 @@
+FROM quay.io/pypa/manylinux1_x86_64
+
+RUN useradd -mrd /var/lib/builder builder
+RUN mkdir /nix && chown builder: /nix
+RUN su -c "curl https://nixos.org/nix/install | bash" - builder
+RUN su -c "nix-env -iA nixpkgs.cmake nixpkgs.capnproto" - builder
+RUN su -c "curl https://sh.rustup.rs/ | sh -s -- -y --default-toolchain nightly && echo '. ~/.cargo/env' >> ~/.bash_profile" - builder

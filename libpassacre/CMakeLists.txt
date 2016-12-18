@@ -57,6 +57,7 @@ else ()
 endif ()
 configure_file("libpassacre-config.h.in" "${CMAKE_BINARY_DIR}/libpassacre-config.h")
 include_directories("${CMAKE_BINARY_DIR}")
+set(PASSACRE_BACKEND "passacre-backend-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 
 if (CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_CONFIGURATION_TYPES Debug Release)
@@ -73,25 +74,28 @@ add_library(passacre_deps
             scrypt/sha256.c scrypt/crypto_scrypt-${SCRYPTVER}.c)
 set_target_properties(passacre_deps PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+set(CARGO_BUILD_FLAGS "")
+list(APPEND CARGO_BUILD_FLAGS --manifest-path "${CMAKE_SOURCE_DIR}/Cargo.toml")
 if (CMAKE_BUILD_TYPE STREQUAL Release)
-  set(CARGO_BUILD_FLAGS "--release")
+  list(APPEND CARGO_BUILD_FLAGS "--release")
   set(CARGO_BUILD_DIR "${CMAKE_SOURCE_DIR}/target/release")
 else ()
-  set(CARGO_BUILD_FLAGS "")
   set(CARGO_BUILD_DIR "${CMAKE_SOURCE_DIR}/target/debug")
 endif ()
 
 if ("$ENV{PASSACRE_LIBRARY_TESTING_ONLY}" STREQUAL yes)
-  set(CARGO_BUILD_FLAGS "${CARGO_BUILD_FLAGS} --features testing-checks")
+  list(APPEND CARGO_BUILD_FLAGS --features testing-checks)
 endif()
 
 add_custom_target(passacre ALL
                   COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo build ${CARGO_BUILD_FLAGS}
-                  COMMAND cp "${CARGO_BUILD_DIR}/libpassacre.a" "${CMAKE_BINARY_DIR}"
+                  COMMAND cp "${CARGO_BUILD_DIR}/passacre-backend" "${CMAKE_BINARY_DIR}/${PASSACRE_BACKEND}"
+                  COMMAND cp "${CMAKE_SOURCE_DIR}/../version.txt" "${CMAKE_SOURCE_DIR}/setup.py" "${CMAKE_BINARY_DIR}"
+                  COMMAND pip wheel .
                   DEPENDS passacre_deps
                   VERBATIM
                   SOURCES src/deps.rs src/error.rs src/lib.rs src/multibase.rs src/passacre.rs src/rpc.rs)
-list(APPEND TO_CLEAN target libpassacre.a)
+list(APPEND TO_CLEAN target ${PASSACRE_BACKEND})
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${TO_CLEAN}")
 
