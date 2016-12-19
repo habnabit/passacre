@@ -2,9 +2,27 @@
 # See COPYING for details.
 
 import os
+import tokenize
 
 from setuptools import setup
 from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
+
+
+backend = 'passacre-backend-{0}-{4}'.format(*os.uname())
+
+
+try:
+    _detect_encoding = tokenize.detect_encoding
+except AttributeError:
+    pass
+else:
+    def detect_encoding(readline):
+        try:
+            return _detect_encoding(readline)
+        except SyntaxError:
+            return 'latin-1', []
+
+    tokenize.detect_encoding = detect_encoding
 
 
 class bdist_wheel(_bdist_wheel):
@@ -16,9 +34,6 @@ class bdist_wheel(_bdist_wheel):
     def get_tag(self):
         impl, abi, plat = _bdist_wheel.get_tag(self)
         return 'py2.py3', 'none', plat
-
-
-backend = 'passacre-backend-{0}-{4}'.format(*os.uname())
 
 
 setup(
