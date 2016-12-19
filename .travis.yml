@@ -40,6 +40,17 @@ matrix:
       env: TOXENV=rust-kcov _COMPILER=clang _KCOV=1
 
 
+env:
+  global:
+    - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
+    - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+
+cache:
+  directories:
+    - ~/.cache/pip
+    - ~/.cargo/registry
+
+
 before_install:
   - "source .travis/setup.sh"
 install:
