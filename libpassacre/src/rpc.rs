@@ -4,7 +4,7 @@ use capnp;
 use super::error::PassacreResult;
 use super::multibase::{Base, MultiBase};
 use super::passacre_capnp::{derivation_parameters, deriver, schema, schema_utils, toplevel};
-use super::passacre::{Algorithm, PassacreGenerator};
+use super::passacre::{Algorithm, Kdf, PassacreGenerator};
 
 pub struct StandardToplevel;
 
@@ -28,16 +28,23 @@ fn derive(params: &deriver::DeriveParams) -> PassacreResult<String> {
     let input = params.get_user_input()?;
     let mut gen = generator_of_parameters(&derivation)?;
     let mb = multibase_of_schema(&site.get_schema()?)?;
-    gen.absorb_username_password_site(
-        input.get_username()?.as_bytes(),
-        input.get_password()?.as_bytes(),
-        input.get_sitename()?.as_bytes())?;
     let mut nulls = derivation.get_increment();
     use super::passacre_capnp::derivation_parameters::kdf::Which::*;
     match derivation.get_kdf().which()? {
         Nulls(i) => nulls += i,
-        Scrypt(_) => (),
-    }
+        Scrypt(s) => {
+            let s = s?;
+            gen.use_kdf(Kdf::Scrypt {
+                n: s.get_n(),
+                r: s.get_r(),
+                p: s.get_p(),
+            })?
+        },
+    };
+    gen.absorb_username_password_site(
+        input.get_username()?.as_bytes(),
+        input.get_password()?.as_bytes(),
+        input.get_sitename()?.as_bytes())?;
     gen.absorb_null_rounds(nulls as usize)?;
     Ok(mb.encode_from_generator(&mut gen)?)
 }
@@ -92,6 +99,9 @@ fn multibase_of_schema(schema: &schema::Reader) -> PassacreResult<MultiBase> {
             ret.add_base(b.clone())?;
         }
         ret.add_base(b)?;
+    }
+    if schema.get_shuffle() {
+        ret.enable_shuffle();
     }
     Ok(ret)
 }

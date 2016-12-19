@@ -28,10 +28,14 @@ def generate(username, password, site, options, client=default_client):
 
     if options.get('yubikey-slot'):
         password = extend_password_with_yubikey(password, options)
+    kdf = {}
+    if 'scrypt' in options:
+        kdf['scrypt'] = options['scrypt']
     return client.derive({
         'derivation': {
             'method': options['method'],
-            'kdf': {'nulls': options['iterations']},
+            'kdf': kdf,
+            'increment': options['iterations'],
         },
         'schema': options['multibase'],
     }, {

@@ -6,6 +6,8 @@ import py.path
 import sys
 import traceback
 
+import capnp
+
 from passacre import application, features
 
 
@@ -671,7 +673,7 @@ def nonextant_words_app(app, tmpdir):
 
 def test_nonextant_words_warns(nonextant_words_app):
     app = nonextant_words_app
-    with pytest.raises(RuntimeError):
+    with pytest.raises(capnp.KjException):
         app.main(['generate', 'example.com'])
 
 

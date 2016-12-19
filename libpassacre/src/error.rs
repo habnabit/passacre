@@ -5,7 +5,7 @@
 
 #![macro_use]
 
-use std::sync;
+use std::{io, sync};
 
 use self::PassacreErrorKind::*;
 
@@ -16,8 +16,14 @@ macro_rules! fail {
     )
 }
 
+#[derive(Debug)]
+pub struct Nonequal<T>(pub T);
 
-#[derive(Clone, Debug)]
+impl<T> PartialEq for Nonequal<T> {
+    fn eq(&self, _: &Self) -> bool { false }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum PassacreErrorKind {
     Panic,
     KeccakError,
@@ -28,7 +34,8 @@ pub enum PassacreErrorKind {
     DomainError,
     AllocatorError,
     MutexError,
-    Capnp(::capnp::Error),
+    Capnp(Nonequal<::capnp::Error>),
+    IO(Nonequal<io::Error>),
 }
 
 impl PassacreErrorKind {
@@ -37,7 +44,7 @@ impl PassacreErrorKind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PassacreError {
     pub kind: PassacreErrorKind,
     context: Option<String>,
@@ -56,6 +63,7 @@ impl PassacreError {
             AllocatorError => "allocator error",
             MutexError => "mutex error",
             Capnp(_) => "capnp error",
+            IO(_) => "IO error",
         }
     }
 }
@@ -83,7 +91,7 @@ impl<T> From<sync::PoisonError<T>> for PassacreError {
 
 impl From<::capnp::Error> for PassacreError {
     fn from(e: ::capnp::Error) -> PassacreError {
-        PassacreErrorKind::Capnp(e).into()
+        PassacreErrorKind::Capnp(Nonequal(e)).into()
     }
 }
 
@@ -93,10 +101,16 @@ impl From<::capnp::NotInSchema> for PassacreError {
     }
 }
 
+impl From<io::Error> for PassacreError {
+    fn from(e: io::Error) -> PassacreError {
+        PassacreErrorKind::IO(Nonequal(e)).into()
+    }
+}
+
 impl Into<::capnp::Error> for PassacreError {
     fn into(self) -> ::capnp::Error {
         if let PassacreErrorKind::Capnp(e) = self.kind {
-            e
+            e.0
         } else {
             // XXX: information leakage?
             ::capnp::Error::failed(format!("passacre internal error: {:?}", self))

@@ -1,18 +1,16 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+import string
+
 import pytest
 
-from passacre import compat, features, generator, signing_uuid
+from passacre.schema import multibase_of_schema
+from passacre import features, generator, signing_uuid
 
 
 _shush_pyflakes = [features]
-
-
-def test_invalid_generator_method():
-    options = {'method': 'invalid', 'iterations': 12}
-    with pytest.raises(ValueError):
-        generator.build_generator(None, 'passacre', 'example.com', options)
+hex_multibase = multibase_of_schema([string.hexdigits[:16]] * 64)
 
 
 class FakeYubiKey(object):
@@ -24,11 +22,9 @@ class FakeYubiKey(object):
         self.slot = slot
         return b'spam ' * 4
 
-skip_without_yubikey = pytest.mark.skipif(
-    'not features.yubikey.usable', reason='ykpers not usable')
 
-@skip_without_yubikey
-def test_extend_password_with_yubikey():
+def test_extend_password_with_yubikey(monkeypatch):
+    monkeypatch.setattr(features.yubikey, 'usable', True)
     yk = FakeYubiKey()
     password = generator.extend_password_with_yubikey('spam', {'yubikey-slot': 1}, YubiKey=yk)
     assert password == '7370616d207370616d207370616d207370616d20:spam'
@@ -51,5 +47,5 @@ def test_extend_password_with_yubikey():
      'cff7a6fc473cb6523c413047f8e26d1e23ffc96b9d7b1fe2008b95469ef2eed1'),
 ])
 def test_scrypt_vectors(username, password, site, options, expected):
-    g = generator.build_generator(username, password, site, options)
-    assert compat.hexlify(g.squeeze(32)) == expected
+    options = dict(options, multibase=hex_multibase)
+    assert generator.generate(username, password, site, options) == expected

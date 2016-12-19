@@ -15,9 +15,9 @@ struct DerivationParameters {
 }
 
 struct Scrypt {
-  n @0 :Int64;
-  r @1 :Int32;
-  p @2 :Int32;
+  n @0 :UInt64;
+  r @1 :UInt32;
+  p @2 :UInt32;
 }
 
 struct WordList {
@@ -33,6 +33,7 @@ struct Schema {
   name @0 :Text;
   value @1 :List(Base);
   words @2 :WordList;
+  shuffle @3 :Bool;
 
   struct Base {
     value :union {

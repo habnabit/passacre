@@ -180,9 +180,8 @@ impl MultiBase {
     }
 
     pub fn load_words_from_path(&mut self, path: &path::Path) -> PassacreResult<()> {
-        // XXX: real error handling
-        let infile = fs::File::open(path).unwrap();
-        let lines = io::BufReader::new(infile).lines().collect::<io::Result<Vec<String>>>().unwrap();
+        let infile = fs::File::open(path)?;
+        let lines = io::BufReader::new(infile).lines().collect::<io::Result<Vec<String>>>()?;
         self.set_words(lines)
     }
 
@@ -379,24 +378,24 @@ mod tests {
          23 => "dcb"],
         [24]);
 
-    fn base_4_3_2_shuffled() -> MultiBase {
-        let mut b = MultiBase::new();
-        b.add_base(characters("abcd")).unwrap();
-        b.add_base(characters("efg")).unwrap();
-        b.add_base(characters("hi")).unwrap();
-        b.enable_shuffle();
-        b
-    }
+    // fn base_4_3_2_shuffled() -> MultiBase {
+    //     let mut b = MultiBase::new();
+    //     b.add_base(characters("abcd")).unwrap();
+    //     b.add_base(characters("efg")).unwrap();
+    //     b.add_base(characters("hi")).unwrap();
+    //     b.enable_shuffle();
+    //     b
+    // }
 
-    multibase_tests!(
-        base_4_3_2_shuffled,
-        143,  // 4 * 3 * 2 * 6 == 144
-        1,
-        [0 => "hea",
-         23 => "igd",
-         37 => "xxx",
-         61 => "xxx"],
-        [144]);
+    // multibase_tests!(
+    //     base_4_3_2_shuffled,
+    //     143,  // 4 * 3 * 2 * 6 == 144
+    //     1,
+    //     [0 => "hea",
+    //      23 => "igd",
+    //      37 => "xxx",
+    //      61 => "xxx"],
+    //     [144]);
 
     fn base_2x3_words() -> MultiBase {
         let mut b = MultiBase::new();
