@@ -42,7 +42,7 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = ""
-    cfg.parentdir_prefix = "passacre-"
+    cfg.parentdir_prefix = "passacre-nobackend-"
     cfg.versionfile_source = "passacre/_version.py"
     cfg.verbose = False
     return cfg
