@@ -1,6 +1,7 @@
 /passacre.yaml
 build
 dist
+wheelhouse
 *.egg*
 /.coverage
 /htmlcov*
