@@ -7,8 +7,8 @@ import versioneer
 
 
 version = versioneer.get_version()
-#with open('../README.rst', 'r') as infile:
-long_description = ''#infile.read()
+with open('README.rst', 'r') as infile:
+    long_description = infile.read()
 
 
 setup(
@@ -24,13 +24,6 @@ setup(
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: ISC License (ISCL)',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Topic :: Security',
     ],
     license='ISC',

@@ -9,6 +9,8 @@ from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
 
 backend = 'passacre-backend-{0}-{4}'.format(*os.uname())
+with open('README.rst', 'r') as infile:
+    long_description = infile.read()
 
 
 try:
@@ -39,7 +41,7 @@ class bdist_wheel(_bdist_wheel):
 setup(
     name='passacre-backend',
     description='better repeatable password generation',
-    long_description='',
+    long_description=long_description,
     author='Aaron Gallagher',
     author_email='_@habnab.it',
     url='https://github.com/habnabit/passacre',

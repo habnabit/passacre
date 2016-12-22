@@ -92,10 +92,10 @@ add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/${PASSACRE_BACKEND}"
                    DEPENDS cargo-passacre "${CARGO_BUILD_DIR}/passacre-backend"
                    COMMAND ${CMAKE_COMMAND} -E
                            copy "${CARGO_BUILD_DIR}/passacre-backend" "${CMAKE_BINARY_DIR}/${PASSACRE_BACKEND}")
-add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/setup.py"
-                   DEPENDS setup.py
-                   COMMAND ${CMAKE_COMMAND} -E
-                           copy "${CMAKE_SOURCE_DIR}/setup.py" "${CMAKE_BINARY_DIR}/setup.py")
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/setup.py" "${CMAKE_BINARY_DIR}/README.rst"
+                   DEPENDS setup.py README.rst
+                   COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/setup.py" "${CMAKE_BINARY_DIR}/setup.py"
+                   COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/README.rst" "${CMAKE_BINARY_DIR}/README.rst")
 add_custom_target(passacre-backend-wheel ALL
                   COMMAND env "PASSACRE_VERSION=${VERSION}" pip wheel .
                   DEPENDS "${CMAKE_BINARY_DIR}/${PASSACRE_BACKEND}" "${CMAKE_BINARY_DIR}/setup.py"
