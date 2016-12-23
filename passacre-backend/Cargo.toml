@@ -6,6 +6,7 @@ name = "passacre"
 version = "0.0.1"
 authors = ["Aaron Gallagher <_@habnab.it>"]
 build = "build.rs"
+publish = false
 
 [build-dependencies]
 capnpc = "0.7"
