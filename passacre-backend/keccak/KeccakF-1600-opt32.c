@@ -138,7 +138,7 @@ void setInterleavedWordsInto8bytes(UINT8* dest, UINT32 even, UINT32 odd)
 #else // (PLATFORM_BYTE_ORDER == IS_BIG_ENDIAN)
 
 // Credit: Henry S. Warren, Hacker's Delight, Addison-Wesley, 2002
-UINT64 toInterleaving(UINT64 x) 
+UINT64 toInterleaving(UINT64 x)
 {
    UINT64 t;
 
@@ -212,7 +212,7 @@ void setInterleavedWordsInto8bytes(UINT8* dest, UINT32* evenAndOdd)
 
 #define extractLanes(laneCount, state, data) \
     { \
-        int i; \
+        unsigned int i; \
         for(i=0; i<(laneCount); i++) \
             setInterleavedWordsInto8bytes(data+i*8, (UINT32*)state+i*2); \
     }
