@@ -185,7 +185,7 @@ impl MultiBase {
         self.set_words(lines)
     }
 
-    fn bases_ref_vec(&self) -> Vec<(&Base, &Int, usize)> {
+    fn unshuffled_bases_ref_vec(&self) -> Vec<(&Base, &Int, usize)> {
         let mut ret = vec![None; self.n_bases];
         for (e, (base, info)) in self.bases.iter().enumerate() {
             for &i in info.positions.iter() {
@@ -195,11 +195,44 @@ impl MultiBase {
         ret.into_iter().collect::<Option<Vec<_>>>().unwrap()
     }
 
+    fn bases_ref_vec(&self, n: &mut Int) -> Vec<(&Base, &Int, usize)> {
+        let bases = self.unshuffled_bases_ref_vec();
+        if !self.shuffle {
+            return bases;
+        }
+        let mut bases_by_count: Vec<(usize, &BaseInfo)> = self.bases
+            .iter()
+            .map(|(_, info)| (info.positions.len(), info))
+            .collect();
+        bases_by_count.sort();
+        let (_, last_base) = bases_by_count.pop().unwrap();
+        let mut ret = vec![None; self.n_bases];
+        for (_, info) in bases_by_count.into_iter() {
+            let mut choices: Vec<usize> = ret.iter()
+                .enumerate()
+                .filter_map(|t| match t {
+                    (e, &None) => Some(e),
+                    _ => None,
+                })
+                .collect();
+            for &src_position in &info.positions {
+                let (next_n, choice) = n.divmod(&Int::from(choices.len()));
+                let dst_position = choices.swap_remove(usize::from(&choice));
+                ret[dst_position] = Some(bases[src_position]);
+                *n = next_n;
+            }
+        }
+        for (dst, &src) in ret.iter_mut().filter(|o| o.is_none()).zip(&last_base.positions) {
+            *dst = Some(bases[src]);
+        }
+        ret.into_iter().collect::<Option<Vec<_>>>().unwrap()
+    }
+
     fn encode(&self, mut n: Int) -> PassacreResult<String> {
         if n < 0 || n >= self.length_product {
             fail!(DomainError);
         }
-        let bases = self.bases_ref_vec();
+        let bases = self.bases_ref_vec(&mut n);
         let mut ret: Vec<Cow<str>> = Vec::with_capacity(self.n_bases);
         for &(base, length, _) in bases.iter().rev() {
             if let &Base::Separator(ref s) = base {
@@ -220,11 +253,7 @@ impl MultiBase {
             });
             n = next_n;
         }
-        if self.shuffle {
-            unimplemented!();
-        } else {
-            ret.reverse();
-        }
+        ret.reverse();
         Ok(ret.concat())
     }
 
@@ -378,24 +407,25 @@ mod tests {
          23 => "dcb"],
         [24]);
 
-    // fn base_4_3_2_shuffled() -> MultiBase {
-    //     let mut b = MultiBase::new();
-    //     b.add_base(characters("abcd")).unwrap();
-    //     b.add_base(characters("efg")).unwrap();
-    //     b.add_base(characters("hi")).unwrap();
-    //     b.enable_shuffle();
-    //     b
-    // }
+    fn base_4_3_2_shuffled() -> MultiBase {
+        let mut b = MultiBase::new();
+        b.add_base(characters("abcd")).unwrap();
+        b.add_base(characters("efg")).unwrap();
+        b.add_base(characters("hi")).unwrap();
+        b.enable_shuffle();
+        b
+    }
 
-    // multibase_tests!(
-    //     base_4_3_2_shuffled,
-    //     143,  // 4 * 3 * 2 * 6 == 144
-    //     1,
-    //     [0 => "hea",
-    //      23 => "igd",
-    //      37 => "xxx",
-    //      61 => "xxx"],
-    //     [144]);
+    multibase_tests!(
+        base_4_3_2_shuffled,
+        143,  // 4 * 3 * 2 * 6 == 144
+        1,
+        [0 => "hea",
+         23 => "afi",
+         37 => "eic",
+         61 => "fhc",
+         143 => "dgi"],
+        [144]);
 
     fn base_2x3_words() -> MultiBase {
         let mut b = MultiBase::new();
@@ -443,4 +473,26 @@ mod tests {
          300 => "eggs0 0spam",
          899 => "sausage9 9sausage"],
         [900, 1000]);
+
+    fn base_1x5_and_3x5_shuffled() -> MultiBase {
+        let mut b = MultiBase::new();
+        for _ in 0..3 {
+            b.add_base(characters("02468")).unwrap();
+        }
+        b.add_base(characters("13579")).unwrap();
+        b.enable_shuffle();
+        b
+    }
+
+    multibase_tests!(
+        base_1x5_and_3x5_shuffled,
+        2499,  // 4 * 5 ** 4 == 2500
+        2,
+        [0 => "1000",
+         1 => "0100",
+         2 => "0010",
+         3 => "0001",
+         4 => "1002",
+         2499 => "8889"],
+        [2500, 12500, 31250]);
 }
