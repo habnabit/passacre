@@ -83,8 +83,10 @@ if ("$ENV{PASSACRE_LIBRARY_TESTING_ONLY}" STREQUAL yes)
   list(APPEND CARGO_BUILD_FLAGS --features testing-checks)
 endif()
 
+list(APPEND CARGO env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo)
+
 add_custom_target(cargo-passacre ALL
-                  COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo build ${CARGO_BUILD_FLAGS}
+                  COMMAND ${CARGO} build ${CARGO_BUILD_FLAGS}
                   DEPENDS passacre_deps
                   VERBATIM
                   SOURCES src/deps.rs src/error.rs src/lib.rs src/multibase.rs src/passacre.rs src/rpc.rs)
@@ -106,5 +108,8 @@ list(APPEND TO_CLEAN target ${PASSACRE_BACKEND})
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${TO_CLEAN}")
 
 add_custom_target(test-prep
-                  COMMAND env "CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}" cargo test --no-run
+                  COMMAND ${CARGO} test --no-run
                   DEPENDS cargo-passacre)
+
+enable_testing()
+add_test(cargo-passacre-tests ${CARGO} test)
