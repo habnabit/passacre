@@ -1,6 +1,7 @@
 from contextlib import closing
 import os
 import socket
+import sys
 
 import capnp
 
@@ -12,9 +13,28 @@ except ImportError:
     import subprocess
 
 
+_32bit_overrides = {
+    ('Darwin', 'x86_64'): 'i386',
+    ('Darwin', 'ppc64'): 'ppc',
+    ('Linux', 'x86_64'): 'i686',
+}
+
+
+def _determine_backend():
+    """
+    The backend used is chosen using pip's (non-public) logic for determining
+    platform and architecture, which is based on the architecture that python
+    is compiled for, not the architecture of the kernel (as returned by uname).
+    """
+    plat, _, _, _, arch = os.uname()
+    if sys.maxsize == 0x7fffffff:  # 32-bit python
+        arch = _32bit_overrides.get((plat, arch), arch)
+    return 'passacre-backend-{}-{}'.format(plat, arch)
+
+
 class SubprocessClient(object):
     _proc = _sock = None
-    _backend = 'passacre-backend-{0}-{4}'.format(*os.uname())
+    _backend = _determine_backend()
 
     def _reconnect(self):
         if self._sock is not None:
