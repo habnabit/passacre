@@ -69,6 +69,8 @@ expected a string; got None""".format(string_prefix, string_padding)
 @pytest.mark.parametrize(('s', 'output'), [
     ([[' ', 8, ':diceware_en']], 'deter 60 ibex grain d charm spicy and'),
     ([[' ', 8, ':rfc2289']], 'lit jay weed mini hymn meek okay ibis'),
+    ([[' ', 2, ':pgp_even', ' ', ':pgp_odd']],
+     'bombast aggregate Zulu travesty'),
 ])
 def test_generation(s, output):
     options = {

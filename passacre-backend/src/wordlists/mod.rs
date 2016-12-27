@@ -1,12 +1,17 @@
-pub mod diceware_en {
-    pub const WORDS: &'static [&'static str] = &include!("diceware_en.list");
+macro_rules! wordlists {
+    ($($name:ident ,)*) => {
+        $( pub mod $name {
+            pub const WORDS: &'static [&'static str] = &include!(concat!(stringify!($name), ".list"));
+        } )*
+
+        pub const WORDLISTS: &'static [(&'static str, &'static [&'static str])] = &[ $(
+            (stringify!($name), $name::WORDS),
+        )* ];
+    };
 }
 
-pub mod rfc2289 {
-    pub const WORDS: &'static [&'static str] = &include!("rfc2289.list");
+wordlists! {
+    diceware_en,
+    pgp_even, pgp_odd,
+    rfc2289,
 }
-
-pub const WORDLISTS: &'static [(&'static str, &'static [&'static str])] = &[
-    ("diceware_en", diceware_en::WORDS),
-    ("rfc2289", rfc2289::WORDS),
-];
