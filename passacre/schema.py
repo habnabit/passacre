@@ -147,5 +147,4 @@ def multibase_of_schema(schema):
             'value': item,
             'repeat': sum(1 for _ in iteritems),
         })
-    import pprint; pprint.pprint(ret)
     return {'value': ret}
