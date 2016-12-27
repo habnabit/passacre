@@ -53,6 +53,11 @@ class ParseError(Exception):
             self.expected, self.got)
 
 
+class _Passthru(object):
+    def __init__(self, obj):
+        self.obj = obj
+
+
 def trace_parse(what):
     def deco(f):
         def wrap(x, *a, **kw):
@@ -78,12 +83,19 @@ def parse_character_set(x):
 
 @trace_parse('character sets')
 def parse_character_sets(x):
-    if x == 'word':
-        return [_word]
-    elif isinstance(x, list):
+    if isinstance(x, string_types):
+        if x.startswith(':'):
+            return [_Passthru({'subschema': {
+                'words': {'source': {'named': x[1:]}},
+                'value': [{'value': {'words': None}}],
+            }})]
+        elif x == 'word':
+            return [_Passthru({'words': None})]
+
+    if isinstance(x, list):
         return [''.join(parse_character_set(y, _index=e) for e, y in enumerate(x))]
-    else:
-        return [parse_character_set(x)]
+
+    return [parse_character_set(x)]
 
 @trace_parse('a count and items array')
 def parse_counted_item(x):
@@ -125,8 +137,8 @@ def multibase_of_schema(schema):
     items = parse_items(schema)
     ret = []
     for item, iteritems in itertools.groupby(items):
-        if item is _word:
-            item = {'words': None}
+        if isinstance(item, _Passthru):
+            item = item.obj
         elif len(item) == 1:
             item = {'separator': item[0]}
         else:
@@ -135,4 +147,5 @@ def multibase_of_schema(schema):
             'value': item,
             'repeat': sum(1 for _ in iteritems),
         })
+    import pprint; pprint.pprint(ret)
     return {'value': ret}

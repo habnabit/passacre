@@ -7,6 +7,7 @@ import sys
 
 import pytest
 
+from passacre.generator import generate
 from passacre import schema
 
 
@@ -63,3 +64,16 @@ whilst parsing character sets:   [{0}' ', None]
 whilst parsing a character set:   {1}     None
 whilst parsing the value:         {1}     None
 expected a string; got None""".format(string_prefix, string_padding)
+
+
+@pytest.mark.parametrize(('s', 'output'), [
+    ([[' ', 8, ':diceware_en']], 'deter 60 ibex grain d charm spicy and'),
+    ([[' ', 8, ':rfc2289']], 'lit jay weed mini hymn meek okay ibis'),
+])
+def test_generation(s, output):
+    options = {
+        'method': 'keccak',
+        'iterations': 10,
+        'multibase': schema.multibase_of_schema(s),
+    }
+    assert generate(None, 'spam', 'eggs', options) == output

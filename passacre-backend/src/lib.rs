@@ -37,6 +37,7 @@ pub mod rpc;
 mod deps;
 mod multibase;
 mod passacre;
+pub mod wordlists;
 pub use ::error::PassacreError;
 pub use ::passacre::{Algorithm, Kdf, PassacreGenerator, SCRYPT_BUFFER_SIZE};
 pub use ::multibase::{Base, MultiBase};

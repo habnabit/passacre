@@ -36,12 +36,6 @@ fn factorial(n: usize) -> Int {
         |acc, i| acc * Int::from(i))
 }
 
-fn length_one_string(c: char) -> String {
-    let mut ret = String::with_capacity(c.len_utf8());
-    ret.push(c);
-    ret
-}
-
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Base {
@@ -51,36 +45,14 @@ pub enum Base {
     NestedBase(MultiBase),
 }
 
-impl Base {
-    pub fn of_c_parts(which: ::libc::c_uint, string: &[u8]) -> PassacreResult<Base> {
-        let result = match which {
-            0 if !string.is_empty() => {
-                match String::from_utf8(string.to_vec()) {
-                    Ok(s) => Base::Separator(s),
-                    _ => fail!(UserError),
-                }
-            },
-            1 if !string.is_empty() => {
-                match str::from_utf8(string) {
-                    Ok(s) => Base::Characters(s.chars().map(length_one_string).collect()),
-                    _ => fail!(UserError),
-                }
-            },
-            2 if string.is_empty() => Base::Words,
-            _ => fail!(UserError),
-        };
-        Ok(result)
-    }
-}
-
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct Words {
-    words: Vec<String>,
+    words: Vec<Cow<'static, str>>,
     length: Int,
 }
 
 impl Words {
-    fn new(words: Vec<String>) -> Words {
+    fn new(words: Vec<Cow<'static, str>>) -> Words {
         let length = Int::from(words.len());
         Words {
             words: words,
@@ -171,7 +143,7 @@ impl MultiBase {
         Ok(())
     }
 
-    pub fn set_words(&mut self, words: Vec<String>) -> PassacreResult<()> {
+    pub fn set_words(&mut self, words: Vec<Cow<'static, str>>) -> PassacreResult<()> {
         if self.words.is_some() {
             fail!(UserError);
         }
@@ -181,7 +153,10 @@ impl MultiBase {
 
     pub fn load_words_from_path(&mut self, path: &path::Path) -> PassacreResult<()> {
         let infile = fs::File::open(path)?;
-        let lines = io::BufReader::new(infile).lines().collect::<io::Result<Vec<String>>>()?;
+        let lines = io::BufReader::new(infile)
+            .lines()
+            .map(|r| r.map(Into::into))
+            .collect::<io::Result<Vec<Cow<'static, str>>>>()?;
         self.set_words(lines)
     }
 
@@ -244,7 +219,7 @@ impl MultiBase {
                 &Base::Characters(ref cs) => borrow_string(&cs[usize::from(&d)]),
                 &Base::Words => {
                     match &self.words {
-                        &Some(ref w) => borrow_string(&w.words[usize::from(&d)]),
+                        &Some(ref w) => Cow::Borrowed(&*w.words[usize::from(&d)]),
                         &None => fail!(UserError),
                     }
                 },
@@ -281,7 +256,7 @@ mod tests {
     use ramp::Int;
 
     use error::PassacreErrorKind::*;
-    use super::{Base, MultiBase, length_one_string};
+    use super::{Base, MultiBase};
 
     #[test]
     fn test_no_words_base_without_words() {
@@ -348,6 +323,12 @@ mod tests {
 
     const DIGITS: &'static str = "0123456789";
     const HEXDIGITS: &'static str = "0123456789abcdef";
+
+    fn length_one_string(c: char) -> String {
+        let mut ret = String::with_capacity(c.len_utf8());
+        ret.push(c);
+        ret
+    }
 
     fn characters(cs: &'static str) -> Base {
         Base::Characters(cs.chars().map(length_one_string).collect())
@@ -429,7 +410,7 @@ mod tests {
 
     fn base_2x3_words() -> MultiBase {
         let mut b = MultiBase::new();
-        let words = ["spam", "eggs", "sausage"].into_iter().map(|s| String::from(*s)).collect();
+        let words = ["spam", "eggs", "sausage"].into_iter().map(|&s| s.into()).collect();
         b.set_words(words).unwrap();
         b.add_base(Base::Words).unwrap();
         b.add_base(Base::Separator(String::from(" "))).unwrap();
@@ -448,7 +429,7 @@ mod tests {
 
     fn base_2x3_words_and_2x10() -> MultiBase {
         let mut b = MultiBase::new();
-        let words = ["spam", "eggs", "sausage"].into_iter().map(|s| String::from(*s)).collect();
+        let words = ["spam", "eggs", "sausage"].into_iter().map(|&s| s.into()).collect();
         b.set_words(words).unwrap();
         b.add_base(Base::Words).unwrap();
         b.add_base(characters(DIGITS)).unwrap();
