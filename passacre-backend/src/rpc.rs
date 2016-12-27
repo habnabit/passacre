@@ -71,52 +71,40 @@ impl schema_utils::Server for StandardToplevel {
     }
 }
 
-struct WordLoader {
-    loaded: bool,
-}
-
-impl WordLoader {
-    fn new() -> WordLoader {
-        WordLoader { loaded: false }
-    }
-
-    fn load_from_source(&mut self, schema: &schema::Reader, mb: &mut MultiBase) -> PassacreResult<Base> {
-        if !self.loaded {
-            use super::passacre_capnp::word_list::source::Which::*;
-            match schema.get_words()?.get_source().which()? {
-                FilePath(s) => mb.load_words_from_path(::std::path::Path::new(s?))?,
-                Named(s) => {
-                    let name = s?;
-                    let &t = super::wordlists::WORDLISTS.into_iter()
-                        .find(|&&(list, _)| name == list)
-                        .ok_or(super::error::PassacreErrorKind::UserError)?;
-                    mb.set_words((t.1).iter().map(|&w| w.into()).collect())?;
-                },
-                _ => fail!(super::error::PassacreErrorKind::UserError),
-            }
-            self.loaded = true;
-        }
-        Ok(Base::Words)
-    }
-}
-
 fn multibase_of_schema(schema: &schema::Reader) -> PassacreResult<MultiBase> {
     let mut ret = MultiBase::new();
-    let mut loader = WordLoader::new();
     for i in schema.get_value()?.iter() {
-        use super::passacre_capnp::schema::base::value::Which::*;
-        let b = match i.get_value().which()? {
-            Characters(c) => {
+        use super::passacre_capnp::schema::base::Which::*;
+        let b = match i.which()? {
+            Choices(c) => {
                 let cv = c?.iter().map(|r| r.map(Into::into)).collect::<Result<Vec<String>, _>>()?;
-                Base::Characters(cv)
+                Base::Choices(cv)
             },
-            Words(()) => loader.load_from_source(schema, &mut ret)?,
+            WordFile(p) => {
+                use std::io::BufRead;
+                let infile = ::std::fs::File::open(p?)?;
+                let lines = ::std::io::BufReader::new(infile)
+                    .lines()
+                    .collect::<Result<Vec<String>, _>>()?;
+                Base::Choices(lines)
+            },
+            WellKnown(w) => {
+                let name = w?;
+                let &t = super::wordlists::WORDLISTS.into_iter()
+                    .find(|&&(list, _)| name == list)
+                    .ok_or(super::error::PassacreErrorKind::UserError)?;
+                let words = (t.1).iter()
+                    .map(|&w| w.into())
+                    .collect::<Vec<String>>();
+                Base::Choices(words)
+            },
             Separator(s) => Base::Separator(s?.into()),
             Subschema(s) => Base::NestedBase(multibase_of_schema(&s?)?),
+            SameAs(i) => {
+                ret.repeat_base(i as usize)?;
+                continue
+            },
         };
-        for _ in 1..i.get_repeat() {
-            ret.add_base(b.clone())?;
-        }
         ret.add_base(b)?;
     }
     if schema.get_shuffle() {

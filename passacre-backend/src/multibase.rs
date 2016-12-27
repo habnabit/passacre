@@ -5,8 +5,7 @@
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;
-use std::io::BufRead;
-use std::{fs, io, path, str};
+use std::str;
 
 use ramp::Int;
 
@@ -40,25 +39,8 @@ fn factorial(n: usize) -> Int {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Base {
     Separator(String),
-    Characters(Vec<String>),
-    Words,
+    Choices(Vec<String>),
     NestedBase(MultiBase),
-}
-
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Words {
-    words: Vec<Cow<'static, str>>,
-    length: Int,
-}
-
-impl Words {
-    fn new(words: Vec<Cow<'static, str>>) -> Words {
-        let length = Int::from(words.len());
-        Words {
-            words: words,
-            length: length,
-        }
-    }
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -81,7 +63,6 @@ impl BaseInfo {
 pub struct MultiBase {
     bases: BTreeMap<Base, BaseInfo>,
     n_bases: usize,
-    words: Option<Words>,
     length_product: Int,
     shuffle: bool,
 }
@@ -91,7 +72,6 @@ impl MultiBase {
         MultiBase {
             bases: BTreeMap::new(),
             n_bases: 0,
-            words: None,
             length_product: Int::one(),
             shuffle: false,
         }
@@ -127,13 +107,7 @@ impl MultiBase {
         }
         let length = match &base {
             &Base::Separator(_) => Int::one(),
-            &Base::Characters(ref s) => Int::from(s.len()),
-            &Base::Words => {
-                match &self.words {
-                    &Some(ref w) => w.length.clone(),
-                    &None => fail!(UserError),
-                }
-            },
+            &Base::Choices(ref s) => Int::from(s.len()),
             &Base::NestedBase(ref b) => b.length_product.clone(),
         };
         self.length_product = &self.length_product * &length;
@@ -143,21 +117,21 @@ impl MultiBase {
         Ok(())
     }
 
-    pub fn set_words(&mut self, words: Vec<Cow<'static, str>>) -> PassacreResult<()> {
-        if self.words.is_some() {
+    pub fn repeat_base(&mut self, index: usize) -> PassacreResult<()> {
+        if self.shuffle {
             fail!(UserError);
         }
-        self.words = Some(Words::new(words));
+        let n_bases = self.n_bases;
+        let length = {
+            let info = self.bases.values_mut()
+                .find(|info| info.positions.contains(&index))
+                .ok_or(UserError)?;
+            info.positions.push(n_bases);
+            info.length.clone()
+        };
+        self.length_product = &self.length_product * &length;
+        self.n_bases = self.n_bases + 1;
         Ok(())
-    }
-
-    pub fn load_words_from_path(&mut self, path: &path::Path) -> PassacreResult<()> {
-        let infile = fs::File::open(path)?;
-        let lines = io::BufReader::new(infile)
-            .lines()
-            .map(|r| r.map(Into::into))
-            .collect::<io::Result<Vec<Cow<'static, str>>>>()?;
-        self.set_words(lines)
     }
 
     fn unshuffled_bases_ref_vec(&self) -> Vec<(&Base, &Int, usize)> {
@@ -216,13 +190,7 @@ impl MultiBase {
             }
             let (next_n, d) = n.divmod(length);
             ret.push(match base {
-                &Base::Characters(ref cs) => borrow_string(&cs[usize::from(&d)]),
-                &Base::Words => {
-                    match &self.words {
-                        &Some(ref w) => Cow::Borrowed(&*w.words[usize::from(&d)]),
-                        &None => fail!(UserError),
-                    }
-                },
+                &Base::Choices(ref cs) => borrow_string(&cs[usize::from(&d)]),
                 &Base::NestedBase(ref b) => Cow::Owned(try!(b.encode(d))),
                 _ => unreachable!(),
             });
@@ -257,12 +225,6 @@ mod tests {
 
     use error::PassacreErrorKind::*;
     use super::{Base, MultiBase};
-
-    #[test]
-    fn test_no_words_base_without_words() {
-        let mut b = MultiBase::new();
-        assert_eq!(b.add_base(Base::Words).unwrap_err().kind, UserError);
-    }
 
     macro_rules! multibase_tests {
         ($constructor:ident,
@@ -331,7 +293,7 @@ mod tests {
     }
 
     fn characters(cs: &'static str) -> Base {
-        Base::Characters(cs.chars().map(length_one_string).collect())
+        Base::Choices(cs.chars().map(length_one_string).collect())
     }
 
     fn base_2x10() -> MultiBase {
@@ -411,10 +373,9 @@ mod tests {
     fn base_2x3_words() -> MultiBase {
         let mut b = MultiBase::new();
         let words = ["spam", "eggs", "sausage"].into_iter().map(|&s| s.into()).collect();
-        b.set_words(words).unwrap();
-        b.add_base(Base::Words).unwrap();
+        b.add_base(Base::Choices(words)).unwrap();
         b.add_base(Base::Separator(String::from(" "))).unwrap();
-        b.add_base(Base::Words).unwrap();
+        b.repeat_base(0).unwrap();
         b
     }
 
@@ -430,12 +391,11 @@ mod tests {
     fn base_2x3_words_and_2x10() -> MultiBase {
         let mut b = MultiBase::new();
         let words = ["spam", "eggs", "sausage"].into_iter().map(|&s| s.into()).collect();
-        b.set_words(words).unwrap();
-        b.add_base(Base::Words).unwrap();
+        b.add_base(Base::Choices(words)).unwrap();
         b.add_base(characters(DIGITS)).unwrap();
         b.add_base(Base::Separator(String::from(" "))).unwrap();
         b.add_base(characters(DIGITS)).unwrap();
-        b.add_base(Base::Words).unwrap();
+        b.repeat_base(0).unwrap();
         b
     }
 

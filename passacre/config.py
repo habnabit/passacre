@@ -58,7 +58,9 @@ class ConfigBase(object):
     def multibase_of_schema(self, schema):
         ret = multibase_of_schema(schema)
         if self.word_list_path is not None:
-            ret['words'] = {'source': {'filePath': self.word_list_path}}
+            for d in ret['value']:
+                if 'wordFile' in d:
+                    d['wordFile'] = self.word_list_path
         return ret
 
     def fill_out_config(self, config):

@@ -20,29 +20,19 @@ struct Scrypt {
   p @2 :UInt32;
 }
 
-struct WordList {
-  source :union {
-    none @0 :Void;
-    named @1 :Text;
-    filePath @2 :Text;
-    words @3 :List(Text);
-  }
-}
-
 struct Schema {
-  name @0 :Text;
-  value @1 :List(Base);
-  words @2 :WordList;
-  shuffle @3 :Bool;
+  value @0 :List(Base);
+  shuffle @1 :Bool;
 
   struct Base {
-    value :union {
-      characters @0 :List(Text);
-      words @1 :Void;
-      separator @2 :Text;
-      subschema @3 :Schema;
+    union {
+      choices @0 :List(Text);
+      wordFile @1 :Text;
+      wellKnown @2 :Text;
+      separator @3 :Text;
+      subschema @4 :Schema;
+      sameAs @5 :UInt32;
     }
-    repeat @4 :UInt32 = 1;
   }
 }
 

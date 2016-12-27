@@ -1,7 +1,6 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-import itertools
 import string
 
 
@@ -85,14 +84,10 @@ def parse_character_set(x):
 def parse_character_sets(x):
     if isinstance(x, string_types):
         if x.startswith(':'):
-            return [_Passthru({'subschema': {
-                'words': {'source': {'named': x[1:]}},
-                'value': [{'value': {'words': None}}],
-            }})]
+            return [_Passthru({'wellKnown': x[1:]})]
         elif x == 'word':
-            return [_Passthru({'words': None})]
-
-    if isinstance(x, list):
+            return [_Passthru({'wordFile': None})]
+    elif isinstance(x, list):
         return [''.join(parse_character_set(y, _index=e) for e, y in enumerate(x))]
 
     return [parse_character_set(x)]
@@ -136,15 +131,19 @@ def multibase_of_schema(schema):
     "Convert a password schema from decoded YAML to a ``MultiBase``."
     items = parse_items(schema)
     ret = []
-    for item, iteritems in itertools.groupby(items):
+    for item in items:
         if isinstance(item, _Passthru):
             item = item.obj
         elif len(item) == 1:
             item = {'separator': item[0]}
         else:
-            item = {'characters': list(item)}
-        ret.append({
-            'value': item,
-            'repeat': sum(1 for _ in iteritems),
-        })
+            item = {'choices': list(item)}
+
+        try:
+            index = ret.index(item)
+        except ValueError:
+            ret.append(item)
+        else:
+            ret.append({'sameAs': index})
+
     return {'value': ret}
