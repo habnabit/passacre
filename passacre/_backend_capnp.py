@@ -29,7 +29,7 @@ def _determine_backend():
     plat, _, _, _, arch = os.uname()
     if sys.maxsize == 0x7fffffff:  # 32-bit python
         arch = _32bit_overrides.get((plat, arch), arch)
-    return 'passacre-backend-{}-{}'.format(plat, arch)
+    return 'passacre-backend-{0}-{1}'.format(plat, arch)
 
 
 class SubprocessClient(object):
