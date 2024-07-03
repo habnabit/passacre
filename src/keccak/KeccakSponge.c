@@ -18,7 +18,6 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #ifdef KeccakReference
 #include "displayIntermediateValues.h"
 #endif
-#include "libpassacre-config.h"
 
 int InitSponge(spongeState *state, unsigned int rate, unsigned int capacity)
 {

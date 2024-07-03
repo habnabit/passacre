@@ -1,14 +1,35 @@
-use pyo3::prelude::*;
+/*
+ * Copyright (c) Aaron Gallagher <_@habnab.it>
+ * See COPYING for details.
+ */
 
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
+macro_rules! fail {
+    ($expr:expr) => {
+        return Err(::std::convert::From::from($expr))
+    };
 }
 
-/// A Python module implemented in Rust.
-#[pymodule]
-fn passacre_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
-    Ok(())
+macro_rules! testing_panic {
+    ($cond:expr) => {{
+        if cfg!(feature = "testing-checks") && $cond {
+            panic!("testing panic");
+        }
+    }};
 }
+
+macro_rules! testing_fail {
+    ($cond:expr, $result:expr) => {{
+        if cfg!(feature = "testing-checks") && $cond {
+            fail!($result);
+        }
+    }};
+}
+
+mod deps;
+pub mod error;
+mod multibase;
+mod passacre;
+mod python;
+pub use crate::error::PassacreError;
+pub use crate::multibase::{Base, MultiBase};
+pub use crate::passacre::{Algorithm, Kdf, PassacreGenerator, SCRYPT_BUFFER_SIZE};
