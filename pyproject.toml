@@ -1,0 +1,29 @@
+[build-system]
+requires = ["maturin>=1.6,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "passacre-backend"
+description = "better repeatable password generation"
+author = "hab"
+author-email = "_@habnab.it"
+project-url = { homepage = "https://github.com/habnabit/passacre" }
+license = "ISC"
+
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: ISC License (ISCL)",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+dynamic = ["version"]
+[tool.maturin]
+features = ["pyo3/extension-module"]

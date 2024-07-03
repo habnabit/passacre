@@ -1,0 +1,11 @@
+[package]
+name = "passacre-backend"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+name = "passacre_backend"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = "0.21.1"
