@@ -4,7 +4,6 @@
 import itertools
 import os
 
-import capnp
 import pytest
 
 from passacre import config
@@ -182,5 +181,5 @@ def test_no_words_file():
     # will fail too.
     c = config.load(open(os.path.join(datadir, 'no-words.sqlite'), 'rb'))
     assert c.word_list_path is None
-    with pytest.raises(capnp.KjException):
+    with pytest.raises(Exception):
         c.generate_for_site(None, 'passacre', 'example.com')

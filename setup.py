@@ -59,9 +59,6 @@ setup(
 
     packages=['passacre', 'passacre.test'],
     include_package_data=True,
-    install_requires=[
-        'pycapnp',
-    ],
     extras_require=extras_require,
     entry_points=entry_points,
     version=versioneer.get_version(),

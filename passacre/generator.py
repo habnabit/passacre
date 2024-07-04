@@ -3,7 +3,7 @@
 
 import string
 
-from passacre._backend_capnp import default_client
+import passacre_backend
 from passacre.compat import hexlify
 from passacre.schema import multibase_of_schema
 from passacre import features, signing_uuid
@@ -12,7 +12,7 @@ from passacre import features, signing_uuid
 _site_multibase = multibase_of_schema([string.ascii_letters + string.digits + '-_'] * 48)
 
 
-def generate(username, password, site, options, client=default_client):
+def generate(username, password, site, options):
     """Generate a password with the passacre method.
 
     1. A string is generated from ``username:`` (if a username is specified),
@@ -31,18 +31,15 @@ def generate(username, password, site, options, client=default_client):
     kdf = {}
     if 'scrypt' in options:
         kdf['scrypt'] = options['scrypt']
-    return client.derive({
-        'derivation': {
-            'method': options['method'],
-            'kdf': kdf,
-            'increment': options['iterations'],
-        },
-        'schema': options['multibase'],
-    }, {
-        'username': username or '',
-        'password': password,
-        'sitename': site,
-    })
+    return passacre_backend.derive(
+        derivation_method=options['method'],
+        derivation_kdf=kdf,
+        derivation_increment=options['iterations'],
+        schema=options['multibase'],
+        username=username or '',
+        password=password,
+        sitename=site,
+    )
 
 
 @features.yubikey.check

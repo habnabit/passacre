@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals, print_function
 
-from passacre._backend_capnp import default_client
+import passacre_backend
 from passacre.compat import input, argparse, python_2_encode
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
@@ -238,7 +238,7 @@ class Passacre(object):
                 for site, site_config in self.config.get_all_sites().items()
                 if site_config['schema'] != default_site['schema'] or site == 'default'
             ]
-        entropy = [(site, default_client.entropy_bits(schema)) for site, schema in entropy]
+        entropy = [(site, passacre_backend.entropy_bits(schema)) for site, schema in entropy]
         entropy.sort(key=operator.itemgetter(1, 0), reverse=True)
         entropy[:0] = [('schema' if args.schema else 'site', 'entropy (bits)'), ('', '')]
         max_site_len, max_bits_len = [

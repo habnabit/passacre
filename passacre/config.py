@@ -104,7 +104,7 @@ class YAMLConfig(ConfigBase):
     def read(self, infile):
         "Load site configuration from a YAML file object."
         import yaml
-        parsed = yaml.load(infile)
+        parsed = yaml.safe_load(infile)
         sites = parsed.pop('sites', {})
         self.set_defaults(sites.get('default', {}))
         self.load_words_file(parsed.pop('words-file', None))
