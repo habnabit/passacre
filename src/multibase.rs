@@ -185,6 +185,7 @@ impl MultiBase {
                 ret[i] = Some((base, &info.length, e));
             }
         }
+        // safety: n_bases should be calculated such that this will fill every slot
         ret.into_iter().collect::<Option<Vec<_>>>().unwrap()
     }
 
@@ -201,8 +202,10 @@ impl MultiBase {
             }
             let (next_n, d) = n.div_rem_euclid(length);
             ret.push(match base {
+                // safety: d is the remainder of length, which should've been a usize coming in
                 &Base::Characters(ref cs) => borrow_string(&cs[d.to_usize().unwrap()]),
                 &Base::Words => match &self.words {
+                    // safety: d is the remainder of length, which should've been a usize coming in
                     &Some(ref w) => borrow_string(&w.words[d.to_usize().unwrap()]),
                     &None => fail!(UserError),
                 },
@@ -260,54 +263,60 @@ mod tests {
 
             mod $constructor {
                 use super::*;
+                use crate::multibase::PassacreResult;
                 use num_bigint::BigInt as Int;
                 use num_traits::ToPrimitive;
 
                 #[test]
-                fn test_max_encodable_value() {
-                    let b = make_mb();
+                fn test_max_encodable_value() -> PassacreResult<()> {
+                    let b = make_mb()?;
                     let max_value = Int::from($max_value);
                     assert_eq!(b.max_encodable_value(), max_value);
+                    Ok(())
                 }
 
                 #[test]
-                fn test_required_bytes() {
-                    let b = make_mb();
+                fn test_required_bytes() -> PassacreResult<()> {
+                    let b = make_mb()?;
                     assert_eq!(b.required_bytes(), $req_bytes);
+                    Ok(())
                 }
 
                 #[test]
-                fn test_all_unique() {
-                    let b = make_mb();
+                fn test_all_unique() -> PassacreResult<()> {
+                    let b = make_mb()?;
                     let l: usize = b.length_product.to_usize().unwrap();
                     let mut h = HashMap::with_capacity(l);
                     for i in 0..l {
-                        h.entry(b.encode(Int::from(i)).unwrap()).or_insert_with(|| vec![]).push(i);
+                        h.entry(b.encode(Int::from(i))?).or_insert_with(|| vec![]).push(i);
                     }
                     let dupes: Vec<_> = h.into_iter()
                         .filter(|&(_, ref c)| c.len() > 1)
                         .collect();
                     assert_eq!(dupes, vec![]);
+                    Ok(())
                 }
 
                 #[parameterized(
                     decoded = { $( $decoded, )* },
                     encoded = { $( $encoded, )* },
                 )]
-                fn test_encoding(decoded: u64, encoded: &'static str) {
-                    let b = make_mb();
+                fn test_encoding(decoded: u64, encoded: &'static str) -> PassacreResult<()> {
+                    let b = make_mb()?;
                     let v = Int::from(decoded);
-                    assert_eq!(b.encode(v).unwrap(), encoded);
+                    assert_eq!(b.encode(v)?, encoded);
+                    Ok(())
                 }
 
 
                 #[parameterized(
                     value = { $( $encoding_failure, )* },
                 )]
-                fn test_encoding_failure(value: u64) {
-                    let b = make_mb();
+                fn test_encoding_failure(value: u64) -> PassacreResult<()> {
+                    let b = make_mb()?;
                     let v = Int::from(value);
                     assert!(matches!(b.encode(v).unwrap_err(), DomainError));
+                    Ok(())
                 }
 
                 $( $i )*
@@ -332,11 +341,11 @@ mod tests {
          94 => "94"],
         [100, 105]
     {
-        fn make_mb() -> MultiBase {
+        fn make_mb() -> PassacreResult<MultiBase> {
             let mut b = MultiBase::new();
-            b.add_base(characters(DIGITS)).unwrap();
-            b.add_base(characters(DIGITS)).unwrap();
-            b
+            b.add_base(characters(DIGITS))?;
+            b.add_base(characters(DIGITS))?;
+            Ok(b)
         }
     });
 
@@ -350,11 +359,11 @@ mod tests {
          0xfe => "fe"],
         [0x100, 0x105]
     {
-        fn make_mb() -> MultiBase {
+        fn make_mb() -> PassacreResult<MultiBase> {
             let mut b = MultiBase::new();
-            b.add_base(characters(HEXDIGITS)).unwrap();
-            b.add_base(characters(HEXDIGITS)).unwrap();
-            b
+            b.add_base(characters(HEXDIGITS))?;
+            b.add_base(characters(HEXDIGITS))?;
+            Ok(b)
         }
     });
 
@@ -370,20 +379,20 @@ mod tests {
          23 => "dcb"],
         [24]
     {
-        fn make_mb() -> MultiBase {
+        fn make_mb() -> PassacreResult<MultiBase> {
             let mut b = MultiBase::new();
-            b.add_base(characters("abcd")).unwrap();
-            b.add_base(characters("abc")).unwrap();
-            b.add_base(characters("ab")).unwrap();
-            b
+            b.add_base(characters("abcd"))?;
+            b.add_base(characters("abc"))?;
+            b.add_base(characters("ab"))?;
+            Ok(b)
         }
     });
 
     // fn base_4_3_2_shuffled() -> MultiBase {
     //     let mut b = MultiBase::new();
-    //     b.add_base(characters("abcd")).unwrap();
-    //     b.add_base(characters("efg")).unwrap();
-    //     b.add_base(characters("hi")).unwrap();
+    //     b.add_base(characters("abcd"))?;
+    //     b.add_base(characters("efg"))?;
+    //     b.add_base(characters("hi"))?;
     //     b.enable_shuffle();
     //     b
     // }
@@ -407,14 +416,14 @@ mod tests {
          8 => "sausage sausage"],
         [9, 12, 24]
     {
-        fn make_mb() -> MultiBase {
+        fn make_mb() -> PassacreResult<MultiBase> {
             let mut b = MultiBase::new();
             let words = ["spam", "eggs", "sausage"].into_iter().map(|s| s.into()).collect();
-            b.set_words(words).unwrap();
-            b.add_base(Base::Words).unwrap();
-            b.add_base(Base::Separator(String::from(" "))).unwrap();
-            b.add_base(Base::Words).unwrap();
-            b
+            b.set_words(words)?;
+            b.add_base(Base::Words)?;
+            b.add_base(Base::Separator(String::from(" ")))?;
+            b.add_base(Base::Words)?;
+            Ok(b)
         }
     });
 
@@ -434,16 +443,16 @@ mod tests {
          899 => "sausage9 9sausage"],
         [900, 1000]
     {
-        fn make_mb() -> MultiBase {
+        fn make_mb() -> PassacreResult<MultiBase> {
             let mut b = MultiBase::new();
             let words = ["spam", "eggs", "sausage"].into_iter().map(|s| s.into()).collect();
-            b.set_words(words).unwrap();
-            b.add_base(Base::Words).unwrap();
-            b.add_base(characters(DIGITS)).unwrap();
-            b.add_base(Base::Separator(String::from(" "))).unwrap();
-            b.add_base(characters(DIGITS)).unwrap();
-            b.add_base(Base::Words).unwrap();
-            b
+            b.set_words(words)?;
+            b.add_base(Base::Words)?;
+            b.add_base(characters(DIGITS))?;
+            b.add_base(Base::Separator(String::from(" ")))?;
+            b.add_base(characters(DIGITS))?;
+            b.add_base(Base::Words)?;
+            Ok(b)
         }
     });
 }

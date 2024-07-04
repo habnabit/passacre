@@ -226,16 +226,19 @@ impl PassacreGenerator {
             State::Initialized | State::KdfSelected => (),
             _ => fail!(UserError),
         }
-        if self.kdf.is_some() {
-            let derived = self.kdf.as_mut().unwrap().derive(username, password)?;
-            self.absorb(&derived[..])?;
-        } else {
-            if !username.is_empty() {
-                self.absorb(username)?;
-                self.absorb(DELIMITER)?;
+        match self.kdf.as_mut().map(|kdf| kdf.derive(username, password)) {
+            Some(Ok(kdf_derived)) => {
+                self.absorb(&kdf_derived)?;
             }
-            self.absorb(password)?;
-        }
+            None => {
+                if !username.is_empty() {
+                    self.absorb(username)?;
+                    self.absorb(DELIMITER)?;
+                }
+                self.absorb(password)?;
+            }
+            Some(Err(e)) => Err(e)?,
+        };
         self.absorb(DELIMITER)?;
         self.absorb(site)?;
         self.state = State::AbsorbedPassword;
