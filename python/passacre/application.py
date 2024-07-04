@@ -3,14 +3,13 @@
 
 from __future__ import unicode_literals, print_function
 
-import passacre_backend
 from passacre.compat import input, argparse, python_2_encode
 from passacre.config import load as load_config, SqliteConfig
 from passacre.generator import hash_site
 from passacre.jsonmini import unparse as jdumps
 from passacre.schema import multibase_of_schema
 from passacre.util import reify, dotify, nested_get, jloads, errormark
-from passacre import __version__, completion, features, yaml2sqlite
+from passacre import __version__, completion, features, yaml2sqlite, _pyo3_backend
 
 import atexit
 import collections
@@ -238,7 +237,7 @@ class Passacre(object):
                 for site, site_config in self.config.get_all_sites().items()
                 if site_config['schema'] != default_site['schema'] or site == 'default'
             ]
-        entropy = [(site, passacre_backend.entropy_bits(schema)) for site, schema in entropy]
+        entropy = [(site, _pyo3_backend.entropy_bits(schema)) for site, schema in entropy]
         entropy.sort(key=operator.itemgetter(1, 0), reverse=True)
         entropy[:0] = [('schema' if args.schema else 'site', 'entropy (bits)'), ('', '')]
         max_site_len, max_bits_len = [

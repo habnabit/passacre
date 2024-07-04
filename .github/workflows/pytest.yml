@@ -1,0 +1,38 @@
+name: 'python tests'
+
+on:
+  - 'push'
+  - 'pull_request'
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
+        cc: ['clang', 'gcc']
+
+    steps:
+    - uses: 'actions/checkout@v3'
+    - name: 'install clang'
+      if: '${{ cc == "clang" }}'
+      run: |
+        sudo apt-get install -y clang
+        echo >> "$GITHUB_ENV" 'CC=clang'
+        echo >> "$GITHUB_ENV" 'LDSHARED=clang -shared'
+    - name: 'install gcc'
+      if: '${{ cc == "gcc" }}'
+      run: |
+        sudo apt-get install -y gcc
+        echo >> "$GITHUB_ENV" 'CC=gcc'
+    - name: 'set up python ${{ matrix.python-version }}'
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: 'install tox'
+      run: |
+        python -mpip install -U pip setuptools
+        python -mpip install -U tox tox-gh-actions
+    - name: 'run tests'
+      run: |
+        tox

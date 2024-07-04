@@ -1,16 +1,26 @@
 [build-system]
-requires = ["maturin>=1.6,<2.0"]
+requires = [
+    "maturin>=1.6,<2.0",
+]
 build-backend = "maturin"
+
+[[project.authors]]
+name = "hab"
+email = "_@habnab.it"
+
+[project.urls]
+Homepage = "https://github.com/habnabit/passacre"
+Repository = "https://github.com/habnabit/passacre"
 
 [project]
 name = "passacre"
 description = "better repeatable password generation"
-author = "hab"
-author-email = "_@habnab.it"
-project-url = { homepage = "https://github.com/habnabit/passacre" }
-license = "ISC"
+readme = "README.rst"
+license = { file = "COPYING" }
 
-requires-python = ">=3.8"
+# supporting 2.7 (again?) means an older maturin
+# requires-python = ">=2.7"
+requires-python = ">=3.7"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Environment :: Console",
@@ -26,5 +36,18 @@ classifiers = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+yaml = ["PyYAML"]
+clipboard = ["xerox"]
+keccak = []
+skein = []
+yubikey = ["ykpers-cffi"]
+all = ["PyYAML", "xerox", "ykpers-cffi"]
+
+[project.scripts]
+passacre = "passacre.application:main"
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
+python-source = "python"
+module-name = "passacre._pyo3_backend"

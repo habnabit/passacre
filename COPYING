@@ -16,8 +16,8 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 
 
-passacre/_argparse.py
-=====================
+python/passacre/_argparse.py
+============================
 
 This module is taken from the python 3.3 standard library for compatibility
 purposes.
@@ -85,8 +85,8 @@ agrees to be bound by the terms and conditions of this License
 Agreement.
 
 
-passacre/_ometa.py
-==================
+python/passacre/_ometa.py
+=========================
 
 Copyright (c) 2008-2012
 Allen Short
@@ -114,8 +114,8 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-passacre/_ordereddict.py
-========================
+python/passacre/_ordereddict.py
+===============================
 
 Copyright (c) 2009 Raymond Hettinger
 
@@ -140,8 +140,8 @@ subject to the following conditions:
     OTHER DEALINGS IN THE SOFTWARE.
 
 
-passacre/util.py:reify
-======================
+python/passacre/util.py:reify
+=============================
 
 Copyright (c) 2008-2011 Agendaless Consulting and Contributors.
 (http://www.agendaless.com), All Rights Reserved
@@ -183,8 +183,8 @@ Copyright (c) 2008-2011 Agendaless Consulting and Contributors.
     SUCH DAMAGE.
 
 
-passacre-backend/keccak
-=======================
+src/keccak
+==========
 
 The Keccak sponge function, designed by Guido Bertoni, Joan Daemen, Michaël
 Peeters and Gilles Van Assche. For more information, feedback or questions,
@@ -197,8 +197,8 @@ related or neighboring rights to the source code in this file.
 http://creativecommons.org/publicdomain/zero/1.0/
 
 
-Parts of passacre-backend/skein
-===============================
+Parts of src/skein
+==================
 
 Implementation of the Skein hash function.
 
@@ -207,8 +207,8 @@ Source code author: Doug Whiting, 2008.
 This algorithm and source code is released to the public domain.
 
 
-Other parts of passacre-backend/skein
-=====================================
+Other parts of src/skein
+========================
 
 Copyright (c) 2010 Werner Dittmann
 
@@ -231,8 +231,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-passacre-backend/scrypt
-=======================
+src/scrypt
+==========
 
 Copyright 2009 Colin Percival
 All rights reserved.

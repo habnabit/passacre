@@ -3,10 +3,9 @@
 
 import string
 
-import passacre_backend
 from passacre.compat import hexlify
 from passacre.schema import multibase_of_schema
-from passacre import features, signing_uuid
+from passacre import features, signing_uuid, _pyo3_backend
 
 
 _site_multibase = multibase_of_schema([string.ascii_letters + string.digits + '-_'] * 48)
@@ -31,7 +30,7 @@ def generate(username, password, site, options):
     kdf = {}
     if 'scrypt' in options:
         kdf['scrypt'] = options['scrypt']
-    return passacre_backend.derive(
+    return _pyo3_backend.derive(
         derivation_method=options['method'],
         derivation_kdf=kdf,
         derivation_increment=options['iterations'],

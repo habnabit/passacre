@@ -113,7 +113,7 @@ fn entropy_bits(schema: &Bound<'_, PyAny>) -> PassacreResult<usize> {
 
 ///
 #[pymodule]
-fn _passacre_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _pyo3_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add(
         "PassacreException",
         m.py().get_type_bound::<crate::error::PassacreException>(),

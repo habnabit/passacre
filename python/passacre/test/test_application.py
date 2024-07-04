@@ -6,8 +6,7 @@ import py.path
 import sys
 import traceback
 
-import passacre_backend
-from passacre import application, features
+from passacre import application, features, _pyo3_backend
 
 
 _shush_pyflakes = [features]
@@ -672,7 +671,7 @@ def nonextant_words_app(app, tmpdir):
 
 def test_nonextant_words_warns(nonextant_words_app):
     app = nonextant_words_app
-    with pytest.raises(passacre_backend.PassacreException):
+    with pytest.raises(_pyo3_backend.PassacreException):
         app.main(['generate', 'example.com'])
 
 
