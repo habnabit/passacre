@@ -5,31 +5,69 @@ on:
   - 'pull_request'
 
 jobs:
-  build:
+  linux:
     runs-on: 'ubuntu-latest'
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
         compiler:
           - cc: 'clang'
             ldshared: 'clang -shared'
           - cc: 'gcc'
+        python-version:
+          - 'pypy3.9'
+          - 'pypy3.10'
+          - '3.7'
+          - '3.8'
+          - '3.9'
+          - '3.10'
+          - '3.11'
+          - '3.12'
 
     steps:
-    - uses: 'actions/checkout@v3'
-    - name: 'install compiler'
-      run: |
-        sudo apt-get install -y ${{ matrix.compiler.cc }}
-        echo >> "$GITHUB_ENV" 'CC=${{ matrix.compiler.cc }}'
-        echo >> "$GITHUB_ENV" 'LDSHARED=${{ matrix.compiler.ldshared }}'
-    - name: 'set up python ${{ matrix.python-version }}'
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: 'install tox'
-      run: |
-        python -mpip install -U pip setuptools
-        python -mpip install -U tox tox-gh-actions
-    - name: 'run tests'
-      run: |
-        tox
+      - uses: 'actions/checkout@v4'
+      - name: 'install compiler'
+        run: |
+          sudo apt-get install -y ${{ matrix.compiler.cc }}
+          echo >> "$GITHUB_ENV" 'CC=${{ matrix.compiler.cc }}'
+          echo >> "$GITHUB_ENV" 'LDSHARED=${{ matrix.compiler.ldshared }}'
+      - name: 'set up python ${{ matrix.python-version }}'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+      - name: 'install tox'
+        run: |
+          python -mpip install -U pip setuptools
+          python -mpip install -U tox tox-gh-actions
+      - name: 'run tests'
+        run: |
+          tox
+
+  macos:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner:
+          - macos-12
+          - macos-14
+        python-version:
+          - 'pypy3.9'
+          - 'pypy3.10'
+          - '3.8'
+          - '3.9'
+          - '3.10'
+          - '3.11'
+          - '3.12'
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'set up python ${{ matrix.python-version }}'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+      - name: 'install tox'
+        run: |
+          python -mpip install -U pip setuptools
+          python -mpip install -U tox tox-gh-actions
+      - name: 'run tests'
+        run: |
+          tox
