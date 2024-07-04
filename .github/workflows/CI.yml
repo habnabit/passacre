@@ -10,6 +10,7 @@ on:
     branches:
       - main
       - master
+      - nearly-1.0
     tags:
       - '*'
   pull_request:
@@ -40,7 +41,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: |
+            pypy3.9
+            pypy3.10
+            3.7
+            3.8
+            3.9
+            3.10
+            3.11
+            3.12
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -71,7 +80,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: |
+            pypy3.9
+            pypy3.10
+            3.7
+            3.8
+            3.9
+            3.10
+            3.11
+            3.12
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -85,32 +102,40 @@ jobs:
           name: wheels-musllinux-${{ matrix.platform.target }}
           path: dist
 
-  windows:
-    runs-on: ${{ matrix.platform.runner }}
-    strategy:
-      matrix:
-        platform:
-          - runner: windows-latest
-            target: x64
-          - runner: windows-latest
-            target: x86
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
-          architecture: ${{ matrix.platform.target }}
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-windows-${{ matrix.platform.target }}
-          path: dist
+  # windows:
+  #   runs-on: ${{ matrix.platform.runner }}
+  #   strategy:
+  #     matrix:
+  #       platform:
+  #         - runner: windows-latest
+  #           target: x64
+  #         - runner: windows-latest
+  #           target: x86
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: |
+  #           pypy3.9
+  #           pypy3.10
+  #           3.7
+  #           3.8
+  #           3.9
+  #           3.10
+  #           3.11
+  #           3.12
+  #         architecture: ${{ matrix.platform.target }}
+  #     - name: Build wheels
+  #       uses: PyO3/maturin-action@v1
+  #       with:
+  #         target: ${{ matrix.platform.target }}
+  #         args: --release --out dist --find-interpreter
+  #         sccache: 'true'
+  #     - name: Upload wheels
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: wheels-windows-${{ matrix.platform.target }}
+  #         path: dist
 
   macos:
     runs-on: ${{ matrix.platform.runner }}
@@ -125,7 +150,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: |
+            pypy3.9
+            pypy3.10
+            3.8
+            3.9
+            3.10
+            3.11
+            3.12
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -157,7 +189,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [linux, musllinux, windows, macos, sdist]
+    needs: [linux, musllinux, macos, sdist]
     steps:
       - uses: actions/download-artifact@v4
       - name: Publish to PyPI
