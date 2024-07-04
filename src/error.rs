@@ -5,6 +5,7 @@
 
 use std::io;
 
+#[cfg(feature = "python")]
 use pyo3::PyErr;
 
 #[derive(thiserror::Error, Debug)]
@@ -29,17 +30,20 @@ pub enum PassacreError {
     MutexError,
     #[error("IO error {0:#?}")]
     IO(#[from] io::Error),
+    #[cfg(feature = "python")]
     #[error("python error {0:#?}")]
     Python(#[from] PyErr),
 }
 
 pub type PassacreResult<T> = Result<T, PassacreError>;
+#[cfg(feature = "python")]
 pyo3::create_exception!(
     passacre_backend,
     PassacreException,
     pyo3::exceptions::PyException
 );
 
+#[cfg(feature = "python")]
 impl Into<PyErr> for PassacreError {
     fn into(self) -> PyErr {
         match self {

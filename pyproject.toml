@@ -3,7 +3,7 @@ requires = ["maturin>=1.6,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "passacre-backend"
+name = "passacre"
 description = "better repeatable password generation"
 author = "hab"
 author-email = "_@habnab.it"
@@ -25,5 +25,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dynamic = ["version"]
+
 [tool.maturin]
 features = ["pyo3/extension-module"]

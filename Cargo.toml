@@ -1,14 +1,18 @@
 [package]
-name = "passacre-backend"
+name = "passacre"
 version = "1.0.0"
 edition = "2021"
 
 [lib]
-name = "passacre_backend"
+name = "_passacre_backend"
 crate-type = ["cdylib"]
 
+[features]
+default = ["python"]
+python = ["pyo3"]
+
 [dependencies]
-pyo3 = "0.21.1"
+pyo3 = { version = "0.21.1", optional = true }
 libc = "0.2.18"
 rand = "0.8"
 num-bigint = { version = "0.4", features = ["rand"] }

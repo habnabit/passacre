@@ -29,6 +29,7 @@ mod deps;
 pub mod error;
 mod multibase;
 mod passacre;
+#[cfg(feature = "python")]
 mod python;
 pub use crate::error::PassacreError;
 pub use crate::multibase::{Base, MultiBase};
