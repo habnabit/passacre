@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 use std::io::BufRead;
 use std::{fs, io, path, str};
 
-use num_bigint::BigInt as Int;
-use num_traits::{Euclid, One, ToPrimitive, Zero};
+use num_bigint::BigUint;
+use num_traits::{CheckedSub, Euclid, One, ToPrimitive, Zero};
 
 use crate::error::{PassacreError, PassacreError::*, PassacreResult};
 use crate::passacre::PassacreGenerator;
@@ -18,19 +18,19 @@ fn borrow_string(s: &String) -> Cow<str> {
     Cow::Borrowed(s.as_str())
 }
 
-fn int_of_bytes(bytes: &[u8]) -> Int {
-    let mut ret = Int::zero();
+fn int_of_bytes(bytes: &[u8]) -> BigUint {
+    let mut ret = BigUint::zero();
     for b in bytes {
         ret = (ret << 8) + (*b as usize);
     }
     ret
 }
 
-fn factorial(n: usize) -> Int {
+fn factorial(n: usize) -> BigUint {
     if n < 2 {
-        return Int::one();
+        return BigUint::one();
     }
-    (2..n).fold(Int::from(n), |acc, i| acc * Int::from(i))
+    (2..n).fold(BigUint::from(n), |acc, i| acc * BigUint::from(i))
 }
 
 fn length_one_string(c: char) -> String {
@@ -68,12 +68,12 @@ impl Base {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct Words {
     words: Vec<String>,
-    length: Int,
+    length: BigUint,
 }
 
 impl Words {
     fn new(words: Vec<String>) -> Words {
-        let length = Int::from(words.len());
+        let length = BigUint::from(words.len());
         Words {
             words: words,
             length: length,
@@ -83,12 +83,12 @@ impl Words {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct BaseInfo {
-    length: Int,
+    length: BigUint,
     positions: Vec<usize>,
 }
 
 impl BaseInfo {
-    fn new(length: Int) -> BaseInfo {
+    fn new(length: BigUint) -> BaseInfo {
         BaseInfo {
             length: length,
             positions: Vec::new(),
@@ -101,7 +101,7 @@ pub struct MultiBase {
     bases: BTreeMap<Base, BaseInfo>,
     n_bases: usize,
     words: Option<Words>,
-    length_product: Int,
+    length_product: BigUint,
     shuffle: bool,
 }
 
@@ -111,13 +111,14 @@ impl MultiBase {
             bases: BTreeMap::new(),
             n_bases: 0,
             words: None,
-            length_product: Int::one(),
+            length_product: BigUint::one(),
             shuffle: false,
         }
     }
 
-    fn max_encodable_value(&self) -> Int {
-        &self.length_product - 1
+    fn max_encodable_value(&self) -> BigUint {
+        // safety: self.length_product is always >= 1
+        self.length_product.checked_sub(&BigUint::one()).unwrap()
     }
 
     pub fn required_bytes(&self) -> usize {
@@ -144,8 +145,8 @@ impl MultiBase {
             fail!(UserError);
         }
         let length = match &base {
-            &Base::Separator(_) => Int::one(),
-            &Base::Characters(ref s) => Int::from(s.len()),
+            &Base::Separator(_) => BigUint::one(),
+            &Base::Characters(ref s) => BigUint::from(s.len()),
             &Base::Words => match &self.words {
                 &Some(ref w) => w.length.clone(),
                 &None => fail!(UserError),
@@ -178,7 +179,7 @@ impl MultiBase {
         self.set_words(lines)
     }
 
-    fn unshuffled_bases_ref_vec(&self) -> Vec<(&Base, &Int, usize)> {
+    fn unshuffled_bases_ref_vec(&self) -> Vec<(&Base, &BigUint, usize)> {
         let mut ret = vec![None; self.n_bases];
         for (e, (base, info)) in self.bases.iter().enumerate() {
             for &i in info.positions.iter() {
@@ -189,12 +190,13 @@ impl MultiBase {
         ret.into_iter().collect::<Option<Vec<_>>>().unwrap()
     }
 
-    fn bases_ref_vec(&self, n: &mut Int) -> Vec<(&Base, &Int, usize)> {
+    fn bases_ref_vec(&self, n: &mut BigUint) -> Vec<(&Base, &BigUint, usize)> {
         let bases = self.unshuffled_bases_ref_vec();
         if !self.shuffle {
             return bases;
         }
-        let mut bases_by_count: Vec<(usize, &BaseInfo)> = self.bases
+        let mut bases_by_count: Vec<(usize, &BaseInfo)> = self
+            .bases
             .iter()
             .map(|(_, info)| (info.positions.len(), info))
             .collect();
@@ -202,7 +204,8 @@ impl MultiBase {
         let (_, last_base) = bases_by_count.pop().unwrap();
         let mut ret = vec![None; self.n_bases];
         for (_, info) in bases_by_count.into_iter() {
-            let mut choices: Vec<usize> = ret.iter()
+            let mut choices: Vec<usize> = ret
+                .iter()
                 .enumerate()
                 .filter_map(|t| match t {
                     (e, &None) => Some(e),
@@ -210,20 +213,24 @@ impl MultiBase {
                 })
                 .collect();
             for &src_position in &info.positions {
-                let (next_n, choice) = n.div_rem_euclid(&Int::from(choices.len()));
+                let (next_n, choice) = n.div_rem_euclid(&BigUint::from(choices.len()));
                 let dst_position = choices.swap_remove(choice.to_usize().unwrap());
                 ret[dst_position] = Some(bases[src_position]);
                 *n = next_n;
             }
         }
-        for (dst, &src) in ret.iter_mut().filter(|o| o.is_none()).zip(&last_base.positions) {
+        for (dst, &src) in ret
+            .iter_mut()
+            .filter(|o| o.is_none())
+            .zip(&last_base.positions)
+        {
             *dst = Some(bases[src]);
         }
         ret.into_iter().collect::<Option<Vec<_>>>().unwrap()
     }
 
-    fn encode(&self, mut n: Int) -> PassacreResult<String> {
-        if n < Int::zero() || n >= self.length_product {
+    fn encode(&self, mut n: BigUint) -> PassacreResult<String> {
+        if n < BigUint::zero() || n >= self.length_product {
             fail!(DomainError);
         }
         let bases = self.bases_ref_vec(&mut n);
@@ -283,8 +290,8 @@ mod tests {
 
     macro_rules! multibase_tests {
         ($constructor:ident,
-         $max_value:expr,
-         $req_bytes:expr,
+         $max_value:literal,
+         $req_bytes:literal,
          [ $( $decoded:expr => $encoded:expr ),* ],
          [ $( $encoding_failure:expr ),* ]
          { $( $i:item )* }
@@ -293,14 +300,14 @@ mod tests {
             mod $constructor {
                 use super::*;
                 use crate::multibase::PassacreResult;
-                use num_bigint::BigInt as Int;
+                use num_bigint::BigUint as BigUint;
                 use num_traits::ToPrimitive;
 
                 #[test]
                 fn test_max_encodable_value() -> PassacreResult<()> {
                     let b = make_mb()?;
-                    let max_value = Int::from($max_value);
-                    assert_eq!(b.max_encodable_value(), max_value);
+                    let max_value: usize = $max_value;
+                    assert_eq!(b.max_encodable_value(), BigUint::from(max_value));
                     Ok(())
                 }
 
@@ -317,7 +324,7 @@ mod tests {
                     let l: usize = b.length_product.to_usize().unwrap();
                     let mut h = HashMap::with_capacity(l);
                     for i in 0..l {
-                        h.entry(b.encode(Int::from(i))?).or_insert_with(|| vec![]).push(i);
+                        h.entry(b.encode(BigUint::from(i))?).or_insert_with(|| vec![]).push(i);
                     }
                     let dupes: Vec<_> = h.into_iter()
                         .filter(|&(_, ref c)| c.len() > 1)
@@ -332,7 +339,7 @@ mod tests {
                 )]
                 fn test_encoding(decoded: u64, encoded: &'static str) -> PassacreResult<()> {
                     let b = make_mb()?;
-                    let v = Int::from(decoded);
+                    let v = BigUint::from(decoded);
                     assert_eq!(b.encode(v)?, encoded);
                     Ok(())
                 }
@@ -343,7 +350,7 @@ mod tests {
                 )]
                 fn test_encoding_failure(value: u64) -> PassacreResult<()> {
                     let b = make_mb()?;
-                    let v = Int::from(value);
+                    let v = BigUint::from(value);
                     assert!(matches!(b.encode(v).unwrap_err(), DomainError));
                     Ok(())
                 }
