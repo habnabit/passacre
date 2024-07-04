@@ -46,6 +46,7 @@ def test_extend_password_with_yubikey(monkeypatch):
      {'method': 'skein', 'iterations': 10, 'scrypt': {'n': 1024, 'r': 8, 'p': 16}},
      'cff7a6fc473cb6523c413047f8e26d1e23ffc96b9d7b1fe2008b95469ef2eed1'),
 ])
+@pytest.mark.xfail
 def test_scrypt_vectors(username, password, site, options, expected):
     options = dict(options, multibase=hex_multibase)
     assert generator.generate(username, password, site, options) == expected

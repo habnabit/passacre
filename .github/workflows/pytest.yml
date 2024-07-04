@@ -10,21 +10,18 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
-        cc: ['clang', 'gcc']
+        compiler:
+          - cc: 'clang'
+            ldshared: 'clang -shared'
+          - cc: 'gcc'
 
     steps:
     - uses: 'actions/checkout@v3'
-    - name: 'install clang'
-      if: '${{ cc == "clang" }}'
+    - name: 'install compiler'
       run: |
-        sudo apt-get install -y clang
-        echo >> "$GITHUB_ENV" 'CC=clang'
-        echo >> "$GITHUB_ENV" 'LDSHARED=clang -shared'
-    - name: 'install gcc'
-      if: '${{ cc == "gcc" }}'
-      run: |
-        sudo apt-get install -y gcc
-        echo >> "$GITHUB_ENV" 'CC=gcc'
+        sudo apt-get install -y ${{ matrix.compiler.cc }}
+        echo >> "$GITHUB_ENV" 'CC=${{ matrix.compiler.cc }}'
+        echo >> "$GITHUB_ENV" 'LDSHARED=${{ matrix.compiler.ldshared }}'
     - name: 'set up python ${{ matrix.python-version }}'
       uses: actions/setup-python@v4
       with:
