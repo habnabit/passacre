@@ -1,0 +1,64 @@
+schemata:
+  - &8-alphanumeric
+    - [8, alphanumeric]
+  - &12-alphanumeric
+    - [12, alphanumeric]
+  - &32-alphanumeric
+    - [32, alphanumeric]
+  - &32-printable
+    - [32, printable]
+
+sites:
+  default:
+    schema: *32-printable
+    iterations: 10
+    method: keccak
+
+  becu.org:
+    schema: *32-alphanumeric
+
+  fhcrc.org:
+    increment: 5
+
+  schwab.com:
+    schema: *8-alphanumeric
+
+  fidelity.com:
+    schema:
+      - [16, [alphanumeric, '"%''()+,-/:;<=>?\ ^_|']]
+
+  example.com:
+    schema:
+      - [' ', 4, word]
+
+  further.example.com:
+    schema:
+      - [', ', 4, word]
+
+  still.further.example.com:
+    schema:
+      - printable
+      - [', ', 4, word]
+      - printable
+
+  gN7y2jQ72IbdvQZxrZLNmC4hrlDmB-KZnGJiGpoB4VEcOCn4:
+    schema:
+      - [' ', 2, word]
+
+  scrypt.example.com:
+    scrypt:
+      n: 16
+      r: 1
+      p: 1
+
+  scrypt2.example.com:
+    scrypt:
+      n: 1024
+      r: 8
+      p: 16
+
+site-hashing:
+  enabled: true
+  iterations: 10
+
+words-file: words

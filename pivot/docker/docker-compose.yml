@@ -1,0 +1,20 @@
+version: '2'
+services:
+
+  build-linux64-backend:
+    build:
+      context: .
+      dockerfile: build-linux64-backend.docker
+    volumes:
+      - ..:/build
+      - cargo_registry:/root/.cargo/registry
+    command: /build/docker/build-linux-backend.sh
+
+  build-linux32-backend:
+    build:
+      dockerfile: build-linux32-backend.docker
+    extends:
+      service: build-linux64-backend
+
+volumes:
+  cargo_registry: {}

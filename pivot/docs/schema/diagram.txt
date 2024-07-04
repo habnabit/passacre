@@ -1,0 +1,43 @@
+items:
+
+Diagram(
+    Sequence(
+        '[',
+        OneOrMore(NonTerminal('item')),
+        ']'))
+
+
+item:
+
+Diagram(
+    Choice(
+        0,
+        '"word"',
+        NonTerminal('character-sets'),
+        Sequence(
+            '[',
+            Optional('delimiter', 'skip'),
+            'count',
+            OneOrMore(NonTerminal('item')),
+            ']')))
+
+
+character-sets:
+
+Diagram(
+    Choice(
+        0,
+        NonTerminal('character-set'),
+        Sequence(
+            '[',
+            OneOrMore(NonTerminal('character-set')),
+            ']')))
+
+
+character-set:
+
+Diagram(
+    Choice(
+        0,
+        'character class',
+        'characters'))

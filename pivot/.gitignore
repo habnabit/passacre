@@ -1,0 +1,16 @@
+.DS_Store
+*.py[cod]
+/passacre.yaml
+build
+dist
+wheelhouse
+*.egg*
+/.coverage
+/htmlcov*
+/gcovr*
+/.tox
+/.cache
+
+*.so
+# gcov, gcno, gcda
+*.gc[ond][voa]

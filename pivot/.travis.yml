@@ -1,0 +1,61 @@
+sudo: required
+dist: trusty
+language: python
+
+
+matrix:
+  include:
+
+    - python: 2.6
+      env: TOXENV=cmake-backend,py26 _COMPILER=clang
+
+    - python: 2.7
+      env: TOXENV=cmake-backend,py27 _COMPILER=clang
+
+    - python: 3.3
+      env: TOXENV=cmake-backend,py33 _COMPILER=clang
+
+    - python: 3.4
+      env: TOXENV=cmake-backend,py34 _COMPILER=clang
+
+    - python: 3.5
+      env: TOXENV=cmake-backend,py35 _COMPILER=clang
+
+    - python: 2.6
+      env: TOXENV=cmake-backend,py26 _COMPILER=gcc
+
+    - python: 2.7
+      env: TOXENV=cmake-backend,py27 _COMPILER=gcc
+
+    - python: 3.3
+      env: TOXENV=cmake-backend,py33 _COMPILER=gcc
+
+    - python: 3.4
+      env: TOXENV=cmake-backend,py34 _COMPILER=gcc
+
+    - python: 3.5
+      env: TOXENV=cmake-backend,py35 _COMPILER=gcc
+
+    - python: 2.7
+      env: TOXENV=rust-kcov _COMPILER=clang _KCOV=1
+
+
+env:
+  global:
+    - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
+    - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+
+cache:
+  directories:
+    - ~/.cache/pip
+    - ~/.cargo/registry
+
+
+before_install:
+  - "source .travis/setup.sh"
+install:
+  - "pip install tox"
+script:
+  - "tox"
+after_success:
+  - "tox -e codecov"

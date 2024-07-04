@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
+import applescript
+from passacre.application import Passacre
+import sys
+
+try:
+  from urllib.parse import urlparse
+except ImportError:
+  from urlparse import urlparse
+
+def trap_cancel(f, *a, **kw):
+  try:
+    return f(*a, **kw)
+  except applescript.ScriptError as e:
+    if e.number != -128:
+      raise
+    sys.exit(0)
+
+
+p = Passacre()
+p.load_config()
+
+proc, current_win, current_url = applescript.AppleScript("""
+tell application "System Events" to set proc to the name of the first process whose frontmost is true
+set curl to ""
+if proc is "Safari" then
+    tell application "Safari" to set curl to get the URL of the current tab of the first window
+else if proc is "Google Chrome" then
+    tell application "Google Chrome" to set curl to get the URL of the active tab of the front window
+end if
+tell application proc
+    get {proc, window 1, curl}
+end tell
+""").run()
+
+req = applescript.AppleScript("""
+on run {proc, prompt, defans}
+    tell application proc
+        display dialog prompt default answer defans
+        return the text returned of the result
+    end tell
+end run
+""")
+
+req_pw = applescript.AppleScript("""
+on run {proc, prompt}
+    tell application proc
+        display dialog prompt default answer "" with hidden answer
+        return the text returned of the result
+    end tell
+end run
+""")
+
+maybe_url = current_url
+if len(sys.argv) > 1:
+  maybe_url = sys.argv[1]
+if maybe_url:
+  parsed = urlparse(maybe_url)
+  if parsed.hostname:
+    from publicsuffix import PublicSuffixList
+    psl = PublicSuffixList()
+    site = psl.get_public_suffix(parsed.hostname)
+  else:
+    site = maybe_url
+else:
+  site = ''
+site = site.encode().decode('idna')
+
+site = trap_cancel(req.run, proc, 'site', site)
+username = trap_cancel(req.run, proc, 'username', '')
+
+pw = trap_cancel(req_pw.run, proc, 'password')
+pwconf = trap_cancel(req_pw.run, proc, 'confirm password')
+if pw != pwconf:
+  sys.exit(1)
+generated = p.config.generate_for_site(username, pw, site)
+
+applescript.AppleScript("""
+on run {proc, w, keys}
+    tell application proc to activate window w
+    tell application "System Events" to keystroke keys
+end run
+""").run(proc, current_win, generated)

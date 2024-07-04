@@ -1,0 +1,36 @@
+schemata:
+  - &8-alphanumeric
+    - [8, alphanumeric]
+  - &12-alphanumeric
+    - [12, alphanumeric]
+  - &32-alphanumeric
+    - [32, alphanumeric]
+  - &32-printable
+    - [32, printable]
+
+sites:
+  default:
+    schema: *32-printable
+    iterations: 10000
+    method: keccak
+
+  becu.org:
+    schema: *32-alphanumeric
+
+  fhcrc.org:
+    increment: 5
+
+  schwab.com:
+    schema: *8-alphanumeric
+    method: skein
+
+  fidelity.com:
+    schema:
+      - [16, [alphanumeric, '"%''()+,-/:;<=>?\ ^_|']]
+
+site-hashing:
+  enabled: true
+  iterations: 100
+  method: keccak
+
+words-file: /usr/share/dict/words
