@@ -266,17 +266,35 @@ pub trait Xof {
     fn squeeze(&mut self, output: &mut [u8]);
 }
 
+#[cfg(any(
+    feature = "cshake",
+    feature = "kmac",
+    feature = "tuple_hash",
+    feature = "parallel_hash"
+))]
 struct EncodedLen {
     offset: usize,
     buffer: [u8; 9],
 }
 
+#[cfg(any(
+    feature = "cshake",
+    feature = "kmac",
+    feature = "tuple_hash",
+    feature = "parallel_hash"
+))]
 impl EncodedLen {
     fn value(&self) -> &[u8] {
         &self.buffer[self.offset..]
     }
 }
 
+#[cfg(any(
+    feature = "cshake",
+    feature = "kmac",
+    feature = "tuple_hash",
+    feature = "parallel_hash"
+))]
 fn left_encode(len: usize) -> EncodedLen {
     let mut buffer = [0u8; 9];
     buffer[1..].copy_from_slice(&(len as u64).to_be_bytes());
@@ -289,6 +307,12 @@ fn left_encode(len: usize) -> EncodedLen {
     }
 }
 
+#[cfg(any(
+    feature = "cshake",
+    feature = "kmac",
+    feature = "tuple_hash",
+    feature = "parallel_hash"
+))]
 fn right_encode(len: usize) -> EncodedLen {
     let mut buffer = [0u8; 9];
     buffer[..8].copy_from_slice(&(len as u64).to_be_bytes());
@@ -466,6 +490,7 @@ impl<P: Permutation> KeccakState<P> {
         self.offset = 0;
     }
 
+    #[cfg(feature = "k12")]
     fn reset(&mut self) {
         self.buffer = Buffer::default();
         self.offset = 0;
