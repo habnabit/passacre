@@ -1,6 +1,6 @@
 [package]
 name = "passacre"
-version = "1.0.1-rc1"
+version = "1.0.1-rc2"
 edition = "2021"
 
 [lib]
@@ -13,20 +13,17 @@ python = ["pyo3"]
 
 [dependencies]
 pyo3 = { version = "0.21.1", optional = true }
-libc = "0.2.18"
-rand = "0.8"
+libc = { version = "0.2.18", default-features = false }
+rand = { version = "0.8", default-features = false }
 num-bigint = { version = "0.4", features = ["rand"] }
-thiserror = "1.0.61"
-num-traits = "0.2.19"
+thiserror = { version = "1.0.61", default-features = false }
+num-traits = { version = "0.2.19", default-features = false }
 scrypt = { version = "0.11.0", default-features = false }
 skein = { version = "0.1.0", default-features = false }
 bytes = { version = "1.6.0", default-features = false }
 threefish = { version = "0.5.2", default-features = false }
 bytemuck = { version = "1.16.1", default-features = false, features = ["min_const_generics"] }
 tiny-keccak-1536 = { version = "2.0.2", path = "tiny-keccak-1536", default-features = false, features = ["shake"] }
-
-[build-dependencies]
-cc = "1.0.104"
 
 [dev-dependencies]
 parameterized = "2.0.0"
