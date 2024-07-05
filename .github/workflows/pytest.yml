@@ -71,3 +71,36 @@ jobs:
       - name: 'run tests'
         run: |
           tox
+
+  windows:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: windows-latest
+            target: x64
+          - runner: windows-latest
+            target: x86
+        python-version:
+          - 'pypy3.9'
+          - 'pypy3.10'
+          - '3.7'
+          - '3.8'
+          - '3.9'
+          - '3.10'
+          - '3.11'
+          - '3.12'
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'set up python ${{ matrix.python-version }}'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+      - name: 'install tox'
+        run: |
+          python -mpip install -U pip setuptools
+          python -mpip install -U tox tox-gh-actions
+      - name: 'run tests'
+        run: |
+          tox
