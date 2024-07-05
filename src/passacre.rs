@@ -5,7 +5,7 @@
 
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
-use skein::{Skein512, Digest};
+use skein::{Digest, Skein512};
 use threefish::Threefish512;
 use tiny_keccak_1536::{Hasher, NonstandardShake1536, Xof};
 
@@ -57,7 +57,10 @@ impl Kdf {
     pub fn derive(&self, username: &[u8], password: &[u8]) -> PassacreResult<Vec<u8>> {
         match self {
             Kdf::Scrypt(params) => {
-                testing_fail!(params.log_n() == 99 && params.r() == 99 && params.p() == 99, ScryptError);
+                testing_fail!(
+                    params.log_n() == 99 && params.r() == 99 && params.p() == 99,
+                    ScryptError
+                );
                 let mut ret = vec![0u8; SCRYPT_BUFFER_SIZE];
                 scrypt::scrypt(password, username, params, &mut ret).map_err(|_| InternalError)?;
                 Ok(ret)
@@ -88,7 +91,7 @@ impl HashState {
                 let nulls = [0u8; SKEIN_512_BLOCK_BYTES];
                 hash.update(&nulls);
                 HashState::Skein(hash)
-            },
+            }
         };
         Ok(hash_state)
     }
@@ -103,14 +106,10 @@ pub struct PassacreGenerator {
 pub const SCRYPT_BUFFER_SIZE: usize = 64;
 
 const DELIMITER: &'static [u8] = b":";
-const TWEAK: [u8; 16] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3f,
-];
+const TWEAK: [u8; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3f];
 const ONE_IN_64: [u8; 64] = [
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
 impl PassacreGenerator {
@@ -216,7 +215,7 @@ impl PassacreGenerator {
         match &mut self.hash_state {
             HashState::Keccak(sponge) => {
                 sponge.squeeze(output);
-            },
+            }
             HashState::SkeinPrng(skein) => {
                 let mut n_bytes = output.len();
                 let mut output_pos = 0usize;
@@ -231,10 +230,7 @@ impl PassacreGenerator {
                         skein.threefish = Threefish512::new_with_tweak(&next_state_bytes, &TWEAK);
                     }
                     let splut = skein.buffer.split_to(n_bytes.min(skein.buffer.len()));
-                    let copied = copy_from_shorter_slice(
-                        &mut output[output_pos..],
-                        &splut,
-                    );
+                    let copied = copy_from_shorter_slice(&mut output[output_pos..], &splut);
                     n_bytes -= copied;
                     output_pos += copied;
                 }

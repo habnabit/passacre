@@ -62,12 +62,14 @@ pub struct NonstandardShake1536 {
 }
 
 impl NonstandardShake1536 {
+    // setting rate = 64 in the old library was only consuming 8 bytes at a time
+    const RATE: usize = 8;
     const DELIM: u8 = 0x01;
 
     /// create this nonstandard thing
     pub fn new() -> Self {
         Self {
-            state: KeccakState::new(8, Self::DELIM),
+            state: KeccakState::new(Self::RATE, Self::DELIM),
         }
     }
 }

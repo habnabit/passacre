@@ -24,6 +24,8 @@ bytes = { version = "1.6.0", default-features = false }
 threefish = { version = "0.5.2", default-features = false }
 bytemuck = { version = "1.16.1", default-features = false, features = ["min_const_generics"] }
 tiny-keccak-1536 = { version = "2.0.2", path = "tiny-keccak-1536", default-features = false, features = ["shake"] }
+factorial = { version = "0.4.0", default-features = false }
+primal-sieve = { version = "0.3.7", default-features = false }
 
 [dev-dependencies]
 parameterized = "2.0.0"

@@ -8,36 +8,12 @@ use std::collections::BTreeMap;
 use std::io::BufRead;
 use std::{fs, io, path, str};
 
+use factorial::Factorial;
 use num_bigint::BigUint;
 use num_traits::{CheckedSub, Euclid, One, ToPrimitive, Zero};
 
 use crate::error::{PassacreError, PassacreError::*, PassacreResult};
 use crate::passacre::PassacreGenerator;
-
-fn borrow_string(s: &String) -> Cow<str> {
-    Cow::Borrowed(s.as_str())
-}
-
-fn int_of_bytes(bytes: &[u8]) -> BigUint {
-    let mut ret = BigUint::zero();
-    for b in bytes {
-        ret = (ret << 8) + (*b as usize);
-    }
-    ret
-}
-
-fn factorial(n: usize) -> BigUint {
-    if n < 2 {
-        return BigUint::one();
-    }
-    (2..n).fold(BigUint::from(n), |acc, i| acc * BigUint::from(i))
-}
-
-fn length_one_string(c: char) -> String {
-    let mut ret = String::with_capacity(c.len_utf8());
-    ret.push(c);
-    ret
-}
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Base {
@@ -55,7 +31,7 @@ impl Base {
                 _ => fail!(UserError),
             },
             1 if !string.is_empty() => match str::from_utf8(string) {
-                Ok(s) => Base::Characters(s.chars().map(length_one_string).collect()),
+                Ok(s) => Base::Characters(s.chars().map(|c| c.into()).collect()),
                 _ => fail!(UserError),
             },
             2 if string.is_empty() => Base::Words,
@@ -74,10 +50,7 @@ struct Words {
 impl Words {
     fn new(words: Vec<String>) -> Words {
         let length = BigUint::from(words.len());
-        Words {
-            words: words,
-            length: length,
-        }
+        Words { words, length }
     }
 }
 
@@ -90,7 +63,7 @@ struct BaseInfo {
 impl BaseInfo {
     fn new(length: BigUint) -> BaseInfo {
         BaseInfo {
-            length: length,
+            length,
             positions: Vec::new(),
         }
     }
@@ -106,6 +79,8 @@ pub struct MultiBase {
 }
 
 impl MultiBase {
+    const GENERATOR_ATTEMPTS: usize = 1000;
+
     pub fn new() -> MultiBase {
         MultiBase {
             bases: BTreeMap::new(),
@@ -133,9 +108,26 @@ impl MultiBase {
         if self.shuffle {
             return;
         }
+        // safety: there will be at least one item in the iterator
+        let highest_int = self
+            .bases
+            .values()
+            .map(|i| i.positions.len())
+            .chain(Some(self.n_bases))
+            .max()
+            .unwrap();
+        let sieve = primal_sieve::Sieve::new(highest_int);
         self.length_product = self.bases.values().fold(
-            &self.length_product * factorial(self.n_bases),
-            |acc, info| acc / factorial(info.positions.len()),
+            // safety: psw_factorial returns None only on overflow
+            &self.length_product
+                * <BigUint as From<usize>>::from(self.n_bases)
+                    .psw_factorial(&sieve)
+                    .unwrap(),
+            |acc, info| {
+                acc / <BigUint as From<usize>>::from(info.positions.len())
+                    .psw_factorial(&sieve)
+                    .unwrap()
+            },
         );
         self.shuffle = true;
     }
@@ -230,6 +222,10 @@ impl MultiBase {
     }
 
     fn encode(&self, mut n: BigUint) -> PassacreResult<String> {
+        fn borrow_string(s: &String) -> Cow<str> {
+            Cow::Borrowed(s.as_str())
+        }
+
         if n < BigUint::zero() || n >= self.length_product {
             fail!(DomainError);
         }
@@ -259,18 +255,20 @@ impl MultiBase {
     }
 
     pub fn encode_from_bytes(&self, bytes: &[u8]) -> PassacreResult<String> {
-        self.encode(int_of_bytes(bytes))
+        self.encode(BigUint::from_bytes_be(bytes))
     }
 
     pub fn encode_from_generator(&self, gen: &mut PassacreGenerator) -> PassacreResult<String> {
         let mut buf = vec![0u8; self.required_bytes()];
-        loop {
+        // test this new loop more exhaustively against bad inputs
+        for _ in 0..Self::GENERATOR_ATTEMPTS {
             gen.squeeze(&mut buf)?;
-            match self.encode(int_of_bytes(&buf)) {
+            match self.encode(BigUint::from_bytes_be(&buf)) {
                 Err(PassacreError::DomainError) => continue,
                 x => return x,
             }
         }
+        Err(DomainError)
     }
 }
 
@@ -278,7 +276,7 @@ impl MultiBase {
 mod tests {
     use std::collections::HashMap;
 
-    use super::{length_one_string, Base, MultiBase};
+    use super::{Base, MultiBase};
     use crate::error::PassacreError::*;
     use parameterized::parameterized;
 
@@ -364,7 +362,7 @@ mod tests {
     const HEXDIGITS: &'static str = "0123456789abcdef";
 
     fn characters(cs: &'static str) -> Base {
-        Base::Characters(cs.chars().map(length_one_string).collect())
+        Base::Characters(cs.chars().map(|c| c.into()).collect())
     }
 
     multibase_tests!(
