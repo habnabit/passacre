@@ -25,7 +25,6 @@ macro_rules! testing_fail {
     }};
 }
 
-mod deps;
 pub mod error;
 mod multibase;
 mod passacre;

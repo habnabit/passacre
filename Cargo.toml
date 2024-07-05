@@ -18,6 +18,12 @@ rand = "0.8"
 num-bigint = { version = "0.4", features = ["rand"] }
 thiserror = "1.0.61"
 num-traits = "0.2.19"
+scrypt = { version = "0.11.0", default-features = false }
+skein = { version = "0.1.0", default-features = false }
+bytes = { version = "1.6.0", default-features = false }
+threefish = { version = "0.5.2", default-features = false }
+bytemuck = { version = "1.16.1", default-features = false, features = ["min_const_generics"] }
+tiny-keccak-1536 = { version = "2.0.2", path = "tiny-keccak-1536", default-features = false, features = ["shake"] }
 
 [build-dependencies]
 cc = "1.0.104"

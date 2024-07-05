@@ -3,38 +3,13 @@
  * See COPYING for details.
  */
 
+use bytes::{BufMut, BytesMut};
 use rand::RngCore;
+use skein::{Skein512, Digest};
+use threefish::Threefish512;
+use tiny_keccak_1536::{Hasher, NonstandardShake1536, Xof};
 
 use crate::error::{PassacreError::*, PassacreResult};
-
-macro_rules! decompose {
-    ($name:ident) => {
-        decompose!($name as ::libc::size_t);
-    };
-    (mut $name:ident) => {
-        decompose!(mut $name as ::libc::size_t);
-    };
-    ($name:ident as $typ:ty) => {
-        let $name = ($name.as_ptr(), $name.len() as $typ);
-    };
-    (mut $name:ident as $typ:ty) => {
-        let $name = ($name.as_mut_ptr(), $name.len() as $typ);
-    };
-}
-
-macro_rules! check_eq {
-    ($expected:expr, $err:expr, $actual:expr) => {{
-        if $expected != $actual {
-            fail!($err);
-        }
-    }};
-}
-
-macro_rules! check_skein {
-    ($actual:expr) => {
-        check_eq!(crate::deps::SKEIN_SUCCESS, SkeinError, $actual);
-    };
-}
 
 fn copy_from_shorter_slice<T: Copy>(dst: &mut [T], src: &[T]) -> usize {
     let ret = ::std::cmp::min(dst.len(), src.len());
@@ -69,38 +44,23 @@ enum State {
 }
 
 pub enum Kdf {
-    Scrypt { n: u64, r: u32, p: u32 },
+    Scrypt(scrypt::Params),
 }
 
 impl Kdf {
-    pub fn new_scrypt(n: u64, r: u32, p: u32) -> Kdf {
-        Kdf::Scrypt { n: n, r: r, p: p }
+    pub fn new_scrypt(n: u64, r: u32, p: u32) -> PassacreResult<Kdf> {
+        let log_n = (n as f64).log2() as u8;
+        let params = scrypt::Params::new(log_n, r, p, SCRYPT_BUFFER_SIZE).map_err(|_| UserError)?;
+        Ok(Kdf::Scrypt(params))
     }
 
-    pub fn derive(&mut self, username: &[u8], password: &[u8]) -> PassacreResult<Vec<u8>> {
+    pub fn derive(&self, username: &[u8], password: &[u8]) -> PassacreResult<Vec<u8>> {
         match self {
-            &mut Kdf::Scrypt { n, r, p } => {
-                testing_fail!(n == 99 && r == 99 && p == 99, ScryptError);
-                let mut scrypt_result = vec![0u8; SCRYPT_BUFFER_SIZE];
-                {
-                    decompose!(username);
-                    decompose!(password);
-                    decompose!(mut scrypt_result);
-                    check_eq!(0, ScryptError, unsafe {
-                        crate::deps::crypto_scrypt(
-                            password.0,
-                            password.1,
-                            username.0,
-                            username.1,
-                            n,
-                            r,
-                            p,
-                            scrypt_result.0,
-                            scrypt_result.1,
-                        )
-                    });
-                }
-                Ok(scrypt_result)
+            Kdf::Scrypt(params) => {
+                testing_fail!(params.log_n() == 99 && params.r() == 99 && params.p() == 99, ScryptError);
+                let mut ret = vec![0u8; SCRYPT_BUFFER_SIZE];
+                scrypt::scrypt(password, username, params, &mut ret).map_err(|_| InternalError)?;
+                Ok(ret)
             }
         }
     }
@@ -109,59 +69,28 @@ impl Kdf {
 const SKEIN_512_BLOCK_BYTES: usize = 64;
 
 struct SkeinPrng {
-    threefish: crate::deps::ThreefishKey_t,
-    buffer: [u8; SKEIN_512_BLOCK_BYTES],
-    bytes_remaining: usize,
+    threefish: threefish::Threefish512,
+    buffer: BytesMut,
 }
 
 enum HashState {
-    Keccak(*mut crate::deps::spongeState),
-    Skein(crate::deps::SkeinCtx_t),
+    Keccak(NonstandardShake1536),
+    Skein(Skein512),
     SkeinPrng(SkeinPrng),
 }
-
-const SPONGE_RATE: ::libc::c_uint = 64;
-const SPONGE_CAPACITY: ::libc::c_uint = 1536;
 
 impl HashState {
     fn of_algorithm(algorithm: &Algorithm) -> PassacreResult<HashState> {
         let hash_state = match algorithm {
-            &Algorithm::Keccak => unsafe {
-                let sponge = crate::deps::AllocSponge();
-                if sponge.is_null() {
-                    fail!(KeccakError);
-                }
-                if crate::deps::InitSponge(sponge, SPONGE_RATE, SPONGE_CAPACITY) != 0 {
-                    crate::deps::FreeSponge(sponge);
-                    fail!(KeccakError);
-                }
-                HashState::Keccak(sponge)
-            },
-            &Algorithm::Skein => unsafe {
-                let mut skein: crate::deps::SkeinCtx_t = Default::default();
-                check_skein!(crate::deps::skeinCtxPrepare(
-                    &mut skein,
-                    crate::deps::Skein512
-                ));
-                check_skein!(crate::deps::skeinInit(&mut skein, crate::deps::Skein512));
+            &Algorithm::Keccak => HashState::Keccak(NonstandardShake1536::new()),
+            &Algorithm::Skein => {
+                let mut hash: Skein512 = Default::default();
                 let nulls = [0u8; SKEIN_512_BLOCK_BYTES];
-                decompose!(nulls);
-                check_skein!(crate::deps::skeinUpdate(&mut skein, nulls.0, nulls.1));
-                HashState::Skein(skein)
+                hash.update(&nulls);
+                HashState::Skein(hash)
             },
         };
         Ok(hash_state)
-    }
-}
-
-impl Drop for HashState {
-    fn drop(&mut self) {
-        match self {
-            &mut HashState::Keccak(sponge) => unsafe {
-                crate::deps::FreeSponge(sponge);
-            },
-            _ => (),
-        }
     }
 }
 
@@ -174,8 +103,14 @@ pub struct PassacreGenerator {
 pub const SCRYPT_BUFFER_SIZE: usize = 64;
 
 const DELIMITER: &'static [u8] = b":";
-const TWEAK: [u8; 24] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3f, 0, 0, 0, 0, 0, 0, 0, 0,
+const TWEAK: [u8; 16] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3f,
+];
+const ONE_IN_64: [u8; 64] = [
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
 impl PassacreGenerator {
@@ -199,18 +134,9 @@ impl PassacreGenerator {
     }
 
     fn absorb(&mut self, input: &[u8]) -> PassacreResult<()> {
-        decompose!(input);
-        match self.hash_state {
-            HashState::Keccak(sponge) => unsafe {
-                check_eq!(
-                    0,
-                    KeccakError,
-                    crate::deps::Absorb(sponge, input.0, input.1 as ::libc::c_ulonglong * 8)
-                );
-            },
-            HashState::Skein(ref mut skein) => unsafe {
-                check_skein!(crate::deps::skeinUpdate(skein, input.0, input.1));
-            },
+        match &mut self.hash_state {
+            HashState::Keccak(sponge) => sponge.update(input),
+            HashState::Skein(skein) => skein.update(input),
             _ => fail!(InternalError),
         }
         Ok(())
@@ -267,24 +193,15 @@ impl PassacreGenerator {
             _ => fail!(UserError),
         }
         testing_panic!(output.len() == 99999);
-        let new_state = match self.hash_state {
-            HashState::Skein(ref mut skein) => unsafe {
-                let mut hash = [0u8; SKEIN_512_BLOCK_BYTES];
-                check_skein!(crate::deps::skeinFinal(skein, hash.as_mut_ptr()));
-                let mut threefish: crate::deps::ThreefishKey_t = Default::default();
-                crate::deps::threefishSetKey(
-                    &mut threefish,
-                    crate::deps::Threefish512,
-                    hash.as_ptr() as *const u64,
-                    TWEAK.as_ptr() as *const u64,
-                );
-                Some(HashState::SkeinPrng(SkeinPrng {
-                    threefish: threefish,
-                    buffer: [0u8; SKEIN_512_BLOCK_BYTES],
-                    bytes_remaining: 0,
-                }))
-            },
-            _ => None,
+        let new_state = if let HashState::Skein(skein) = &mut self.hash_state {
+            use skein::Digest;
+            let hash = skein.finalize_reset();
+            let threefish = Threefish512::new_with_tweak(&hash.into(), &TWEAK);
+            let mut buffer: BytesMut = Default::default();
+            buffer.reserve(64);
+            Some(HashState::SkeinPrng(SkeinPrng { buffer, threefish }))
+        } else {
+            None
         };
         match new_state {
             Some(new_state) => {
@@ -296,56 +213,36 @@ impl PassacreGenerator {
     }
 
     fn really_squeeze(&mut self, output: &mut [u8]) -> PassacreResult<()> {
-        match self.hash_state {
-            HashState::Keccak(sponge) => unsafe {
-                decompose!(mut output as ::libc::c_ulonglong);
-                check_eq!(
-                    0,
-                    KeccakError,
-                    crate::deps::Squeeze(sponge, output.0, output.1 * 8)
-                );
-                return Ok(());
+        match &mut self.hash_state {
+            HashState::Keccak(sponge) => {
+                sponge.squeeze(output);
             },
-            HashState::SkeinPrng(ref mut prng) => unsafe {
+            HashState::SkeinPrng(skein) => {
                 let mut n_bytes = output.len();
-                let mut input = [0u8; SKEIN_512_BLOCK_BYTES];
                 let mut output_pos = 0usize;
                 while n_bytes > 0 {
-                    if prng.bytes_remaining == 0 {
-                        let mut state_output = [0u8; SKEIN_512_BLOCK_BYTES];
-                        input[0] = 0;
-                        crate::deps::threefishEncryptBlockBytes(
-                            &mut prng.threefish,
-                            input.as_ptr(),
-                            state_output.as_mut_ptr(),
-                        );
-                        input[0] = 1;
-                        crate::deps::threefishEncryptBlockBytes(
-                            &mut prng.threefish,
-                            input.as_ptr(),
-                            prng.buffer.as_mut_ptr(),
-                        );
-                        crate::deps::threefishSetKey(
-                            &mut prng.threefish,
-                            crate::deps::Threefish512,
-                            state_output.as_ptr() as *const u64,
-                            TWEAK.as_ptr() as *const u64,
-                        );
-                        prng.bytes_remaining = prng.buffer.len();
+                    if skein.buffer.is_empty() {
+                        let mut next_state = [0u64; 8];
+                        skein.threefish.encrypt_block_u64(&mut next_state);
+                        let mut next_buffer: [u64; 8] = bytemuck::cast(ONE_IN_64);
+                        skein.threefish.encrypt_block_u64(&mut next_buffer);
+                        skein.buffer.put(bytemuck::cast_slice(&next_buffer));
+                        let next_state_bytes: [u8; 64] = bytemuck::cast(next_state);
+                        skein.threefish = Threefish512::new_with_tweak(&next_state_bytes, &TWEAK);
                     }
+                    let splut = skein.buffer.split_to(n_bytes.min(skein.buffer.len()));
                     let copied = copy_from_shorter_slice(
                         &mut output[output_pos..],
-                        &prng.buffer[prng.buffer.len() - prng.bytes_remaining..],
+                        &splut,
                     );
-                    prng.bytes_remaining -= copied;
                     n_bytes -= copied;
                     output_pos += copied;
                 }
                 output.reverse();
-                Ok(())
-            },
+            }
             _ => unreachable!(),
         }
+        Ok(())
     }
 }
 

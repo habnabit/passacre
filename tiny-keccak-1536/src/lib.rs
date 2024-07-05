@@ -165,7 +165,7 @@ pub use keccak::Keccak;
 mod shake;
 
 #[cfg(feature = "shake")]
-pub use shake::Shake;
+pub use shake::{Shake, NonstandardShake1536};
 
 #[cfg(feature = "sha3")]
 mod sha3;

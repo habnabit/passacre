@@ -86,11 +86,11 @@ fn derive(
                 nulls += item_value.extract::<usize>()?;
             }
             "scrypt" => {
-                generator.use_kdf(Kdf::Scrypt {
-                    n: item_value.get_item("n")?.extract()?,
-                    r: item_value.get_item("r")?.extract()?,
-                    p: item_value.get_item("p")?.extract()?,
-                })?;
+                generator.use_kdf(Kdf::new_scrypt(
+                    item_value.get_item("n")?.extract()?,
+                    item_value.get_item("r")?.extract()?,
+                    item_value.get_item("p")?.extract()?,
+                )?)?;
             }
             _ => {}
         }

@@ -54,3 +54,36 @@ impl Xof for Shake {
         self.state.squeeze(output)
     }
 }
+
+/// a nonstandard rate variable output hasher
+#[derive(Clone)]
+pub struct NonstandardShake1536 {
+    state: KeccakState<KeccakF>,
+}
+
+impl NonstandardShake1536 {
+    const DELIM: u8 = 0x01;
+
+    /// create this nonstandard thing
+    pub fn new() -> Self {
+        Self {
+            state: KeccakState::new(8, Self::DELIM),
+        }
+    }
+}
+
+impl Hasher for NonstandardShake1536 {
+    fn update(&mut self, input: &[u8]) {
+        self.state.update(input);
+    }
+
+    fn finalize(self, output: &mut [u8]) {
+        self.state.finalize(output);
+    }
+}
+
+impl Xof for NonstandardShake1536 {
+    fn squeeze(&mut self, output: &mut [u8]) {
+        self.state.squeeze(output)
+    }
+}
