@@ -1,0 +1,9 @@
+[package]
+edition = "2018"
+name = "comparison"
+version = "0.1.0"
+authors = ["debris <marek.kotewicz@gmail.com>"]
+
+[dependencies]
+tiny-keccak = { path = "../", features = ["sha3"] }
+sha3 = "0.8.2"
