@@ -1,4 +1,4 @@
-use tiny_keccak::{Hasher, Sha3};
+use tiny_keccak_1536::{Hasher, Sha3};
 
 #[test]
 fn empty_sha3_256() {

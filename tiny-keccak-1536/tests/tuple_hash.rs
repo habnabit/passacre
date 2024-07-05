@@ -1,4 +1,4 @@
-use tiny_keccak::{Hasher, TupleHash};
+use tiny_keccak_1536::{Hasher, TupleHash};
 
 #[test]
 fn test_tuple_hash128_one() {

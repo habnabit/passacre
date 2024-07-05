@@ -61,7 +61,7 @@ impl Hasher for Keccak {
     /// # Example
     ///
     /// ```
-    /// # use tiny_keccak::{Hasher, Keccak};
+    /// # use tiny_keccak_1536::{Hasher, Keccak};
     /// #
     /// # fn main() {
     /// # let mut keccak = Keccak::v256();
@@ -78,7 +78,7 @@ impl Hasher for Keccak {
     /// # Example
     ///
     /// ```
-    /// # use tiny_keccak::{Hasher, Keccak};
+    /// # use tiny_keccak_1536::{Hasher, Keccak};
     /// #
     /// # fn main() {
     /// # let keccak = Keccak::v256();

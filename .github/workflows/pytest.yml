@@ -41,6 +41,11 @@ jobs:
       - name: 'run tests'
         run: |
           tox
+      - uses: 'coverallsapp/github-action@master'
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          file: 'coverage.xml'
+          format: 'python'
 
   macos:
     runs-on: ${{ matrix.runner }}
@@ -71,16 +76,16 @@ jobs:
       - name: 'run tests'
         run: |
           tox
+      - uses: 'coverallsapp/github-action@master'
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          file: 'coverage.xml'
+          format: 'python'
 
   windows:
-    runs-on: ${{ matrix.platform.runner }}
+    runs-on: 'windows-latest'
     strategy:
       matrix:
-        platform:
-          - runner: windows-latest
-            target: x64
-          - runner: windows-latest
-            target: x86
         python-version:
           - 'pypy3.9'
           - 'pypy3.10'
@@ -104,3 +109,8 @@ jobs:
       - name: 'run tests'
         run: |
           tox
+      - uses: 'coverallsapp/github-action@master'
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          file: 'coverage.xml'
+          format: 'python'

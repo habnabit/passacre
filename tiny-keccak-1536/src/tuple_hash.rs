@@ -67,7 +67,7 @@ impl Hasher for TupleHash {
 /// # Example
 ///
 /// ```
-/// # use tiny_keccak::{TupleHash, Xof, IntoXof, Hasher};
+/// # use tiny_keccak_1536::{TupleHash, Xof, IntoXof, Hasher};
 /// let input = b"hello world";
 /// let mut output = [0u8; 64];
 /// let mut hasher = TupleHash::v256(b"");

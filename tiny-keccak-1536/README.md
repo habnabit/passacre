@@ -29,7 +29,7 @@ tiny-keccak = { version = "2.0", features = ["sha3"] }
 ## Example
 
 ```rust
-use tiny_keccak::Sha3;
+use tiny_keccak_1536::Sha3;
 
 fn main() {
     let mut sha3 = Sha3::v256();

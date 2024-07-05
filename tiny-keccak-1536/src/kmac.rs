@@ -76,7 +76,7 @@ impl Hasher for Kmac {
 /// # Example
 ///
 /// ```
-/// # use tiny_keccak::{Kmac, Xof, IntoXof, Hasher};
+/// # use tiny_keccak_1536::{Kmac, Xof, IntoXof, Hasher};
 /// let input = b"hello world";
 /// let mut output = [0u8; 64];
 /// let mut kmac = Kmac::v256(b"", b"");

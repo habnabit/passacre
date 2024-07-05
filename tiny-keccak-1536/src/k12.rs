@@ -103,7 +103,7 @@ impl<T: AsRef<[u8]>> Hasher for KangarooTwelve<T> {
 /// # Example
 ///
 /// ```
-/// # use tiny_keccak::{KangarooTwelve, Xof, IntoXof, Hasher};
+/// # use tiny_keccak_1536::{KangarooTwelve, Xof, IntoXof, Hasher};
 /// let input = b"hello world";
 /// let mut output = [0u8; 64];
 /// let mut hasher = KangarooTwelve::new(b"");

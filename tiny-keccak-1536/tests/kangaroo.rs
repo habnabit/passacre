@@ -1,4 +1,4 @@
-use tiny_keccak::{Hasher, KangarooTwelve};
+use tiny_keccak_1536::{Hasher, KangarooTwelve};
 
 fn pattern(len: usize) -> Vec<u8> {
     (0..len).map(|j| (j % 251) as u8).collect()

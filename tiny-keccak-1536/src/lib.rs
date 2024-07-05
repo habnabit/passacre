@@ -3,7 +3,7 @@
 //! # Example
 //!
 //! ```
-//! # use tiny_keccak::Hasher;
+//! # use tiny_keccak_1536::Hasher;
 //! #
 //! # fn foo<H: Hasher>(mut hasher: H) {
 //! let input_a = b"hello world";
@@ -202,7 +202,7 @@ pub use parallel_hash::{ParallelHash, ParallelHashXof};
 /// # Example
 ///
 /// ```
-/// # use tiny_keccak::Hasher;
+/// # use tiny_keccak_1536::Hasher;
 /// #
 /// # fn foo<H: Hasher>(mut hasher: H) {
 /// let input_a = b"hello world";
@@ -226,7 +226,7 @@ pub trait Hasher {
 /// # Example
 ///
 /// ```
-/// # use tiny_keccak::IntoXof;
+/// # use tiny_keccak_1536::IntoXof;
 /// #
 /// # fn foo<H: IntoXof>(hasher: H) {
 /// let xof = hasher.into_xof();
@@ -253,7 +253,7 @@ pub trait IntoXof {
 /// # Example
 ///
 /// ```
-/// # use tiny_keccak::Xof;
+/// # use tiny_keccak_1536::Xof;
 /// #
 /// # fn foo<X: Xof>(mut xof: X) {
 /// let mut output = [0u8; 64];
@@ -270,7 +270,8 @@ pub trait Xof {
     feature = "cshake",
     feature = "kmac",
     feature = "tuple_hash",
-    feature = "parallel_hash"
+    feature = "parallel_hash",
+    test,
 ))]
 struct EncodedLen {
     offset: usize,
@@ -281,7 +282,8 @@ struct EncodedLen {
     feature = "cshake",
     feature = "kmac",
     feature = "tuple_hash",
-    feature = "parallel_hash"
+    feature = "parallel_hash",
+    test,
 ))]
 impl EncodedLen {
     fn value(&self) -> &[u8] {
@@ -293,7 +295,8 @@ impl EncodedLen {
     feature = "cshake",
     feature = "kmac",
     feature = "tuple_hash",
-    feature = "parallel_hash"
+    feature = "parallel_hash",
+    test,
 ))]
 fn left_encode(len: usize) -> EncodedLen {
     let mut buffer = [0u8; 9];
@@ -311,7 +314,8 @@ fn left_encode(len: usize) -> EncodedLen {
     feature = "cshake",
     feature = "kmac",
     feature = "tuple_hash",
-    feature = "parallel_hash"
+    feature = "parallel_hash",
+    test,
 ))]
 fn right_encode(len: usize) -> EncodedLen {
     let mut buffer = [0u8; 9];

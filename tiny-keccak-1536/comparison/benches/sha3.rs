@@ -6,7 +6,7 @@ use test::Bencher;
 
 #[bench]
 fn tiny_keccak_sha3_256_input_32_bytes(b: &mut Bencher) {
-    use tiny_keccak::{Sha3, Hasher};
+    use tiny_keccak_1536::{Sha3, Hasher};
     let data = vec![254u8; 32];
     b.bytes = data.len() as u64;
 
@@ -20,7 +20,7 @@ fn tiny_keccak_sha3_256_input_32_bytes(b: &mut Bencher) {
 
 #[bench]
 fn tiny_keccak_sha3_256_input_4096_bytes(b: &mut Bencher) {
-    use tiny_keccak::{Sha3, Hasher};
+    use tiny_keccak_1536::{Sha3, Hasher};
     let data = vec![254u8; 4096];
     b.bytes = data.len() as u64;
 

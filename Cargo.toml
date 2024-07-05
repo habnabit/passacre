@@ -3,6 +3,12 @@ name = "passacre"
 version = "1.0.1-rc2"
 edition = "2021"
 
+[workspace]
+members = [
+    "tiny-keccak-1536",
+    "tiny-keccak-1536/comparison",
+]
+
 [lib]
 name = "_passacre_backend"
 crate-type = ["cdylib"]
@@ -10,6 +16,7 @@ crate-type = ["cdylib"]
 [features]
 default = ["python"]
 python = ["pyo3"]
+testing-checks = []
 
 [dependencies]
 pyo3 = { version = "0.21.1", optional = true }

@@ -1,4 +1,4 @@
-use tiny_keccak::{Hasher, ParallelHash};
+use tiny_keccak_1536::{Hasher, ParallelHash};
 
 #[test]
 fn test_parallel_hash128_one() {

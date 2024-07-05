@@ -14,16 +14,13 @@ categories = ["cryptography", "no-std"]
 [dependencies]
 crunchy = "0.2.2"
 
-[profile.dev]
-opt-level = 3  # Controls the --opt-level the compiler builds with
-debug = false   # Controls whether the compiler passes `-g`
+# [profile.dev]
+# opt-level = 3  # Controls the --opt-level the compiler builds with
+# debug = false   # Controls whether the compiler passes `-g`
 
-[profile.test]
-opt-level = 3  # Controls the --opt-level the compiler builds with
-debug = false   # Controls whether the compiler passes `-g`
-
-[workspace]
-members = ["comparison"]
+# [profile.test]
+# opt-level = 3  # Controls the --opt-level the compiler builds with
+# debug = false   # Controls whether the compiler passes `-g`
 
 [badges]
 travis-ci = { repository = "debris/tiny-keccak", branch = "master"}

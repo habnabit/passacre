@@ -158,7 +158,7 @@ impl Hasher for ParallelHash {
 /// # Example
 ///
 /// ```
-/// # use tiny_keccak::{ParallelHash, Xof, IntoXof, Hasher};
+/// # use tiny_keccak_1536::{ParallelHash, Xof, IntoXof, Hasher};
 /// let input = b"hello world";
 /// let mut output = [0u8; 64];
 /// let mut hasher = ParallelHash::v256(b"", 8);
