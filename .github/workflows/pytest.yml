@@ -44,8 +44,7 @@ jobs:
       - uses: 'coverallsapp/github-action@master'
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
-          file: 'coverage.xml'
-          format: 'python'
+          path-to-lcov: 'lcov.info'
 
   macos:
     runs-on: ${{ matrix.runner }}
@@ -79,8 +78,7 @@ jobs:
       - uses: 'coverallsapp/github-action@master'
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
-          file: 'coverage.xml'
-          format: 'python'
+          path-to-lcov: 'lcov.info'
 
   windows:
     runs-on: 'windows-latest'
@@ -112,5 +110,4 @@ jobs:
       - uses: 'coverallsapp/github-action@master'
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
-          file: 'coverage.xml'
-          format: 'python'
+          path-to-lcov: 'lcov.info'
