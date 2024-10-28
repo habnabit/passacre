@@ -8,11 +8,11 @@ on:
 
 jobs:
   build-wheels:
-    uses: habnabit/passacre/.github/workflows/build-wheels.yml@nearly-1.0
+    uses: ./.github/workflows/build-wheels.yml
 
   linux:
     runs-on: 'ubuntu-latest'
-    needs: ['build-wheels']
+    needs: ['build-wheels.linux']
     strategy:
       matrix:
         python-version:
@@ -55,7 +55,7 @@ jobs:
 
   macos:
     runs-on: ${{ matrix.runner }}
-    needs: ['build-wheels']
+    needs: ['build-wheels.macos']
     strategy:
       matrix:
         runner:
@@ -91,7 +91,7 @@ jobs:
 
   windows:
     runs-on: 'windows-latest'
-    needs: ['build-wheels']
+    needs: ['build-wheels.windows']
     strategy:
       matrix:
         python-version:
