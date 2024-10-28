@@ -1,18 +1,26 @@
 name: 'python tests'
 
+# TODO: use the wheels from build-wheels
+
 on:
   - 'push'
   - 'pull_request'
 
 jobs:
+  build-wheels:
+    uses: habnabit/passacre/.github/workflows/build-wheels.yml@v1
+
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    steps:
+      - run: echo ${{ needs.job1.outputs.firstword }} ${{ needs.job1.outputs.secondword }}
+
   linux:
     runs-on: 'ubuntu-latest'
+    needs: ['build-wheels']
     strategy:
       matrix:
-        compiler:
-          - cc: 'clang'
-            ldshared: 'clang -shared'
-          - cc: 'gcc'
         python-version:
           - 'pypy3.9'
           - 'pypy3.10'
@@ -24,12 +32,8 @@ jobs:
           - '3.12'
 
     steps:
+      - run: 'echo ${{ needs.build-wheels }}'
       - uses: 'actions/checkout@v4'
-      - name: 'install compiler'
-        run: |
-          sudo apt-get install -y ${{ matrix.compiler.cc }}
-          echo >> "$GITHUB_ENV" 'CC=${{ matrix.compiler.cc }}'
-          echo >> "$GITHUB_ENV" 'LDSHARED=${{ matrix.compiler.ldshared }}'
       - name: 'set up python ${{ matrix.python-version }}'
         uses: actions/setup-python@v5
         with:
@@ -41,13 +45,14 @@ jobs:
       - name: 'run tests'
         run: |
           tox
-      - uses: 'coverallsapp/github-action@master'
+      - uses: 'coverallsapp/github-action@v2.3.4'
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
           path-to-lcov: 'lcov.info'
 
   macos:
     runs-on: ${{ matrix.runner }}
+    needs: ['build-wheels']
     strategy:
       matrix:
         runner:
@@ -63,6 +68,7 @@ jobs:
           - '3.12'
 
     steps:
+      - run: 'echo ${{ needs.build-wheels }}'
       - uses: actions/checkout@v4
       - name: 'set up python ${{ matrix.python-version }}'
         uses: actions/setup-python@v5
@@ -75,13 +81,14 @@ jobs:
       - name: 'run tests'
         run: |
           tox
-      - uses: 'coverallsapp/github-action@master'
+      - uses: 'coverallsapp/github-action@v2.3.4'
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
           path-to-lcov: 'lcov.info'
 
   windows:
     runs-on: 'windows-latest'
+    needs: ['build-wheels']
     strategy:
       matrix:
         python-version:
@@ -95,6 +102,7 @@ jobs:
           - '3.12'
 
     steps:
+      - run: 'echo ${{ needs.build-wheels }}'
       - uses: actions/checkout@v4
       - name: 'set up python ${{ matrix.python-version }}'
         uses: actions/setup-python@v5
@@ -107,7 +115,7 @@ jobs:
       - name: 'run tests'
         run: |
           tox
-      - uses: 'coverallsapp/github-action@master'
+      - uses: 'coverallsapp/github-action@v2.3.4'
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
           path-to-lcov: 'lcov.info'
