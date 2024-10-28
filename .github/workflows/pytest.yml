@@ -8,13 +8,7 @@ on:
 
 jobs:
   build-wheels:
-    uses: habnabit/passacre/.github/workflows/build-wheels.yml@v1
-
-  job2:
-    runs-on: ubuntu-latest
-    needs: job1
-    steps:
-      - run: echo ${{ needs.job1.outputs.firstword }} ${{ needs.job1.outputs.secondword }}
+    uses: habnabit/passacre/.github/workflows/build-wheels.yml@nearly-1.0
 
   linux:
     runs-on: 'ubuntu-latest'
@@ -45,6 +39,15 @@ jobs:
       - name: 'run tests'
         run: |
           tox
+      - name: 'locate testing base'
+        id: 'toxbase'
+        run: |
+          >>"$GITHUB_OUTPUT" {
+            echo 'TOXBASE<<EOF'
+            tox exec -q -- python3 -c 'import passacre, pathlib; print(pathlib.Path(passacre.__file__).parent.parent)'
+            echo 'EOF'
+          }
+      - run: 'echo ${{ steps.toxbase.outputs.TOXBASE }}'
       - uses: 'coverallsapp/github-action@v2.3.4'
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'

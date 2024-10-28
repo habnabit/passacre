@@ -5,7 +5,7 @@ on:
   - 'pull_request'
 
 jobs:
-  lint:
+  run-rust-tests:
     runs-on: '${{ matrix.platform.runner }}'
     strategy:
       matrix:
